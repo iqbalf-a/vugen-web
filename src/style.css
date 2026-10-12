@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #121821;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2b3440;
+    border: 2px solid #121821;
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a4553;
+  }
+}
+
+/* Status indikator toolbar (dipakai src/main.js lewat data-state). */
+#status[data-state="ok"] {
+  color: #7ddba1;
+}
+
+#status[data-state="warn"] {
+  color: #e3c664;
+}
+
+#status[data-state="error"] {
+  color: #f08a8a;
+}

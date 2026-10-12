@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VuGen Web — Run Script + Snapshot</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="min-h-screen bg-[#0e1116] text-[#e6edf3] antialiased">
+    <div class="flex h-screen flex-col overflow-hidden">
+      <!-- ── Toolbar ── -->
+      <header class="flex flex-wrap items-end gap-2.5 border-b border-[#232a33] bg-[#141922] px-4 py-3">
+        <div class="mr-1 flex items-baseline gap-2">
+          <span class="text-[13px] font-bold tracking-tight">VuGen Web</span>
+          <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">run + snapshot</span>
+        </div>
+
+        <div class="min-w-[320px] flex-1">
+          <label for="scriptPath" class="mb-1 block font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[#7d8896]">Folder script VuGen</label>
+          <input
+            id="scriptPath"
+            placeholder="C:\path\to\script"
+            spellcheck="false"
+            class="h-8 w-full rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 font-mono text-[12.5px] text-[#e6edf3] outline-none placeholder:text-[#5b6572] focus:border-[#d2a24c]"
+          />
+        </div>
+
+        <button id="openBtn" type="button" class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3 text-[12px] font-medium hover:border-[#3a4553]">
+          Buka Folder
+        </button>
+        <button id="runBtn" type="button" disabled class="h-8 rounded-[3px] border border-[#d2a24c] bg-[#d2a24c] px-3.5 text-[12px] font-bold text-[#1c1200] disabled:cursor-not-allowed disabled:opacity-50">
+          Run
+        </button>
+        <button id="stopBtn" type="button" disabled class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-50">
+          Stop
+        </button>
+
+        <span id="status" data-state="checking" class="font-mono text-[11px] text-[#7d8896]">…</span>
+      </header>
+
+      <!-- ── Tiga area ── -->
+      <main class="grid min-h-0 flex-1 grid-cols-[260px_minmax(0,1fr)_380px]">
+        <aside class="flex min-h-0 flex-col border-r border-[#232a33] bg-[#121821]">
+          <div class="border-b border-[#232a33] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">File Script</div>
+          <div id="fileTree" class="min-h-0 flex-1 overflow-auto px-2 py-2 text-[12.5px] text-[#5b6572]">Belum ada folder yang dibuka.</div>
+          <div class="border-y border-[#232a33] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Step Run</div>
+          <div id="stepList" class="min-h-0 flex-1 overflow-auto px-2 py-2 font-mono text-[11.5px] text-[#5b6572]">Belum ada hasil run.</div>
+        </aside>
+
+        <section class="flex min-h-0 flex-col bg-[#0e1116]">
+          <div id="tabBar" class="flex min-h-[34px] items-center gap-1 border-b border-[#232a33] bg-[#141922] px-2 py-1"></div>
+          <div id="editor" class="min-h-0 flex-1 overflow-hidden">
+            <div class="grid h-full place-items-center text-[12.5px] text-[#5b6572]">Belum ada file yang dibuka.</div>
+          </div>
+        </section>
+
+        <section class="flex min-h-0 flex-col border-l border-[#232a33] bg-[#141922]">
+          <div id="panelTabBar" class="flex min-h-[34px] items-center gap-1 border-b border-[#232a33] px-2 py-1"></div>
+          <div id="panel" class="min-h-0 flex-1 overflow-auto px-3 py-3 font-mono text-[11.5px] text-[#5b6572]">Belum ada hasil run.</div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

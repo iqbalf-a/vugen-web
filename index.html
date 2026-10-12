@@ -19,10 +19,12 @@
           <label for="scriptPath" class="mb-1 block font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[#7d8896]">Folder script VuGen</label>
           <input
             id="scriptPath"
+            list="scriptPathHistory"
             placeholder="C:\path\to\script"
             spellcheck="false"
             class="h-8 w-full rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 font-mono text-[12.5px] text-[#e6edf3] outline-none placeholder:text-[#5b6572] focus:border-[#d2a24c]"
           />
+          <datalist id="scriptPathHistory"></datalist>
         </div>
 
         <button id="openBtn" type="button" class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3 text-[12px] font-medium hover:border-[#3a4553]">

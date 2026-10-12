@@ -18,7 +18,7 @@ Referensi kebenaran: `plan.md` (repo) dan `vugen-web-eksekusi.md` (rencana).
 | Tahap | Status | Commit | Catatan |
 |---|---|---|---|
 | F0 Scaffold | `[x]` | `F0: scaffold vite + tailwind + plugin middleware + vitest` | AC lulus (health ok, 4/4 test, lint bersih) |
-| F1 Loader + Editor | `[ ]` | — | — |
+| F1 Loader + Editor | `[x]` | `F1: loader folder script + endpoint file + editor CodeMirror` | AC lulus (20/20 test, lint bersih, CRLF & isolation terverifikasi) |
 | F2 Tokenizer + Parser | `[ ]` | — | — |
 | F3 Transpile + Runtime inti | `[ ]` | — | — |
 | F4 UI Run + Snapshot | `[ ]` | — | — |
@@ -43,20 +43,21 @@ Referensi kebenaran: `plan.md` (repo) dan `vugen-web-eksekusi.md` (rencana).
 - `[x]` **AC:** `npm run dev` tampil; `GET /api/health` = ok; `npm test` hijau; `npm run lint` bersih
 - `[x]` Commit `F0: scaffold vite + tailwind + plugin middleware + vitest`
 
-## F1 — Loader + Editor
+## F1 — Loader + Editor ✅
 
-- `[ ]` `server/project/paths.js` — validasi path (tolak `..`, absolut luar root, symlink keluar) + hash path → folder cache
-- `[ ]` `server/project/loader.js` — scan `.usr`/`default.cfg`/`default.usp`/`*.c`/`*.h`/`*.prm`/`data/`; actions + Run Logic dari `.usr`/`.usp` best-effort; **fallback** `vuser_init.c → Action.c → vuser_end.c`
-- `[ ]` `server/project/save.js` — atomic (temp + rename), pertahankan CRLF/LF + encoding, backup ke `.cache/<hash>/backups/`
-- `[ ]` `server/routes/project.js` (`GET /api/project?path=`)
-- `[ ]` `server/routes/file.js` (`GET /api/file`, `PUT /api/file`)
-- `[ ]` `src/components/fileTree.js`
-- `[ ]` `src/components/editor.js` — CodeMirror 6, multi-tab, Save + Ctrl+S
-- `[ ]` `src/components/runToolbar.js` — input path + riwayat localStorage
-- `[ ]` `samples/basic/` → `Action.c` (§9), `vuser_init.c`, `vuser_end.c`, `globals.h`
-- `[ ]` Test: hash sebelum/sesudah Save (hanya 1 file berubah), CRLF round-trip, `file=../../x` → 400
-- `[ ]` **AC:** buka `samples/basic`, edit `Action.c`, Save → hanya file itu berubah; line ending tetap; halaman tidak reload
-- `[ ]` Commit `F1: loader folder script + endpoint file + editor CodeMirror`
+- `[x]` `server/project/paths.js` — validasi path (tolak `..`, absolut luar root, symlink keluar) + hash path → folder cache
+- `[x]` `server/project/loader.js` — scan `.usr`/`default.cfg`/`default.usp`/`*.c`/`*.h`/`*.prm`/`data/`; actions + Run Logic dari `.usr`/`.usp` best-effort; **fallback** `vuser_init.c → Action.c → vuser_end.c`
+- `[x]` `server/project/save.js` — baca/simpan satu file: atomic (temp → rename), pertahankan CRLF/LF + encoding (utf8/utf8-bom/utf16le), backup ke `.cache/<hash>/backups/`
+- `[x]` `server/routes/project.js` (`GET /api/project?path=`)
+- `[x]` `server/routes/file.js` (`GET /api/file`, `PUT /api/file`)
+- `[x]` `server/routes/index.js` — dispatcher diperbaiki: path yang sama boleh punya banyak method (GET+PUT `/file`)
+- `[x]` `src/components/fileTree.js`
+- `[x]` `src/components/editor.js` — CodeMirror 6 + `@codemirror/lang-cpp` + one-dark, `getValue`/`setDoc`/`focusLine`
+- `[x]` `src/components/runToolbar.js` — input path + riwayat localStorage (datalist)
+- `[x]` `samples/basic/` → `Action.c` (§9, CRLF), `vuser_init.c`, `vuser_end.c`, `globals.h`, `data/users.dat`
+- `[x]` Test: `server/test/project.test.js` (path escape, fallback Run Logic, round-trip byte-identik, CRLF, backup, ekstensi, file lain tak tersentuh) + dispatch multi-method
+- `[x]` **AC:** buka `samples/basic`, edit `Action.c`, Save → hanya `Action.c` yang berubah; CRLF tetap; Save tidak memicu reload (watcher mengabaikan `samples/`); escape → 400
+- `[x]` Commit `F1: loader folder script + endpoint file + editor CodeMirror`
 
 ## F2 — Tokenizer + Parser
 

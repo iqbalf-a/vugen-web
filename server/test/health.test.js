@@ -45,3 +45,11 @@ describe("method tidak didukung", () => {
     expect(res.status).toBe(405);
   });
 });
+
+describe("dispatch multi-method pada path yang sama", () => {
+  it("PUT /api/file tanpa body -> 400, bukan 405", async () => {
+    const res = await fetch(`${base}/api/file`, { method: "PUT" });
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({ error: expect.any(String) });
+  });
+});

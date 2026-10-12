@@ -13,21 +13,46 @@ export async function requestJson(path, init = {}) {
   const text = await res.text();
   /** @type {any} */
   let data = null;
-  if (text.trim() !== "") {
+  if (text !== "") {
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error(`Respons dari ${path} bukan JSON (status ${res.status}).`);
+      throw new Error(`Respons bukan JSON (HTTP ${res.status}).`);
     }
   }
 
   if (!res.ok) {
-    throw new Error(data?.error ?? `Request gagal: ${res.status} ${res.statusText}`);
+    throw new Error(data?.error ?? `Request gagal (HTTP ${res.status}).`);
   }
   return data;
 }
 
-/** GET /api/health */
 export function getHealth() {
   return requestJson("/api/health");
+}
+
+/**
+ * @param {string} scriptPath
+ */
+export function openProject(scriptPath) {
+  return requestJson(`/api/project?path=${encodeURIComponent(scriptPath)}`);
+}
+
+/**
+ * @param {string} scriptPath
+ * @param {string} file
+ */
+export function readFile(scriptPath, file) {
+  return requestJson(`/api/file?path=${encodeURIComponent(scriptPath)}&file=${encodeURIComponent(file)}`);
+}
+
+/**
+ * @param {{ path: string, file: string, text: string }} payload
+ */
+export function saveFile({ path, file, text }) {
+  return requestJson("/api/file", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, file, text }),
+  });
 }

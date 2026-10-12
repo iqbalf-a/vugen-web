@@ -1,9 +1,9 @@
 /**
- * Dispatch route /api tanpa Express (gaya Connect: `handler(req, res)`).
+ * Dispatch route /api tanpa Express (gaya Connect: `handler(req, res, url)`).
  *
- * Karena Vite/Connect sudah membuang prefix `/api`, sekaligus untuk membuat
- * router bisa dites langsung tanpa Vite, path dinormalisasi: `/api/health`
- * maupun `/health` sama-sama cocok.
+ * Karena Vite/Connect sudah membuang prefix `/api`, sekaligus supaya router bisa
+ * dites langsung tanpa Vite, path dinormalisasi: `/api/file` maupun `/file`
+ * sama-sama cocok.
  *
  * @typedef {import("../http-utils.js").IncomingMessage} IncomingMessage
  * @typedef {import("../http-utils.js").ServerResponse} ServerResponse
@@ -11,6 +11,8 @@
  */
 
 import { requestUrl, sendError, sendJson } from "../http-utils.js";
+import { getFile, putFile } from "./file.js";
+import { getProject } from "./project.js";
 
 /** @type {ApiRoute[]} */
 const routes = [
@@ -21,6 +23,9 @@ const routes = [
       sendJson(res, 200, { ok: true });
     },
   },
+  { methods: ["GET"], path: "/project", handler: getProject },
+  { methods: ["GET"], path: "/file", handler: getFile },
+  { methods: ["PUT"], path: "/file", handler: putFile },
 ];
 
 function normalizePath(pathname) {
@@ -29,27 +34,37 @@ function normalizePath(pathname) {
   return pathname;
 }
 
+function statusOf(error) {
+  const status = /** @type {{ status?: unknown }} */ (error)?.status;
+  return Number.isInteger(status) && status >= 400 && status <= 599 ? status : 500;
+}
+
 export function apiRouter(req, res) {
   const url = requestUrl(req);
   const pathname = normalizePath(url.pathname);
+  const method = req.method ?? "GET";
 
-  for (const route of routes) {
-    if (route.path !== pathname) continue;
-    if (!route.methods.includes(req.method ?? "GET")) {
-      sendError(res, 405, `Method ${req.method} tidak didukung untuk ${pathname}.`);
-      return;
-    }
-    Promise.resolve()
-      .then(() => route.handler(req, res, url))
-      .catch((error) => {
-        if (res.headersSent) {
-          res.end();
-          return;
-        }
-        sendError(res, 500, error instanceof Error ? error.message : String(error));
-      });
+  const forPath = routes.filter((route) => route.path === pathname);
+  if (forPath.length === 0) {
+    sendError(res, 404, `Route tidak ditemukan: ${method} ${pathname}.`);
     return;
   }
 
-  sendError(res, 404, `Route tidak ditemukan: ${req.method ?? "GET"} ${pathname}.`);
+  const route = forPath.find((candidate) => candidate.methods.includes(method));
+  if (!route) {
+    sendError(res, 405, `Method ${method} tidak didukung untuk ${pathname}.`);
+    return;
+  }
+
+  Promise.resolve()
+    .then(() => route.handler(req, res, url))
+    .catch((error) => {
+      const status = statusOf(error);
+      if (status >= 500) console.error(`[api] ${method} ${pathname} gagal:`, error);
+      if (res.headersSent) {
+        res.end();
+        return;
+      }
+      sendError(res, status, error instanceof Error ? error.message : String(error));
+    });
 }

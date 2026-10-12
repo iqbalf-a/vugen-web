@@ -1,0 +1,659 @@
+{
+  "file": "control-flow.c",
+  "tokens": [
+    {
+      "type": "identifier",
+      "value": "Action",
+      "line": 2,
+      "col": 1
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 2,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 2,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 3,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 4,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 4,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 4,
+      "col": 10
+    },
+    {
+      "type": "identifier",
+      "value": "for",
+      "line": 5,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 5,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 5,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 5,
+      "col": 12
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 5,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 5,
+      "col": 15
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 5,
+      "col": 17
+    },
+    {
+      "type": "punct",
+      "value": "<",
+      "line": 5,
+      "col": 19
+    },
+    {
+      "type": "number",
+      "value": "3",
+      "line": 5,
+      "col": 21
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 5,
+      "col": 22
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 5,
+      "col": 24
+    },
+    {
+      "type": "punct",
+      "value": "++",
+      "line": 5,
+      "col": 25
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 5,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 5,
+      "col": 29
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 6,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 6,
+      "col": 26
+    },
+    {
+      "type": "string",
+      "value": "loop",
+      "line": 6,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 6,
+      "col": 33
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 6,
+      "col": 34
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 7,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "while",
+      "line": 9,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 9,
+      "col": 11
+    },
+    {
+      "type": "identifier",
+      "value": "strcmp",
+      "line": 9,
+      "col": 12
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 9,
+      "col": 18
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 9,
+      "col": 19
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 9,
+      "col": 33
+    },
+    {
+      "type": "string",
+      "value": "{flag}",
+      "line": 9,
+      "col": 34
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 9,
+      "col": 42
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 9,
+      "col": 43
+    },
+    {
+      "type": "string",
+      "value": "y",
+      "line": 9,
+      "col": 45
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 9,
+      "col": 48
+    },
+    {
+      "type": "punct",
+      "value": "==",
+      "line": 9,
+      "col": 50
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 9,
+      "col": 53
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 9,
+      "col": 54
+    },
+    {
+      "type": "identifier",
+      "value": "lr_think_time",
+      "line": 10,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 10,
+      "col": 22
+    },
+    {
+      "type": "number",
+      "value": "1",
+      "line": 10,
+      "col": 23
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 10,
+      "col": 24
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 10,
+      "col": 25
+    },
+    {
+      "type": "identifier",
+      "value": "if",
+      "line": 12,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 12,
+      "col": 8
+    },
+    {
+      "type": "identifier",
+      "value": "strcmp",
+      "line": 12,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 12,
+      "col": 15
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 12,
+      "col": 16
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 12,
+      "col": 30
+    },
+    {
+      "type": "string",
+      "value": "{status}",
+      "line": 12,
+      "col": 31
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 12,
+      "col": 41
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 12,
+      "col": 42
+    },
+    {
+      "type": "string",
+      "value": "ok",
+      "line": 12,
+      "col": 44
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 12,
+      "col": 48
+    },
+    {
+      "type": "punct",
+      "value": "==",
+      "line": 12,
+      "col": 50
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 12,
+      "col": 53
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 12,
+      "col": 54
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 12,
+      "col": 56
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 13,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 13,
+      "col": 26
+    },
+    {
+      "type": "string",
+      "value": "sukses",
+      "line": 13,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 13,
+      "col": 35
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 13,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 14,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "else",
+      "line": 14,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 14,
+      "col": 12
+    },
+    {
+      "type": "identifier",
+      "value": "lr_error_message",
+      "line": 15,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 15,
+      "col": 25
+    },
+    {
+      "type": "string",
+      "value": "gagal",
+      "line": 15,
+      "col": 26
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 15,
+      "col": 33
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 15,
+      "col": 34
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 16,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "do",
+      "line": 18,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 18,
+      "col": 8
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 19,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 19,
+      "col": 26
+    },
+    {
+      "type": "string",
+      "value": "sekali",
+      "line": 19,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 19,
+      "col": 35
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 19,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 20,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "while",
+      "line": 20,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 20,
+      "col": 13
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 20,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 20,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 20,
+      "col": 16
+    },
+    {
+      "type": "identifier",
+      "value": "switch",
+      "line": 22,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 22,
+      "col": 12
+    },
+    {
+      "type": "number",
+      "value": "1",
+      "line": 22,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 22,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 22,
+      "col": 16
+    },
+    {
+      "type": "identifier",
+      "value": "case",
+      "line": 23,
+      "col": 9
+    },
+    {
+      "type": "number",
+      "value": "1",
+      "line": 23,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": ":",
+      "line": 23,
+      "col": 15
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 24,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 24,
+      "col": 30
+    },
+    {
+      "type": "string",
+      "value": "satu",
+      "line": 24,
+      "col": 31
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 24,
+      "col": 37
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 24,
+      "col": 38
+    },
+    {
+      "type": "identifier",
+      "value": "break",
+      "line": 25,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 25,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 26,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "return",
+      "line": 28,
+      "col": 5
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 28,
+      "col": 12
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 28,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 29,
+      "col": 1
+    },
+    {
+      "type": "eof",
+      "value": "",
+      "line": 30,
+      "col": 1
+    }
+  ]
+}

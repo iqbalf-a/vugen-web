@@ -1,0 +1,55 @@
+{
+  "file": "unsupported.c",
+  "ast": {
+    "type": "Program",
+    "file": "unsupported.c",
+    "body": [
+      {
+        "type": "FunctionDeclaration",
+        "name": "Action",
+        "body": [
+          {
+            "type": "Unsupported",
+            "file": "unsupported.c",
+            "line": 4
+          },
+          {
+            "type": "Unsupported",
+            "file": "unsupported.c",
+            "line": 5
+          },
+          {
+            "type": "Unsupported",
+            "file": "unsupported.c",
+            "line": 6
+          },
+          {
+            "type": "Unsupported",
+            "file": "unsupported.c",
+            "line": 7
+          },
+          {
+            "type": "LabeledStatement",
+            "label": "selesai",
+            "file": "unsupported.c",
+            "line": 8
+          },
+          {
+            "type": "ReturnStatement",
+            "argument": {
+              "type": "NumberLiteral",
+              "value": 0,
+              "file": "unsupported.c",
+              "line": 9
+            },
+            "file": "unsupported.c",
+            "line": 9
+          }
+        ],
+        "file": "unsupported.c",
+        "line": 2
+      }
+    ],
+    "warnings": []
+  }
+}

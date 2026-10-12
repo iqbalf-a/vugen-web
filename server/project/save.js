@@ -7,6 +7,8 @@
  * Catatan: file temp dibuat di folder yang sama dengan target karena
  * `fs.rename` hanya atomic dalam satu volume (di Windows, rename lintas drive
  * gagal dengan EXDEV). File temp selalu dihapus, termasuk saat gagal.
+ * Rename diulang singkat bila gagal dengan EPERM/EACCES/EBUSY (lock sementara
+ * dari antivirus/indexer di Windows).
  */
 
 import { promises as fs } from "node:fs";
@@ -57,6 +59,24 @@ function detectEol(text) {
   return text.includes("\r\n") ? "crlf" : "lf";
 }
 
+/** Error rename yang di Windows sering hanya sementara (antivirus/indexer memegang handle). */
+const TRANSIENT_RENAME_ERRORS = new Set(["EPERM", "EACCES", "EBUSY"]);
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Rename dengan retry singkat supaya Save tidak gagal karena lock sesaat. */
+async function renameWithRetry(source, target, attempts = 5) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await fs.rename(source, target);
+      return;
+    } catch (error) {
+      if (!TRANSIENT_RENAME_ERRORS.has(error?.code) || attempt >= attempts) throw error;
+      await sleep(20 * attempt);
+    }
+  }
+}
+
 /** Tulis buffer lewat file temp di folder yang sama, lalu rename. */
 async function atomicWrite(target, buffer) {
   const dir = path.dirname(target);
@@ -66,7 +86,7 @@ async function atomicWrite(target, buffer) {
   );
   try {
     await fs.writeFile(temp, buffer);
-    await fs.rename(temp, target);
+    await renameWithRetry(temp, target);
   } catch (error) {
     await fs.rm(temp, { force: true }).catch(() => {});
     throw error;

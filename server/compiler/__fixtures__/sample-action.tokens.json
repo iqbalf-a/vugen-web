@@ -1,0 +1,515 @@
+{
+  "file": "sample-action.c",
+  "tokens": [
+    {
+      "type": "identifier",
+      "value": "Action",
+      "line": 1,
+      "col": 1
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 1,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 1,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 2,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "lr_start_transaction",
+      "line": 3,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 3,
+      "col": 25
+    },
+    {
+      "type": "string",
+      "value": "T01_home",
+      "line": 3,
+      "col": 26
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 3,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 3,
+      "col": 37
+    },
+    {
+      "type": "identifier",
+      "value": "web_reg_save_param",
+      "line": 5,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 5,
+      "col": 23
+    },
+    {
+      "type": "string",
+      "value": "csrf",
+      "line": 5,
+      "col": 24
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 5,
+      "col": 30
+    },
+    {
+      "type": "string",
+      "value": "LB=name=\"csrf\" value=\"",
+      "line": 6,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 6,
+      "col": 36
+    },
+    {
+      "type": "string",
+      "value": "RB=\"",
+      "line": 7,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 7,
+      "col": 16
+    },
+    {
+      "type": "string",
+      "value": "Ord=1",
+      "line": 8,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 8,
+      "col": 16
+    },
+    {
+      "type": "identifier",
+      "value": "LAST",
+      "line": 9,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 9,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 9,
+      "col": 14
+    },
+    {
+      "type": "identifier",
+      "value": "web_url",
+      "line": 11,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 11,
+      "col": 12
+    },
+    {
+      "type": "string",
+      "value": "home",
+      "line": 11,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 11,
+      "col": 19
+    },
+    {
+      "type": "string",
+      "value": "URL=https://example.test/",
+      "line": 12,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 12,
+      "col": 36
+    },
+    {
+      "type": "string",
+      "value": "TargetFrame=",
+      "line": 13,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 13,
+      "col": 23
+    },
+    {
+      "type": "string",
+      "value": "Resource=0",
+      "line": 14,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 14,
+      "col": 21
+    },
+    {
+      "type": "string",
+      "value": "RecContentType=text/html",
+      "line": 15,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 15,
+      "col": 35
+    },
+    {
+      "type": "string",
+      "value": "Referer=",
+      "line": 16,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 16,
+      "col": 19
+    },
+    {
+      "type": "string",
+      "value": "Mode=HTML",
+      "line": 17,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 17,
+      "col": 20
+    },
+    {
+      "type": "identifier",
+      "value": "LAST",
+      "line": 18,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 18,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 18,
+      "col": 14
+    },
+    {
+      "type": "identifier",
+      "value": "lr_end_transaction",
+      "line": 20,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 20,
+      "col": 23
+    },
+    {
+      "type": "string",
+      "value": "T01_home",
+      "line": 20,
+      "col": 24
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 20,
+      "col": 34
+    },
+    {
+      "type": "identifier",
+      "value": "LR_AUTO",
+      "line": 20,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 20,
+      "col": 43
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 20,
+      "col": 44
+    },
+    {
+      "type": "identifier",
+      "value": "lr_think_time",
+      "line": 22,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 22,
+      "col": 18
+    },
+    {
+      "type": "number",
+      "value": "2",
+      "line": 22,
+      "col": 19
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 22,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 22,
+      "col": 21
+    },
+    {
+      "type": "identifier",
+      "value": "web_submit_data",
+      "line": 24,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 24,
+      "col": 20
+    },
+    {
+      "type": "string",
+      "value": "login",
+      "line": 24,
+      "col": 21
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 24,
+      "col": 28
+    },
+    {
+      "type": "string",
+      "value": "Action=https://example.test/login",
+      "line": 25,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 25,
+      "col": 44
+    },
+    {
+      "type": "string",
+      "value": "Method=POST",
+      "line": 26,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 26,
+      "col": 22
+    },
+    {
+      "type": "string",
+      "value": "Mode=HTML",
+      "line": 27,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 27,
+      "col": 20
+    },
+    {
+      "type": "identifier",
+      "value": "ITEMDATA",
+      "line": 28,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 28,
+      "col": 17
+    },
+    {
+      "type": "string",
+      "value": "Name=user",
+      "line": 29,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 29,
+      "col": 20
+    },
+    {
+      "type": "string",
+      "value": "Value=demo",
+      "line": 29,
+      "col": 22
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 29,
+      "col": 34
+    },
+    {
+      "type": "identifier",
+      "value": "ENDITEM",
+      "line": 29,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 29,
+      "col": 43
+    },
+    {
+      "type": "string",
+      "value": "Name=csrf",
+      "line": 30,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 30,
+      "col": 20
+    },
+    {
+      "type": "string",
+      "value": "Value={csrf}",
+      "line": 30,
+      "col": 22
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 30,
+      "col": 36
+    },
+    {
+      "type": "identifier",
+      "value": "ENDITEM",
+      "line": 30,
+      "col": 38
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 30,
+      "col": 45
+    },
+    {
+      "type": "identifier",
+      "value": "LAST",
+      "line": 31,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 31,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 31,
+      "col": 14
+    },
+    {
+      "type": "identifier",
+      "value": "return",
+      "line": 33,
+      "col": 5
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 33,
+      "col": 12
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 33,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 34,
+      "col": 1
+    },
+    {
+      "type": "eof",
+      "value": "",
+      "line": 35,
+      "col": 1
+    }
+  ]
+}

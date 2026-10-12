@@ -1,0 +1,332 @@
+{
+  "file": "sample-action.c",
+  "ast": {
+    "type": "Program",
+    "file": "sample-action.c",
+    "body": [
+      {
+        "type": "FunctionDeclaration",
+        "name": "Action",
+        "body": [
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "lr_start_transaction",
+                "file": "sample-action.c",
+                "line": 3
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "T01_home",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 3
+                }
+              ],
+              "file": "sample-action.c",
+              "line": 3
+            },
+            "file": "sample-action.c",
+            "line": 3
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "web_reg_save_param",
+                "file": "sample-action.c",
+                "line": 5
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "csrf",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 5
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "LB=name=\"csrf\" value=\"",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 6
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "RB=\"",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 7
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Ord=1",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 8
+                },
+                {
+                  "type": "Identifier",
+                  "name": "LAST",
+                  "file": "sample-action.c",
+                  "line": 9
+                }
+              ],
+              "file": "sample-action.c",
+              "line": 5
+            },
+            "file": "sample-action.c",
+            "line": 5
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "web_url",
+                "file": "sample-action.c",
+                "line": 11
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "home",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 11
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "URL=https://example.test/",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 12
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "TargetFrame=",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 13
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Resource=0",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 14
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "RecContentType=text/html",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 15
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Referer=",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 16
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Mode=HTML",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 17
+                },
+                {
+                  "type": "Identifier",
+                  "name": "LAST",
+                  "file": "sample-action.c",
+                  "line": 18
+                }
+              ],
+              "file": "sample-action.c",
+              "line": 11
+            },
+            "file": "sample-action.c",
+            "line": 11
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "lr_end_transaction",
+                "file": "sample-action.c",
+                "line": 20
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "T01_home",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 20
+                },
+                {
+                  "type": "Identifier",
+                  "name": "LR_AUTO",
+                  "file": "sample-action.c",
+                  "line": 20
+                }
+              ],
+              "file": "sample-action.c",
+              "line": 20
+            },
+            "file": "sample-action.c",
+            "line": 20
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "lr_think_time",
+                "file": "sample-action.c",
+                "line": 22
+              },
+              "arguments": [
+                {
+                  "type": "NumberLiteral",
+                  "value": 2,
+                  "file": "sample-action.c",
+                  "line": 22
+                }
+              ],
+              "file": "sample-action.c",
+              "line": 22
+            },
+            "file": "sample-action.c",
+            "line": 22
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "web_submit_data",
+                "file": "sample-action.c",
+                "line": 24
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "login",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 24
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Action=https://example.test/login",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 25
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Method=POST",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 26
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Mode=HTML",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 27
+                },
+                {
+                  "type": "Identifier",
+                  "name": "ITEMDATA",
+                  "file": "sample-action.c",
+                  "line": 28
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Name=user",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 29
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Value=demo",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 29
+                },
+                {
+                  "type": "Identifier",
+                  "name": "ENDITEM",
+                  "file": "sample-action.c",
+                  "line": 29
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Name=csrf",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 30
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Value={csrf}",
+                  "kind": "string",
+                  "file": "sample-action.c",
+                  "line": 30
+                },
+                {
+                  "type": "Identifier",
+                  "name": "ENDITEM",
+                  "file": "sample-action.c",
+                  "line": 30
+                },
+                {
+                  "type": "Identifier",
+                  "name": "LAST",
+                  "file": "sample-action.c",
+                  "line": 31
+                }
+              ],
+              "file": "sample-action.c",
+              "line": 24
+            },
+            "file": "sample-action.c",
+            "line": 24
+          },
+          {
+            "type": "ReturnStatement",
+            "argument": {
+              "type": "NumberLiteral",
+              "value": 0,
+              "file": "sample-action.c",
+              "line": 33
+            },
+            "file": "sample-action.c",
+            "line": 33
+          }
+        ],
+        "file": "sample-action.c",
+        "line": 1
+      }
+    ],
+    "warnings": []
+  }
+}

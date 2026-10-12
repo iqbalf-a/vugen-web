@@ -1,0 +1,365 @@
+{
+  "file": "basic-strings.c",
+  "tokens": [
+    {
+      "type": "directive",
+      "value": "include \"globals.h\"",
+      "line": 4,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "Action",
+      "line": 6,
+      "col": 1
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 6,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 6,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 7,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 9,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 9,
+      "col": 22
+    },
+    {
+      "type": "string",
+      "value": "kutip=\" backslash=\\ newline=\n tab=\t hex=A",
+      "line": 9,
+      "col": 23
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 9,
+      "col": 73
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 9,
+      "col": 74
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 10,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 10,
+      "col": 22
+    },
+    {
+      "type": "string",
+      "value": "gabung dua tiga",
+      "line": 10,
+      "col": 23
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 10,
+      "col": 60
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 10,
+      "col": 61
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 11,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 11,
+      "col": 22
+    },
+    {
+      "type": "string",
+      "value": "baris satu\nbaris dua",
+      "line": 11,
+      "col": 23
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 12,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 12,
+      "col": 21
+    },
+    {
+      "type": "identifier",
+      "value": "web_url",
+      "line": 14,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 14,
+      "col": 12
+    },
+    {
+      "type": "string",
+      "value": "home",
+      "line": 14,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 14,
+      "col": 19
+    },
+    {
+      "type": "string",
+      "value": "URL=http://example.com",
+      "line": 15,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 15,
+      "col": 33
+    },
+    {
+      "type": "string",
+      "value": "Resource=0",
+      "line": 16,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 16,
+      "col": 21
+    },
+    {
+      "type": "identifier",
+      "value": "LAST",
+      "line": 17,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 17,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 17,
+      "col": 14
+    },
+    {
+      "type": "identifier",
+      "value": "web_link",
+      "line": 19,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 19,
+      "col": 13
+    },
+    {
+      "type": "string",
+      "value": "klik",
+      "line": 19,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 19,
+      "col": 20
+    },
+    {
+      "type": "string",
+      "value": "Text=OK",
+      "line": 19,
+      "col": 22
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 19,
+      "col": 31
+    },
+    {
+      "type": "identifier",
+      "value": "ENDITEM",
+      "line": 19,
+      "col": 33
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 19,
+      "col": 40
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 19,
+      "col": 41
+    },
+    {
+      "type": "identifier",
+      "value": "lr_save_string",
+      "line": 21,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 21,
+      "col": 19
+    },
+    {
+      "type": "string",
+      "value": "abc",
+      "line": 21,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 21,
+      "col": 25
+    },
+    {
+      "type": "char",
+      "value": "c",
+      "line": 21,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 21,
+      "col": 30
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 21,
+      "col": 31
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 22,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "n",
+      "line": 22,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 22,
+      "col": 11
+    },
+    {
+      "type": "number",
+      "value": "0x1F",
+      "line": 22,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 22,
+      "col": 17
+    },
+    {
+      "type": "identifier",
+      "value": "n",
+      "line": 23,
+      "col": 5
+    },
+    {
+      "type": "punct",
+      "value": "++",
+      "line": 23,
+      "col": 6
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 23,
+      "col": 8
+    },
+    {
+      "type": "identifier",
+      "value": "return",
+      "line": 24,
+      "col": 5
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 24,
+      "col": 12
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 24,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 25,
+      "col": 1
+    },
+    {
+      "type": "eof",
+      "value": "",
+      "line": 26,
+      "col": 1
+    }
+  ]
+}

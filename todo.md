@@ -19,7 +19,7 @@ Referensi kebenaran: `plan.md` (repo) dan `vugen-web-eksekusi.md` (rencana).
 |---|---|---|---|
 | F0 Scaffold | `[x]` | `F0: scaffold vite + tailwind + plugin middleware + vitest` | AC lulus (health ok, 4/4 test, lint bersih) |
 | F1 Loader + Editor | `[x]` | `F1: loader folder script + endpoint file + editor CodeMirror` | AC lulus (20/20 test, lint bersih, CRLF & isolation terverifikasi) |
-| F2 Tokenizer + Parser | `[ ]` | — | — |
+| F2 Tokenizer + Parser | `[x]` | `F2: tokenizer + parser call C + golden test` | AC lulus (51/51 test, lint bersih, `samples/basic/Action.c` terparse tanpa warning) |
 | F3 Transpile + Runtime inti | `[ ]` | — | — |
 | F4 UI Run + Snapshot | `[ ]` | — | — |
 | F5 Fungsi lanjut | `[ ]` | — | — |
@@ -59,13 +59,14 @@ Referensi kebenaran: `plan.md` (repo) dan `vugen-web-eksekusi.md` (rencana).
 - `[x]` **AC:** buka `samples/basic`, edit `Action.c`, Save → hanya `Action.c` yang berubah; CRLF tetap; Save tidak memicu reload (watcher mengabaikan `samples/`); escape → 400
 - `[x]` Commit `F1: loader folder script + endpoint file + editor CodeMirror`
 
-## F2 — Tokenizer + Parser
+## F2 — Tokenizer + Parser ✅
 
-- `[ ]` `server/compiler/tokenizer.js` — string literal + escape (`\"`, `\\`, `\n`, `\x..`), concat literal bersebelahan, komentar `/* */` & `//`, makro `LAST`/`ITEMDATA`/`ENDITEM`/`EXTRARES`, angka, identifier, punctuation; token menyimpan `line`
-- `[ ]` `server/compiler/parser.js` — ekstrak statement call: argumen string/angka/makro/nested call, multi-baris; AST + `file`/`line`; toleran (gagal → tandai, lanjut)
-- `[ ]` `server/compiler/__fixtures__/` + golden test ≥10 kasus (escape, concat, komentar, ITEMDATA/ENDITEM, multi-baris)
-- `[ ]` **AC:** parse seluruh `samples/basic/Action.c` tanpa error; setiap call punya `file` + `line` benar
-- `[ ]` Commit `F2: tokenizer + parser call C + golden test`
+- `[x]` `server/compiler/tokenizer.js` — string literal + escape (`\"`, `\\`, `\n`, `\x..`), concat literal bersebelahan (termasuk lintas komentar), komentar `/* */` & `//`, makro `LAST`/`ITEMDATA`/`ENDITEM`/`EXTRARES` (identifier biasa), angka (dek/hex/bin + suffix), identifier, punctuation, direktif `#...` + line continuation; tiap token menyimpan `line`, `col`, `start`, `end`
+- `[x]` `server/compiler/parser.js` — AST toleran: `Directive`, `FunctionDeclaration`, `BlockStatement`, `ExpressionStatement`, `ReturnStatement`, `IfStatement`, `ForStatement`, `WhileStatement`, `DoWhileStatement`, `BreakStatement`, `ContinueStatement`, `LabeledStatement`, `Unsupported`; ekspresi: `CallExpression` (argumen string/angka/makro/nested call, multi-baris), `Identifier`, `StringLiteral`, `NumberLiteral`, `MemberExpression`, `Unary/Binary/Assignment/Conditional/Update/Sequence`; setiap node punya `file` + `line`; gagal parse → `Unsupported` + warning, lanjut
+- `[x]` `server/compiler/__fixtures__/` — 4 fixture (`basic-strings`, `sample-action`, `control-flow`, `unsupported`) + golden `.tokens.json` & `.ast.json`; `server/compiler/test-utils.js` + `scripts/generate-golden.js` (`npm run golden:update`)
+- `[x]` Test: `tokenizer.test.js` + `parser.test.js` (golden + escape/concat/komentar/CRLF/direktif/makro/hex-suffix/hirarki/unsupported/warning + ekuivalensi golden pada fixture CRLF) — 27 test → total 51
+- `[x]` **AC:** `samples/basic/Action.c` terparse tanpa error; 6 call dengan `file`+`line` benar (3, 5, 11, 20, 22, 24)
+- `[x]` Commit `F2: tokenizer + parser call C + golden test` (+ fix kecil: retry rename EPERM/EACCES/EBUSY di `save.js`)
 
 ## F3 — Transpile + Runtime inti
 

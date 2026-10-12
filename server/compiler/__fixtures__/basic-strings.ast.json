@@ -1,0 +1,248 @@
+{
+  "file": "basic-strings.c",
+  "ast": {
+    "type": "Program",
+    "file": "basic-strings.c",
+    "body": [
+      {
+        "type": "Directive",
+        "value": "include \"globals.h\"",
+        "file": "basic-strings.c",
+        "line": 4
+      },
+      {
+        "type": "FunctionDeclaration",
+        "name": "Action",
+        "body": [
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "lr_output_message",
+                "file": "basic-strings.c",
+                "line": 9
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "kutip=\" backslash=\\ newline=\n tab=\t hex=A",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 9
+                }
+              ],
+              "file": "basic-strings.c",
+              "line": 9
+            },
+            "file": "basic-strings.c",
+            "line": 9
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "lr_output_message",
+                "file": "basic-strings.c",
+                "line": 10
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "gabung dua tiga",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 10
+                }
+              ],
+              "file": "basic-strings.c",
+              "line": 10
+            },
+            "file": "basic-strings.c",
+            "line": 10
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "lr_output_message",
+                "file": "basic-strings.c",
+                "line": 11
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "baris satu\nbaris dua",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 11
+                }
+              ],
+              "file": "basic-strings.c",
+              "line": 11
+            },
+            "file": "basic-strings.c",
+            "line": 11
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "web_url",
+                "file": "basic-strings.c",
+                "line": 14
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "home",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 14
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "URL=http://example.com",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 15
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Resource=0",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 16
+                },
+                {
+                  "type": "Identifier",
+                  "name": "LAST",
+                  "file": "basic-strings.c",
+                  "line": 17
+                }
+              ],
+              "file": "basic-strings.c",
+              "line": 14
+            },
+            "file": "basic-strings.c",
+            "line": 14
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "web_link",
+                "file": "basic-strings.c",
+                "line": 19
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "klik",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 19
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "Text=OK",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 19
+                },
+                {
+                  "type": "Identifier",
+                  "name": "ENDITEM",
+                  "file": "basic-strings.c",
+                  "line": 19
+                }
+              ],
+              "file": "basic-strings.c",
+              "line": 19
+            },
+            "file": "basic-strings.c",
+            "line": 19
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "lr_save_string",
+                "file": "basic-strings.c",
+                "line": 21
+              },
+              "arguments": [
+                {
+                  "type": "StringLiteral",
+                  "value": "abc",
+                  "kind": "string",
+                  "file": "basic-strings.c",
+                  "line": 21
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "c",
+                  "kind": "char",
+                  "file": "basic-strings.c",
+                  "line": 21
+                }
+              ],
+              "file": "basic-strings.c",
+              "line": 21
+            },
+            "file": "basic-strings.c",
+            "line": 21
+          },
+          {
+            "type": "Unsupported",
+            "file": "basic-strings.c",
+            "line": 22
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "UpdateExpression",
+              "operator": "++",
+              "argument": {
+                "type": "Identifier",
+                "name": "n",
+                "file": "basic-strings.c",
+                "line": 23
+              },
+              "prefix": false,
+              "file": "basic-strings.c",
+              "line": 23
+            },
+            "file": "basic-strings.c",
+            "line": 23
+          },
+          {
+            "type": "ReturnStatement",
+            "argument": {
+              "type": "NumberLiteral",
+              "value": 0,
+              "file": "basic-strings.c",
+              "line": 24
+            },
+            "file": "basic-strings.c",
+            "line": 24
+          }
+        ],
+        "file": "basic-strings.c",
+        "line": 6
+      }
+    ],
+    "warnings": []
+  }
+}

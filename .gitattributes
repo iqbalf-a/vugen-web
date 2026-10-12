@@ -1,0 +1,10 @@
+# VuGen menyimpan script sebagai teks CRLF di Windows (plan §3).
+# Paksa CRLF saat checkout agar file sampel dan script user tetap realistis,
+# apa pun nilai core.autocrlf.
+*.c text eol=crlf
+*.h text eol=crlf
+*.dat text eol=crlf
+*.prm text eol=crlf
+*.usr text eol=crlf
+*.usp text eol=crlf
+*.cfg text eol=crlf

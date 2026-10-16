@@ -376,9 +376,6 @@ async function startRunFlow(options) {
   }
 }
 
-// Track current transaction per iteration
-const currentTransactionByIteration = new Map();
-
 /** Handle SSE events */
 function handleRunEvent(event, runId, scriptPath) {
   const { type, data, ts } = event;
@@ -387,7 +384,6 @@ function handleRunEvent(event, runId, scriptPath) {
   switch (type) {
     case "started":
       store.set({ status: `Run dimulai: ${runId}` });
-      currentTransactionByIteration.clear();
       break;
 
     case "iterationStart":
@@ -398,51 +394,31 @@ function handleRunEvent(event, runId, scriptPath) {
       store.set({ status: `Iterasi ${data.iteration} ${data.action} ${data.status}` });
       break;
 
+    case "step": {
+      const steps = state.currentRun?.steps ? [...state.currentRun.steps, data] : [data];
+      store.set({
+        currentRun: { ...state.currentRun, steps, scriptPath, runId },
+        status: `Step ${data.seq}: ${data.type} ${data.name} → ${data.response?.status || "?"}`,
+      });
+      break;
+    }
+
     case "log": {
-      if (data.level === "step") {
-        const stepData = JSON.parse(data.data);
-        const iteration = data.iteration || 1;
-        const currentTx = currentTransactionByIteration.get(iteration) || null;
-        const steps = state.currentRun?.steps ? [...state.currentRun.steps] : [];
-        steps.push({ ...stepData, seq: steps.length + 1, iteration, transaction: currentTx });
-        store.set({
-          currentRun: { ...state.currentRun, steps, scriptPath },
-          status: `Step ${steps.length}: ${stepData.type} ${stepData.name} → ${stepData.response?.status || "?"}`,
-        });
-        break;
-      }
-      
       const logs = state.currentRun?.log ? [...state.currentRun.log] : [];
       logs.push({ ...data, ts: data.ts || ts });
       store.set({ currentRun: { ...state.currentRun, log: logs } });
-      
-      // Track transaction from lr_start_transaction / lr_end_transaction log messages
-      const msg = data.msg;
-      const iteration = data.iteration || 1;
-      if (typeof msg === "string") {
-        if (msg.startsWith("lr_start_transaction: ")) {
-          const txName = msg.substring("lr_start_transaction: ".length);
-          currentTransactionByIteration.set(iteration, txName);
-        } else if (msg.startsWith("lr_end_transaction: ")) {
-          currentTransactionByIteration.delete(iteration);
-        }
-      }
       break;
     }
 
     case "transaction": {
-      const txData = JSON.parse(data.data);
-      const iteration = data.iteration || 1;
-      currentTransactionByIteration.set(iteration, txData.name);
-      const transactions = state.currentRun?.transactions ? [...state.currentRun.transactions] : [];
-      transactions.push(txData);
+      const transactions = state.currentRun?.transactions ? [...state.currentRun.transactions, data] : [data];
       store.set({ currentRun: { ...state.currentRun, transactions } });
       break;
     }
 
     case "done":
       store.set({ isRunning: false, status: `Run selesai: ${data.status}` });
-      // Fetch full run result
+      // Fetch full run result (event done baru dikirim setelah run.json tersimpan)
       void fetchRunResult(runId, scriptPath);
       if (eventSource) {
         eventSource.close();

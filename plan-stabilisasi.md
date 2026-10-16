@@ -29,8 +29,8 @@
 | Tahap | Isi | Status |
 |---|---|---|
 | S0 | Bersihkan working tree, lint 0, checkpoint F3–F6 | **selesai** (`f2dfb97`) |
-| S1 | Keamanan UI: escape HTML + snapshot di iframe sandbox | belum |
-| S2 | Jalur step & penyimpanan run end-to-end | belum |
+| S1 | Keamanan UI: escape HTML + snapshot di iframe sandbox | **selesai** (`a6185cc`) |
+| S2 | Jalur step & penyimpanan run end-to-end | **selesai** |
 | S3 | Lifecycle child process, SSE, routing | belum |
 | S4 | Transpiler: perbaiki subset C yang sudah diklaim | belum |
 | S5 | Runtime: perbaiki fungsi yang sudah ada | belum |
@@ -84,11 +84,11 @@
 
 ## S1 — Keamanan UI (K1, K2, F1)
 
-- [ ] Buat `src/utils/html.js` berisi satu `escapeHtml(value)` yang benar (`& < > " '` → entitas). Hapus 6 salinan lokal, import dari util ini. Verifikasi dengan `grep -n "&amp;" src/utils/html.js`.
-- [ ] Audit setiap `innerHTML` di `src/`: setiap nilai yang berasal dari run/server/file wajib lewat `escapeHtml`. Nilai yang ditaruh di atribut (`title`, `data-*`) juga.
-- [ ] Snapshot HTML dirender dalam `<iframe sandbox="" srcdoc="...">` yang dibuat via DOM API (`iframe.srcdoc = doc`), **bukan** disisipkan ke `innerHTML` aplikasi. Default CSP sesuai `plan.md` §7.5. Toggle "Load resources" yang sudah ada dihubungkan ke state lokal panel (ON → sisipkan `<base href>` + CSP longgar; iframe tetap `sandbox=""` tanpa `allow-scripts`).
-- [ ] Hapus `src/components/requestPanel.js` dan `responsePanel.js` (tidak dipakai).
-- [ ] Test `src/utils/html.test.js` (Vitest, tanpa DOM): escape lima karakter + nilai non-string.
+- [x] Buat `src/utils/html.js` berisi satu `escapeHtml(value)` yang benar (`& < > " '` → entitas). Hapus 6 salinan lokal, import dari util ini. Verifikasi dengan `grep -n "&amp;" src/utils/html.js`.
+- [x] Audit setiap `innerHTML` di `src/`: setiap nilai yang berasal dari run/server/file wajib lewat `escapeHtml`. Nilai yang ditaruh di atribut (`title`, `data-*`) juga.
+- [x] Snapshot HTML dirender dalam `<iframe sandbox="" srcdoc="...">` yang dibuat via DOM API (`iframe.srcdoc = doc`), **bukan** disisipkan ke `innerHTML` aplikasi. Default CSP sesuai `plan.md` §7.5. Toggle "Load resources" yang sudah ada dihubungkan ke state lokal panel (ON → sisipkan `<base href>` + CSP longgar; iframe tetap `sandbox=""` tanpa `allow-scripts`).
+- [x] Hapus `src/components/requestPanel.js` dan `responsePanel.js` (tidak dipakai).
+- [x] Test `src/utils/html.test.js` (Vitest, tanpa DOM): escape lima karakter + nilai non-string.
 
 **AC:** `grep -rn "function escapeHtml" src` → hanya 1 hasil; buat step palsu dengan nama `<img src=x onerror=alert(1)>` (mis. lewat mock) → tampil sebagai teks; body HTML mock yang berisi `<script>` tidak tereksekusi (cek manual di browser, jelaskan langkahnya).
 
@@ -104,11 +104,11 @@ Desain (ikuti, jangan improvisasi):
 - `store.js` `decodeBody` dipakai saat runner membuat teks untuk correlation/`web_reg_find` (ganti `toString("utf8")` langsung), atau dihapus bila tidak terpakai — pilih salah satu, jangan biarkan mati.
 
 Langkah:
-- [ ] Ekstrak logika "compile + fork + akumulasi event + saveRun" yang terduplikasi di `server/routes/run.js` dan `server/test/run-cli.js` ke `server/runs/execute.js` (`startRun({scriptDir, options}) → { runId, child, events: EventEmitter, done: Promise<RunResult> }`). `done` resolve **setelah** `saveRun` selesai. Event `done` ke SSE dikirim **setelah** `saveRun` (perbaiki T5).
-- [ ] `run-cli.js` memakai `execute.js` dan `await done`.
-- [ ] Validasi `runId` (`/^[0-9TZ-]+-[0-9a-f]{8}$/` sesuai `generateRunId`) dan `seq` (integer > 0) sebelum menyentuh filesystem → 400 bila tidak valid.
-- [ ] Test `server/test/run.f5.test.js` (tulis dulu, harus merah): mock di port tetap 18081 (sample memakai URL itu; set `fileParallelism: false` untuk file ini atau pakai `describe.sequential`), jalankan `samples/f5`, assert: status `passed`; jumlah step = jumlah request di `samples/f5/Action.c`; `file`/`line` sesuai baris C; `request.method` `POST` untuk login; `steps/1.body` berisi HTML mock; `params.csrf` terisi dan body login memuat nilai itu; check `web_reg_find` `passed`; `transactions` memuat `T01_home` & `T02_dashboard`.
-- [ ] Test `iterations=3` pada `samples/core`: `vuser_init`/`vuser_end` 1×, step Action ber-`iteration` 1..3.
+- [x] Ekstrak logika "compile + fork + akumulasi event + saveRun" yang terduplikasi di `server/routes/run.js` dan `server/test/run-cli.js` ke `server/runs/execute.js` (`startRun({scriptDir, options}) → { runId, child, events: EventEmitter, done: Promise<RunResult> }`). `done` resolve **setelah** `saveRun` selesai. Event `done` ke SSE dikirim **setelah** `saveRun` (perbaiki T5).
+- [x] `run-cli.js` memakai `execute.js` dan `await done`.
+- [x] Validasi `runId` (`/^[0-9TZ-]+-[0-9a-f]{8}$/` sesuai `generateRunId`) dan `seq` (integer > 0) sebelum menyentuh filesystem → 400 bila tidak valid.
+- [x] Test `server/test/run.f5.test.js` (tulis dulu, harus merah): mock di port tetap 18081 (sample memakai URL itu; set `fileParallelism: false` untuk file ini atau pakai `describe.sequential`), jalankan `samples/f5`, assert: status `passed`; jumlah step = jumlah request di `samples/f5/Action.c`; `file`/`line` sesuai baris C; `request.method` `POST` untuk login; `steps/1.body` berisi HTML mock; `params.csrf` terisi dan body login memuat nilai itu; check `web_reg_find` `passed`; `transactions` memuat `T01_home` & `T02_dashboard`.
+- [x] Test `iterations=3` pada `samples/core`: `vuser_init`/`vuser_end` 1×, step Action ber-`iteration` 1..3.
 
 **AC:** dua test baru hijau; `node server/test/run-cli.js samples/f5 1` menulis `run.json`; `grep -rn "snapshotsComplete\|level === \"step\"" server src` → kosong.
 

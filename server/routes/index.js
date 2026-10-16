@@ -32,8 +32,6 @@ const routes = [
   { methods: ["POST"], path: "/run/:id/stop", handler: handleRunRoutes },
   { methods: ["GET"], path: "/run/:id", handler: handleRunRoutes },
   { methods: ["GET"], path: "/run/:id/step/:seq/body", handler: handleRunRoutes },
-  { methods: ["GET"], path: "/run/:id/snapshot/:name/body", handler: handleRunRoutes },
-  { methods: ["GET"], path: "/run/:id/debug", handler: handleRunRoutes },
 ];
 
 function normalizePath(pathname) {

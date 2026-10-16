@@ -42,6 +42,9 @@ import { CookieJar } from "tough-cookie";
  * @property {number} size
  * @property {Buffer} body
  * @property {Object[]} redirectChain - [{ url, status, headers }]
+ * @property {number} durationMs
+ * @property {number} startedAt - epoch ms request pertama dikirim
+ * @property {{ method: string, url: string, headers: Record<string, string>, body?: string|Buffer }} request - request asli (hop pertama, header sudah termasuk Cookie)
  */
 
 export class HttpClient {
@@ -134,12 +137,18 @@ export class HttpClient {
     let currentBody = body;
     let currentHeaders = { ...headers };
     let redirectCount = 0;
+    /** @type {ResponseInfo["request"]|null} */
+    let sentRequest = null;
 
     while (true) {
       const parsedUrl = new URL(currentUrl);
       const cookieHeader = await this.cookieJar.getCookieString(parsedUrl.href);
       if (cookieHeader) {
         currentHeaders.Cookie = cookieHeader;
+      }
+
+      if (!sentRequest) {
+        sentRequest = { method: currentMethod, url: currentUrl, headers: { ...currentHeaders }, body: currentBody };
       }
 
       if (this.debugCallback) {
@@ -198,6 +207,8 @@ export class HttpClient {
           body: bodyBuffer,
           redirectChain: [...redirectChain],
           durationMs,
+          startedAt: startTime,
+          request: sentRequest,
         };
 
       // Check for redirect

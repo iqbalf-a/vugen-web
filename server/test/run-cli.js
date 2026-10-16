@@ -1,194 +1,82 @@
 /**
- * CLI test runner untuk F3 — menjalankan transpile + runner tanpa UI.
+ * CLI test runner — menjalankan compile + runner tanpa UI.
  *
  * Usage: node server/test/run-cli.js <scriptDir> [iterations]
  *
  * Contoh: node server/test/run-cli.js samples/core 3
+ *
+ * Exit 0 bila run `passed`, selain itu 1. `run.json` sudah tertulis saat exit.
  */
 
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
-import { fork } from "node:child_process";
-import { mkdir } from "node:fs/promises";
-import crypto from "node:crypto";
+import { resolve } from "node:path";
 
-import { compileScript } from "../compiler/transpile.js";
-import { loadProject } from "../project/loader.js";
+import { startRun } from "../runs/execute.js";
 import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
-import { saveRun, createRunResult, addStep, addTransaction, addLog, finalizeRun } from "../runs/store.js";
 import { startMockServer, stopMockServer } from "./mock.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const LOG_PREFIX = { error: "✗", warn: "⚠" };
+
+/** Cetak satu event run ke konsol */
+function printEvent(event) {
+  const { type, data } = event;
+  switch (type) {
+    case "started":
+      console.log(`[cli] Run started: ${data.runId}`);
+      break;
+    case "iterationStart":
+      console.log(`[cli] Iteration ${data.iteration} ${data.action} started`);
+      break;
+    case "iterationEnd":
+      console.log(`[cli] Iteration ${data.iteration} ${data.action} ${data.status}`);
+      break;
+    case "step":
+      console.log(`[cli] Step ${data.seq}: ${data.type} ${data.name} -> ${data.response?.status}`);
+      break;
+    case "transaction":
+      console.log(`[cli] Transaction: ${data.name} ${data.status} ${data.durationMs}ms`);
+      break;
+    case "log":
+      console.log(`[cli] ${LOG_PREFIX[data.level] ?? "ℹ"} [${data.file}:${data.line}] ${data.msg}`);
+      break;
+    case "error":
+      console.error(`[cli] Runner error: ${data.message}`);
+      break;
+  }
+}
 
 async function runCli(scriptDirArg, iterations = 1) {
   const scriptDir = resolve(scriptDirArg);
   console.log(`[cli] Script dir: ${scriptDir}`);
   console.log(`[cli] Iterations: ${iterations}`);
 
-  // Start mock server
-  console.log(`[cli] Starting mock server...`);
   await startMockServer(18081);
-  // Small delay to ensure server is ready
-  await new Promise(r => setTimeout(r, 500));
 
-  // Validate and load project
-  const validatedDir = await resolveScriptDir(scriptDir);
-  const project = await loadProject(validatedDir);
-  console.log(`[cli] Project loaded: ${project.files.length} files, actions: ${project.actions.join(", ")}`);
+  try {
+    const run = await startRun({ scriptDir, options: { iterations } });
+    for (const w of run.warnings) console.log(`[cli] ⚠ ${w.file}:${w.line} ${w.message}`);
+    run.events.on("event", printEvent);
 
-  // Prepare cache
-  const cacheDir = cacheDirFor(validatedDir);
-  await mkdir(cacheDir, { recursive: true });
-  console.log(`[cli] Cache dir: ${cacheDir}`);
+    const result = await run.done;
 
-  // Compile
-  console.log(`[cli] Compiling...`);
-  const compileResult = await compileScript({
-    scriptDir,
-    cacheDir,
-    files: project.files,
-  });
-  console.log(`[cli] Compiled: ${compileResult.files.length} files, ${compileResult.functions.length} functions`);
-  if (compileResult.warnings.length) {
-    console.log(`[cli] Warnings:`);
-    for (const w of compileResult.warnings) console.log(`  ${w.file}:${w.line} ${w.message}`);
+    const runJson = `${cacheDirFor(await resolveScriptDir(scriptDir))}/runs/${result.runId}/run.json`;
+    console.log(`[cli] Run done: ${result.status}`);
+    console.log(`[cli] Results saved to ${runJson}`);
+    return result.status === "passed" ? 0 : 1;
+  } finally {
+    await stopMockServer();
   }
-
-  // Create run
-  const runId = new Date().toISOString().replace(/[:.]/g, "-") + "-" + crypto.randomBytes(4).toString("hex");
-  const options = {
-    iterations,
-    continueOnError: false,
-    iterationDelayMs: 0,
-    newUserEachIteration: true,
-    insecureTLS: false,
-    thinkTime: "ignore",
-    timeoutMs: 60000,
-  };
-
-  let runResult = createRunResult({ runId, options });
-  let stepSeq = 0;
-
-  // Fork runner
-  const runnerPath = resolve(__dirname, "../runtime/runner.js");
-  console.log(`[cli] Starting runner: ${runnerPath}`);
-
-  const child = fork(runnerPath, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] });
-
-  // Handle runner events
-  child.on("message", (msg) => {
-    if (!msg || msg.type !== "event") return;
-    const { event } = msg;
-
-    switch (event.type) {
-      case "ready":
-        console.log(`[cli] Runner ready`);
-        child.send({ type: "start", payload: {
-          modulePath: compileResult.modulePath,
-          scriptDir,
-          cacheDir,
-          options,
-          runId,
-        }});
-        break;
-
-      case "started":
-        console.log(`[cli] Run started: ${event.data.runId}`);
-        break;
-
-      case "iterationStart":
-        console.log(`[cli] Iteration ${event.data.iteration} ${event.data.action} started`);
-        break;
-
-      case "iterationEnd":
-        console.log(`[cli] Iteration ${event.data.iteration} ${event.data.action} ${event.data.status}`);
-        break;
-
-      case "step": {
-        stepSeq++;
-        const stepData = JSON.parse(event.data.data);
-        addStep(runResult, stepData, stepSeq, event.data.iteration || 1);
-        console.log(`[cli] Step ${stepSeq}: ${stepData.type} ${stepData.name} -> ${stepData.response?.status}`);
-        break;
-      }
-
-      case "transaction": {
-        const txData = JSON.parse(event.data.data);
-        addTransaction(runResult, txData);
-        console.log(`[cli] Transaction: ${txData.name} ${txData.status} ${txData.durationMs}ms`);
-        break;
-      }
-
-      case "log": {
-        addLog(runResult, {
-          ts: event.data.ts,
-          level: event.data.level,
-          msg: event.data.msg,
-          file: event.data.file,
-          line: event.data.line,
-        });
-        const prefix = event.data.level === "error" ? "✗" : event.data.level === "warn" ? "⚠" : "ℹ";
-        console.log(`[cli] ${prefix} [${event.data.file}:${event.data.line}] ${event.data.msg}`);
-        break;
-      }
-
-      case "done":
-        console.log(`[cli] Run done: ${event.data.status}`);
-        finalizeRun(runResult, event.data.status);
-        saveRun(cacheDir, runId, runResult);
-        console.log(`[cli] Results saved to ${cacheDir}/runs/${runId}/run.json`);
-        stopMockServer().then(() => child.kill());
-        process.exit(event.data.status === "passed" ? 0 : 1);
-        break;
-
-      case "stopped":
-        console.log(`[cli] Stopped: ${event.data.reason}`);
-        finalizeRun(runResult, "stopped");
-        saveRun(cacheDir, runId, runResult);
-        stopMockServer().then(() => child.kill());
-        process.exit(0);
-        break;
-
-      case "error":
-        console.error(`[cli] Runner error: ${event.data.message}`);
-        break;
-    }
-  });
-
-  child.on("error", (err) => {
-    console.error(`[cli] Child process error: ${err.message}`);
-    stopMockServer();
-    process.exit(1);
-  });
-
-  child.on("exit", (code) => {
-    if (code !== 0 && code !== null) {
-      console.error(`[cli] Runner exited with code ${code}`);
-    }
-  });
-
-  // Timeout safety
-  setTimeout(() => {
-    console.error(`[cli] Timeout: killing runner`);
-    stopMockServer();
-    child.kill("SIGKILL");
-    process.exit(1);
-  }, 120000);
 }
 
-// Run
 const args = process.argv.slice(2);
 if (args.length === 0) {
   console.error("Usage: node server/test/run-cli.js <scriptDir> [iterations]");
   process.exit(1);
 }
 
-const scriptDir = args[0];
-const iterations = parseInt(args[1] || "1", 10);
-
-runCli(scriptDir, iterations).catch((err) => {
-  console.error(`[cli] Fatal: ${err.message}`);
-  console.error(err.stack);
-  process.exit(1);
-});
+runCli(args[0], parseInt(args[1] || "1", 10))
+  .then((code) => process.exit(code))
+  .catch((err) => {
+    console.error(`[cli] Fatal: ${err.message}`);
+    console.error(err.stack);
+    process.exit(1);
+  });

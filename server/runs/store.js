@@ -1,8 +1,8 @@
 /**
  * runs/store.js — Penyimpanan hasil run (plan §7.3).
  *
- * Menulis `run.json` + `steps/<seq>.body` ke folder cache.
- * Body response disimpan terpisah (batas 5 MB, flag `truncated`).
+ * Menulis `run.json` ke folder cache; body response ditulis runner ke
+ * `steps/<seq>.body` lewat `saveStepBody` (batas 5 MB, flag `truncated`).
  * Decode body sesuai charset di Content-Type.
  *
  * @typedef {Object} RunOptions
@@ -23,9 +23,10 @@
  * @property {string} name
  * @property {string} file
  * @property {number} line
- * @property {string} [transaction]
+ * @property {string|null} [transaction]
+ * @property {string|null} [snapshot] - nama dari `Snapshot=` (metadata saja)
  * @property {Object} request - { method, url, headers, bodyPreview }
- * @property {Object} response - { status, statusText, headers, contentType, size, bodyFile, truncated }
+ * @property {Object} response - { status, statusText, headers, contentType, size, bodyFile, truncated, redirects }
  * @property {Object} timing - { startMs, durationMs }
  * @property {Object[]} checks - [{ type, text, passed }]
  * @property {string} [error]
@@ -46,6 +47,7 @@
  * @property {string} msg
  * @property {string} [file]
  * @property {number} [line]
+ * @property {number} [iteration]
  */
 
 /**
@@ -66,13 +68,32 @@ import path from "node:path";
 
 const MAX_BODY_SIZE = 5 * 1024 * 1024; // 5 MB
 
+/** Format runId dari generateRunId (execute.js): ISO timestamp aman-path + 8 hex. */
+const RUN_ID_PATTERN = /^[0-9TZ-]+-[0-9a-f]{8}$/;
+
+/**
+ * @param {unknown} runId
+ * @returns {boolean}
+ */
+export function isValidRunId(runId) {
+  return typeof runId === "string" && RUN_ID_PATTERN.test(runId);
+}
+
+/**
+ * @param {unknown} seq
+ * @returns {boolean} true bila integer > 0
+ */
+export function isValidSeq(seq) {
+  return Number.isInteger(seq) && /** @type {number} */ (seq) > 0;
+}
+
 /**
  * Decode buffer berdasarkan charset dari Content-Type
  * @param {Buffer} buffer
  * @param {string} contentType
  * @returns {string}
  */
-function decodeBody(buffer, contentType) {
+export function decodeBody(buffer, contentType) {
   // Extract charset
   let encoding = "utf-8";
   const charsetMatch = contentType?.match(/charset=([^;]+)/i);
@@ -81,7 +102,8 @@ function decodeBody(buffer, contentType) {
   }
 
   // Node.js supported encodings
-  const supported = ["utf-8", "utf8", "ascii", "latin1", "binary", "base64", "hex", "ucs2", "ucs-2", "utf16le", "utf-16le"];
+  if (encoding === "iso-8859-1") encoding = "latin1";
+  const supported = ["utf-8", "utf8", "ascii", "latin1", "binary", "ucs2", "ucs-2", "utf16le", "utf-16le"];
   if (!supported.includes(encoding)) {
     encoding = "utf-8";
   }
@@ -100,64 +122,36 @@ function decodeBody(buffer, contentType) {
  * @param {RunResult} runResult
  */
 export async function saveRun(cacheDir, runId, runResult) {
+  if (!isValidRunId(runId)) throw new Error(`runId tidak valid: ${runId}`);
   const runDir = path.join(cacheDir, "runs", runId);
-  const stepsDir = path.join(runDir, "steps");
-  const snapshotsDir = path.join(runDir, "snapshots");
+  await fs.mkdir(runDir, { recursive: true });
 
-  await fs.mkdir(stepsDir, { recursive: true });
-  await fs.mkdir(snapshotsDir, { recursive: true });
-
-  // Save step body files and update step references
-  for (const step of runResult.steps) {
-    if (step.response?.body) {
-      const bodyBuffer = step.response.body instanceof Buffer
-        ? step.response.body
-        : Buffer.from(step.response.body);
-
-      const truncated = bodyBuffer.length > MAX_BODY_SIZE;
-      const bodyToSave = truncated ? bodyBuffer.subarray(0, MAX_BODY_SIZE) : bodyBuffer;
-
-      const bodyFileName = `${step.seq}.body`;
-      const bodyPath = path.join(stepsDir, bodyFileName);
-      await fs.writeFile(bodyPath, bodyToSave);
-
-      step.response.bodyFile = bodyFileName;
-      step.response.truncated = truncated;
-      step.response.size = bodyBuffer.length;
-
-      // Remove buffer from JSON (keep only metadata)
-      delete step.response.body;
-    }
-  }
-
-  // Save snapshot body files and update snapshot references
-  if (runResult.snapshots) {
-    for (const [name, snapshot] of Object.entries(runResult.snapshots)) {
-      if (snapshot.response?.body) {
-        const bodyBuffer = snapshot.response.body instanceof Buffer
-          ? snapshot.response.body
-          : Buffer.from(snapshot.response.body);
-
-        const truncated = bodyBuffer.length > MAX_BODY_SIZE;
-        const bodyToSave = truncated ? bodyBuffer.subarray(0, MAX_BODY_SIZE) : bodyBuffer;
-
-        const bodyFileName = `${name}.body`;
-        const bodyPath = path.join(snapshotsDir, bodyFileName);
-        await fs.writeFile(bodyPath, bodyToSave);
-
-        snapshot.response.bodyFile = bodyFileName;
-        snapshot.response.truncated = truncated;
-        snapshot.response.size = bodyBuffer.length;
-
-        // Remove buffer from JSON (keep only metadata)
-        delete snapshot.response.body;
-      }
-    }
-  }
-
-  // Write run.json
+  // Tulis atomic: temp → rename
   const runJsonPath = path.join(runDir, "run.json");
-  await fs.writeFile(runJsonPath, JSON.stringify(runResult, null, 2), "utf8");
+  const tmpPath = `${runJsonPath}.tmp`;
+  await fs.writeFile(tmpPath, JSON.stringify(runResult, null, 2), "utf8");
+  await fs.rename(tmpPath, runJsonPath);
+}
+
+/**
+ * Tulis body response satu step ke `steps/<seq>.body` (dipanggil runner).
+ * Lebih dari 5 MB dipotong dan ditandai `truncated`.
+ *
+ * @param {string} cacheDir
+ * @param {string} runId
+ * @param {number} seq
+ * @param {Buffer} body
+ * @returns {Promise<{ bodyFile: string, size: number, truncated: boolean }>}
+ */
+export async function saveStepBody(cacheDir, runId, seq, body) {
+  if (!isValidRunId(runId)) throw new Error(`runId tidak valid: ${runId}`);
+  if (!isValidSeq(seq)) throw new Error(`seq tidak valid: ${seq}`);
+  const stepsDir = path.join(cacheDir, "runs", runId, "steps");
+  await fs.mkdir(stepsDir, { recursive: true });
+
+  const truncated = body.length > MAX_BODY_SIZE;
+  await fs.writeFile(path.join(stepsDir, `${seq}.body`), truncated ? body.subarray(0, MAX_BODY_SIZE) : body);
+  return { bodyFile: `steps/${seq}.body`, size: body.length, truncated };
 }
 
 /**
@@ -167,6 +161,7 @@ export async function saveRun(cacheDir, runId, runResult) {
  * @returns {Promise<RunResult|null>}
  */
 export async function loadRun(cacheDir, runId) {
+  if (!isValidRunId(runId)) return null;
   const runJsonPath = path.join(cacheDir, "runs", runId, "run.json");
   try {
     const content = await fs.readFile(runJsonPath, "utf8");
@@ -184,6 +179,7 @@ export async function loadRun(cacheDir, runId) {
  * @returns {Promise<Buffer|null>}
  */
 export async function loadStepBody(cacheDir, runId, seq) {
+  if (!isValidRunId(runId) || !isValidSeq(seq)) return null;
   const bodyPath = path.join(cacheDir, "runs", runId, "steps", `${seq}.body`);
   try {
     return await fs.readFile(bodyPath);
@@ -216,6 +212,7 @@ export async function listRuns(cacheDir) {
  * @param {string} runId
  */
 export async function deleteRun(cacheDir, runId) {
+  if (!isValidRunId(runId)) return;
   const runDir = path.join(cacheDir, "runs", runId);
   await fs.rm(runDir, { recursive: true, force: true });
 }
@@ -240,24 +237,23 @@ export function createRunResult({ runId, options }) {
 }
 
 /**
- * Add step to run result (called from event handler)
+ * Tambahkan step ke hasil run (data dari event `step` runner).
  * @param {RunResult} runResult
- * @param {Object} stepData - Parsed from SSE "step" event
- * @param {number} seq
- * @param {number} iteration
+ * @param {Object} stepData - bentuk StepResult (seq & iteration diberi runner)
+ * @returns {StepResult}
  */
-export function addStep(runResult, stepData, seq, iteration) {
+export function addStep(runResult, stepData) {
   const step = {
-    seq,
-    iteration,
+    seq: stepData.seq,
+    iteration: stepData.iteration || 1,
     type: stepData.type,
     name: stepData.name,
-    snapshot: stepData.snapshot || null, // <-- SNAPSHOT REFERENCE
+    snapshot: stepData.snapshot || null,
     file: stepData.file || "",
     line: stepData.line || 0,
     transaction: stepData.transaction || null,
     request: stepData.request || { method: "", url: "", headers: {}, bodyPreview: "" },
-    response: stepData.response || { status: 0, statusText: "", headers: {}, contentType: "", size: 0, bodyFile: "", truncated: false },
+    response: stepData.response || { status: 0, statusText: "", headers: {}, contentType: "", size: 0, bodyFile: "", truncated: false, redirects: [] },
     timing: stepData.timing || { startMs: 0, durationMs: 0 },
     checks: stepData.checks || [],
     error: stepData.error || null,
@@ -292,86 +288,8 @@ export function addLog(runResult, logEntry) {
     msg: logEntry.msg,
     file: logEntry.file,
     line: logEntry.line,
+    iteration: logEntry.iteration,
   });
-}
-
-/**
- * Update params in run result
- * @param {RunResult} runResult
- * @param {Record<string, string>} params
- */
-export function updateParams(runResult, params) {
-  runResult.params = { ...runResult.params, ...params };
-}
-
-/**
- * Add snapshot to run result (metadata only, body stored separately)
- * @param {RunResult} runResult
- * @param {Object} snapshotData
- * @param {string} cacheDir - optional, for saving body immediately
- * @param {string} runId - optional, for saving body immediately
- */
-export function addSnapshot(runResult, snapshotData, cacheDir, runId) {
-  if (!runResult.snapshots) runResult.snapshots = {};
-  
-  // Extract body to store separately
-  const { response, ...meta } = snapshotData;
-  const { body, ...responseMeta } = response || {};
-  
-  runResult.snapshots[snapshotData.name] = {
-    ...meta,
-    response: responseMeta,
-  };
-  
-  // Save body to separate file if provided
-  if (body && cacheDir && runId) {
-    saveSnapshotBody(cacheDir, runId, snapshotData.name, body);
-  }
-}
-
-/**
- * Save snapshot body to separate file
- * @param {string} cacheDir
- * @param {string} runId
- * @param {string} snapshotName
- * @param {Buffer|string} body
- * @param {Object} runResult - optional, to update metadata
- */
-export async function saveSnapshotBody(cacheDir, runId, snapshotName, body, runResult) {
-  const runDir = path.join(cacheDir, "runs", runId);
-  const snapshotsDir = path.join(runDir, "snapshots");
-  await fs.mkdir(snapshotsDir, { recursive: true });
-  
-  const bodyBuffer = body instanceof Buffer ? body : Buffer.from(body);
-  const truncated = bodyBuffer.length > MAX_BODY_SIZE;
-  const bodyToSave = truncated ? bodyBuffer.subarray(0, MAX_BODY_SIZE) : bodyBuffer;
-  
-  const bodyFileName = `${snapshotName}.body`;
-  const bodyPath = path.join(snapshotsDir, bodyFileName);
-  await fs.writeFile(bodyPath, bodyToSave);
-  
-  // Update snapshot metadata to reference body file (if runResult provided)
-  if (runResult && runResult.snapshots && runResult.snapshots[snapshotName]) {
-    runResult.snapshots[snapshotName].response.bodyFile = bodyFileName;
-    runResult.snapshots[snapshotName].response.truncated = truncated;
-    runResult.snapshots[snapshotName].response.size = bodyBuffer.length;
-  }
-}
-
-/**
- * Load snapshot body
- * @param {string} cacheDir
- * @param {string} runId
- * @param {string} snapshotName
- * @returns {Promise<Buffer|null>}
- */
-export async function loadSnapshotBody(cacheDir, runId, snapshotName) {
-  const bodyPath = path.join(cacheDir, "runs", runId, "snapshots", `${snapshotName}.body`);
-  try {
-    return await fs.readFile(bodyPath);
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -394,7 +312,9 @@ export default {
   addStep,
   addTransaction,
   addLog,
-  updateParams,
   finalizeRun,
   decodeBody,
+  saveStepBody,
+  isValidRunId,
+  isValidSeq,
 };

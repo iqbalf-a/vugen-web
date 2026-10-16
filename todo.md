@@ -31,7 +31,7 @@ Stabilisasi: rincian di `plan-stabilisasi.md`.
 |---|---|---|
 | S0 | `[x]` | Bersihkan working tree, lint bersih, checkpoint kode F3–F6 |
 | S1 | `[x]` | Keamanan UI: escape HTML + snapshot di iframe sandbox (K1, K2, F1) |
-| S2 | `[ ]` | Jalur step & penyimpanan run |
+| S2 | `[x]` | Jalur step & penyimpanan run (execute.js, event objek, body per step, hapus snapshots/) |
 | S3 | `[ ]` | Lifecycle child, SSE, routing |
 | S4 | `[ ]` | Transpiler |
 | S5 | `[ ]` | Runtime: perbaiki fungsi yang ada |

@@ -148,17 +148,15 @@ function switchTab(tab) {
 }
 
 /** Render tab content for Request */
-function renderRequestTab(req, snapshotRequest) {
-  // Use snapshot's request if available (has full headers + body), fallback to step request
-  const snapReq = snapshotRequest || req;
+function renderRequestTab(snapReq) {
   const reqMethod = snapReq.method || '-';
   
   // Pretty-print request body based on content-type (same as response tab)
   const reqContentType = snapReq.headers?.['content-type'] || snapReq.headers?.['Content-Type'] || '';
   const reqCategory = getContentCategory(reqContentType);
-  const reqBodyText = typeof snapReq.body === 'string' ? snapReq.body : (snapReq.body ? JSON.stringify(snapReq.body, null, 2) : '');
+  const reqBodyText = snapReq.bodyPreview || '';
   const reqBodyHtml = reqBodyText ? renderContent(reqBodyText, reqCategory === 'html' ? 'text' : reqCategory, { contentType: reqContentType, size: reqBodyText.length, truncated: false }) : '<div class="p-4 text-gray-500 text-center">No request body</div>';
-  const reqSize = snapReq.body ? `${(new Blob([reqBodyText]).size / 1024).toFixed(1)} KB` : '0 KB';
+  const reqSize = reqBodyText ? `${(new Blob([reqBodyText]).size / 1024).toFixed(1)} KB` : '0 KB';
   
   return `
     <div class="space-y-4">
@@ -205,21 +203,19 @@ function renderResponseTab(resp, contentHtml, isHtml) {
 }
 
 /** Render tab content for Raw */
-function renderRawTab(req, snapshotRequest) {
+function renderRawTab(snapReq, bodyText) {
   const resp = currentStep.response || {};
   
-  // Get snapshot's request if available (has full headers + body)
-  let snapReq = snapshotRequest || req;
   const reqMethod = snapReq.method || 'GET';
   const reqUrl = snapReq.url || '-';
   const reqHeaders = formatHeaders(snapReq.headers);
-  const reqBody = snapReq.body || '';
+  const reqBody = snapReq.bodyPreview || '';
   
   // Build raw HTTP response
   const respStatus = resp.status || '-';
   const respStatusText = resp.statusText || '-';
   const respHeaders = formatHeaders(resp.headers);
-  const respBody = resp.body || '';
+  const respBody = bodyText || '';
   
   // Parse URL for host and path
   let host = '';
@@ -275,28 +271,14 @@ async function renderSnapshot() {
   }
 
   const { response, request } = currentStep;
-  const snapshotName = currentStep.snapshot;
   
   let body = null;
   let contentType = response?.contentType || "application/octet-stream";
   let category;
   let truncated = response?.truncated;
 
-  // Fetch body (from snapshot or step)
-  if (snapshotName) {
-    try {
-      body = await apiGet(`/api/run/${currentRun.runId}/snapshot/${snapshotName}/body`, {
-        params: { path: currentRun.scriptPath }
-      });
-      if (currentRun.snapshots && currentRun.snapshots[snapshotName]) {
-        const snap = currentRun.snapshots[snapshotName];
-        contentType = snap.response?.contentType || contentType;
-        truncated = snap.response?.truncated;
-      }
-    } catch (error) {
-      console.warn("Failed to fetch snapshot body:", error);
-    }
-  } else if (response && response.bodyFile) {
+  // Fetch body step (runner menulis ke steps/<seq>.body)
+  if (response && response.bodyFile) {
     try {
       body = await apiGet(`/api/run/${currentRun.runId}/step/${currentStep.seq}/body`, {
         params: { path: currentRun.scriptPath }
@@ -310,25 +292,18 @@ async function renderSnapshot() {
   const text = body ? new TextDecoder("utf-8").decode(body) : '';
   const contentHtml = renderContent(text, category, { contentType, size: body?.byteLength ?? 0, truncated });
 
-  // Request info - use snapshot's request if available (has full headers + body)
   const req = request || {};
   // Response info
   const resp = response || {};
 
-  // Get snapshot's request data if available
-  let snapshotRequest = null;
-  if (snapshotName && currentRun.snapshots && currentRun.snapshots[snapshotName]) {
-    snapshotRequest = currentRun.snapshots[snapshotName].request;
-  }
-
   // Build content based on active tab
   let contentInnerHtml;
   if (activeTab === 'request') {
-    contentInnerHtml = renderRequestTab(req, snapshotRequest);
+    contentInnerHtml = renderRequestTab(req);
   } else if (activeTab === 'response') {
     contentInnerHtml = renderResponseTab(resp, contentHtml, category === 'html');
   } else {
-    contentInnerHtml = renderRawTab(req, snapshotRequest);
+    contentInnerHtml = renderRawTab(req, text);
   }
 
   const respStatus = resp.status || '-';

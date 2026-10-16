@@ -10,6 +10,8 @@
  * Fungsi yang belum didukung diarahkan ke `__unsupportedCall` oleh transpiler.
  */
 
+import { decodeBody, saveStepBody } from "../runs/store.js";
+
 /** @typedef {import("./http-client.js").ResponseInfo} ResponseInfo */
 
 /**
@@ -17,6 +19,12 @@
  * @property {HttpClient} http
  * @property {Map<string, string>} params - Parameter runtime (lr_save_string, correlation)
  * @property {Object} transaction - { name, startMs }
+ * @property {number} seq - counter step (runner), mulai 0
+ * @property {number} runStartMs - epoch ms awal run
+ * @property {string} cacheDir
+ * @property {string} runId
+ * @property {number} currentIteration
+ * @property {Function} sendEvent - (type, data) => void
  * @property {string} currentFile
  * @property {number} currentLine
  * @property {Function} log - (level, msg) => void
@@ -34,9 +42,6 @@ const correlationRegistry = [];
 
 /** web_reg_find registry: array of { text, saveCount } */
 const webRegFindRegistry = [];
-
-/** Snapshot capture */
-const snapshotStore = new Map();
 
 /**
  * Bind context dari runner.
@@ -104,6 +109,13 @@ export function lr_start_transaction(name) {
   return 0;
 }
 
+/** Label status transaksi sesuai TransactionResult: Pass | Fail | Auto */
+function transactionStatusLabel(status) {
+  if (status === 0 || status === "0" || status === "LR_PASS") return "Pass";
+  if (status === 1 || status === "1" || status === "LR_FAIL") return "Fail";
+  return "Auto";
+}
+
 /** End transaction */
 export function lr_end_transaction(name, status = "LR_AUTO") {
   const { transaction, log } = needCtx();
@@ -113,8 +125,12 @@ export function lr_end_transaction(name, status = "LR_AUTO") {
   const durationMs = Date.now() - (transaction.startMs || Date.now());
   const statusStr = String(status);
   log("info", `lr_end_transaction: ${name} ${statusStr} ${durationMs}ms`);
-  // Emit transaction event via log with special marker
-  log("transaction", JSON.stringify({ name, status: statusStr, durationMs }));
+  needCtx().sendEvent("transaction", {
+    iteration: needCtx().currentIteration || 1,
+    name,
+    status: transactionStatusLabel(status),
+    durationMs,
+  });
   transaction.name = null;
   transaction.startMs = 0;
   return 0;
@@ -220,13 +236,6 @@ export async function web_rest(name, ...args) {
     });
 
     await handleResponse(name, resp, "web_rest", snapshotName);
-
-    // Save snapshot if requested
-    if (snapshotName) {
-      const requestInfo = { method, url: finalUrl, headers, body: finalBody };
-      saveSnapshot(snapshotName, resp, requestInfo);
-    }
-
     return 0;
   } catch (error) {
     log("error", `web_rest("${name}") failed: ${error.message}`);
@@ -270,14 +279,7 @@ export async function web_url(name, ...args) {
       timeoutMs: runOptions.timeoutMs,
     });
 
-    // Save snapshot if requested (before handleResponse so snapshot name is in stepData)
-    if (snapshotName) {
-      const requestInfo = { method: "GET", url: substituteParams(url), headers };
-      saveSnapshot(snapshotName, resp, requestInfo);
-    }
-    
     await handleResponse(name, resp, "web_url", snapshotName);
-    
     return 0;
   } catch (error) {
     log("error", `web_url("${name}") failed: ${error.message}`);
@@ -322,13 +324,6 @@ export async function web_custom_request(name, ...args) {
     });
 
     await handleResponse(name, resp, "web_custom_request", snapshotName);
-    
-    // Save snapshot if requested
-    if (snapshotName) {
-      const requestInfo = { method, url: substituteParams(url), headers, body: substituteParams(body) };
-      saveSnapshot(snapshotName, resp, requestInfo);
-    }
-    
     return 0;
   } catch (error) {
     log("error", `web_custom_request("${name}") failed: ${error.message}`);
@@ -408,7 +403,7 @@ export async function web_submit_data(name, ...args) {
       timeoutMs: runOptions.timeoutMs,
     });
 
-    await handleResponse(name, resp, "web_submit_data");
+    await handleResponse(name, resp, "web_submit_data", opts.Snapshot);
     return 0;
   } catch (error) {
     log("error", `web_submit_data("${name}") failed: ${error.message}`);
@@ -600,21 +595,25 @@ function substituteParams(str) {
   });
 }
 
-/** Handle response: save body, check web_reg_find, process correlations, emit step event */
-async function handleResponse(stepName, resp, type, snapshotName) {
-  const { log, params } = needCtx();
+/** Batas bodyPreview request (byte/karakter) */
+const BODY_PREVIEW_MAX = 2048;
 
-  // Decode body
+/** Ringkas body request untuk ditampilkan (≤ 2 KB) */
+function previewBody(body) {
+  if (body === undefined || body === null) return "";
+  const text = Buffer.isBuffer(body) ? body.toString("utf8") : String(body);
+  return text.length > BODY_PREVIEW_MAX ? text.slice(0, BODY_PREVIEW_MAX) : text;
+}
+
+/** Handle response: simpan body, correlation, web_reg_find, lalu kirim event step */
+async function handleResponse(stepName, resp, type, snapshotName) {
+  const c = needCtx();
+  const { log, params } = c;
+
+  // Decode body (sesuai charset di Content-Type)
   const contentType = resp.contentType || "";
   const isText = contentType.includes("text/") || contentType.includes("json") || contentType.includes("xml");
-  let bodyText = "";
-  if (isText) {
-    try {
-      bodyText = resp.body.toString("utf8");
-    } catch {
-      bodyText = resp.body.toString("latin1");
-    }
-  }
+  const bodyText = isText ? decodeBody(resp.body, contentType) : "";
 
   // Process correlations: extract values and save to params
   for (const rule of correlationRegistry) {
@@ -653,54 +652,55 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   // Clear correlation registry after processing (one-time use per step)
   correlationRegistry.length = 0;
 
-  // Initialize stepData early for web_reg_find
-  const { currentFile, currentLine, currentIteration } = needCtx();
-  
-  // Substitute params in step name
   const resolvedStepName = substituteParams(stepName);
-  
+
+  // Process web_reg_find
+  const checks = [];
+  for (const rule of webRegFindRegistry) {
+    const found = bodyText.includes(rule.text);
+    checks.push({ type: "web_reg_find", text: rule.text, passed: found });
+    log(found ? "info" : "error", `web_reg_find: Text="${rule.text}" ${found ? "FOUND" : "NOT FOUND"}`);
+  }
+  webRegFindRegistry.length = 0;
+
+  // Runner yang memberi seq dan menulis body; lewat IPC hanya metadata
+  const seq = ++c.seq;
+  const saved = await saveStepBody(c.cacheDir, c.runId, seq, resp.body);
+  const sent = resp.request || { method: "", url: "", headers: {} };
+
   const stepData = {
+    seq,
     type,
     name: resolvedStepName,
-    snapshot: snapshotName || null, // <-- SNAPSHOT NAME FOR PANEL FETCHING
-    file: currentFile || "",
-    line: currentLine || 0,
-    iteration: currentIteration || 1,
+    snapshot: snapshotName || null,
+    file: c.currentFile || "",
+    line: c.currentLine || 0,
+    iteration: c.currentIteration || 1,
+    transaction: c.transaction?.name || null,
     request: {
-      method: resp.redirectChain.length > 0 ? "GET" : "UNKNOWN",
-      url: resp.redirectChain.length > 0 ? resp.redirectChain[0].url : "",
-      headers: resp.redirectChain.length > 0 ? resp.redirectChain[0].headers : {},
+      method: sent.method,
+      url: sent.url,
+      headers: sent.headers,
+      bodyPreview: previewBody(sent.body),
     },
     response: {
       status: resp.status,
       statusText: resp.statusText,
       headers: resp.headers,
       contentType,
-      size: resp.size,
-      truncated: false,
-      body: resp.body, // <-- SAVE RAW BODY FOR SNAPSHOT / DEBUG
+      size: saved.size,
+      bodyFile: saved.bodyFile,
+      truncated: saved.truncated,
+      redirects: resp.redirectChain || [],
     },
-    timing: { durationMs: resp.durationMs || 0 },
-    checks: [],
+    timing: {
+      startMs: Math.max(0, (resp.startedAt || Date.now()) - (c.runStartMs || 0)),
+      durationMs: resp.durationMs || 0,
+    },
+    checks,
   };
 
-  // Process web_reg_find
-  for (const rule of webRegFindRegistry) {
-    const found = bodyText.includes(rule.text);
-    const checkData = {
-      type: "web_reg_find",
-      text: rule.text,
-      passed: found,
-    };
-    // Add to stepData checks
-    stepData.checks.push(checkData);
-    log(found ? "info" : "error", `web_reg_find: Text="${rule.text}" ${found ? "FOUND" : "NOT FOUND"}`);
-  }
-  webRegFindRegistry.length = 0;
-
-  // Step event is sent by runner.js (vu.log) with transaction info.
-  log("info", `${type} "${resolvedStepName}": ${resp.status} ${resp.statusText} (${resp.size} bytes)`);
-
+  c.sendEvent("step", stepData);
   log("info", `${type} "${resolvedStepName}": ${resp.status} ${resp.statusText} (${resp.size} bytes)`);
 }
 
@@ -759,48 +759,6 @@ export async function web_js_run(...args) {
     log("error", `web_js_run failed: ${e.message}`);
   }
   return 0;
-}
-
-function saveSnapshot(snapshotName, response, requestInfo) {
-  const { log, sendEvent } = needCtx();
-  const snapshot = {
-    name: snapshotName,
-    timestamp: Date.now(),
-    request: requestInfo,
-    response: {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      contentType: response.contentType,
-      body: response.body,
-    },
-  };
-  snapshotStore.set(snapshotName, snapshot);
-  log("info", `Snapshot saved: ${snapshotName}`);
-  
-  // Don't send full snapshot via IPC (too large). Parent will fetch on demand.
-  if (sendEvent) {
-    sendEvent("snapshotMeta", { name: snapshotName, timestamp: snapshot.timestamp, request: snapshot.request, response: { status: snapshot.response.status, statusText: snapshot.response.statusText, headers: snapshot.response.headers, contentType: snapshot.response.contentType } });
-  }
-  return snapshotName;
-}
-
-export function lr_get_snapshot(snapshotName) {
-  return snapshotStore.get(snapshotName) || null;
-}
-
-/** Get all snapshots for bulk transfer to parent */
-export function __getAllSnapshots() {
-  const snapshots = {};
-  for (const [name, snap] of snapshotStore) {
-    snapshots[name] = snap;
-  }
-  return snapshots;
-}
-
-/** Clear snapshot store (for new user each iteration) */
-export function __clearSnapshots() {
-  snapshotStore.clear();
 }
 
 /** Placeholder for unsupported functions */

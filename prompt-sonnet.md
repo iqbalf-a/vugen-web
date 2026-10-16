@@ -48,25 +48,25 @@ Hasil audit UI dengan Chrome headless di **1500×900** dan **1280×720**. Skenar
 
 ### U1a — Layout global & proporsi (`index.html`, `src/main.js`)
 
-- [ ] **Kolom tidak proporsional.** Grid sekarang `260px | 1fr | 380px`.
+- [x] **Kolom tidak proporsional.** Grid sekarang `260px | 1fr | 380px`.
   - Panel kanan terlalu sempit: judul snapshot terpotong (`Snapshot #1 POST /api...`), dan subjudul juga terpotong.
   - Editor mengambil hampir semua lebar, padahal baris script jarang sepanjang itu.
   - Usulan: `grid-cols-[minmax(240px,18%)_minmax(0,1fr)_minmax(400px,34%)]` (sesuaikan bila perlu). Target di 1280 lebar: kiri ±240, kanan ±435. Di 1500: kiri ±270, kanan ±510.
-- [ ] **Kolom kiri dibagi 50/50** antara File Script dan Step Run. Setelah run, Step Run adalah konten utama, tapi di 720px tinggi hanya muat ±5 baris.
+- [x] **Kolom kiri dibagi 50/50** antara File Script dan Step Run. Setelah run, Step Run adalah konten utama, tapi di 720px tinggi hanya muat ±5 baris.
   - Usulan: File Script `max-h-[38%]` dengan scroll sendiri, Step Run `flex-1`.
   - Header seksi ("FILE SCRIPT", "STEP RUN") seragam: tinggi 32px, padding `px-3`, border bawah satu garis.
-- [ ] **Heading kategori file tree pecah dua baris** ("ACTION / UTAMA", "PARAMETER / FILES", "CONFIG & / OTHERS") dengan garis pemisah di samping.
+- [x] **Heading kategori file tree pecah dua baris** ("ACTION / UTAMA", "PARAMETER / FILES", "CONFIG & / OTHERS") dengan garis pemisah di samping.
   - Buat `whitespace-nowrap`, garis `flex-1`, jarak heading ke item 4px, dan antar kategori 12px.
   - Teks kosong "Belum ada folder yang dibuka." masih font sans. Samakan dengan teks kosong lain (12px, `#5b6572`).
-- [ ] **Bar opsi run boros dan jaraknya tidak rata.** Grid `grid-cols-6` menyebar 6 kontrol ke seluruh lebar dengan celah besar tak seragam, dan "▲ Sembunyikan opsi" ada di baris terpisah. Header + opsi memakan ±150px dari 720.
+- [x] **Bar opsi run boros dan jaraknya tidak rata.** Grid `grid-cols-6` menyebar 6 kontrol ke seluruh lebar dengan celah besar tak seragam, dan "▲ Sembunyikan opsi" ada di baris terpisah. Header + opsi memakan ±150px dari 720.
   - Jadikan satu baris `flex flex-wrap items-center gap-x-5 gap-y-2`, rata kiri.
   - Tiap kontrol berupa pasangan label + input dengan jarak 8px. Label 10px uppercase `#7d8896`, rata tengah vertikal dengan input setinggi 24px.
   - Tombol Sembunyikan/Tampilkan opsi taruh di ujung kanan baris yang sama (`ml-auto`).
   - Target tinggi bar opsi ≤ 40px.
-- [ ] **Status run** ("Run selesai: failed") berupa teks mono 11px di pojok kanan dan mudah terlewat.
+- [x] **Status run** ("Run selesai: failed") berupa teks mono 11px di pojok kanan dan mudah terlewat.
   - Jadikan badge: titik warna + teks, latar `#1b212b`, border mengikuti status (hijau passed, merah failed, kuning running/stopped).
   - Tidak ada teks status baru. Pakai teks yang sudah ada.
-- [ ] **Scrollbar corner putih.** Kotak putih terlihat di pojok kanan bawah editor dan panel kanan di 1280×720.
+- [x] **Scrollbar corner putih.** Kotak putih terlihat di pojok kanan bawah editor dan panel kanan di 1280×720.
   - Tambahkan `::-webkit-scrollbar-corner { background: transparent }` dan `scrollbar-color` untuk Firefox di `src/style.css`.
   - Pastikan scrollbar CodeMirror (`.cm-scroller`) ikut tema gelap.
 

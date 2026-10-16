@@ -53,10 +53,10 @@ export function renderFileTree(root, project, { activePath, onOpenFile }) {
     const config = CATEGORY_CONFIG[cat] || { label: cat, order: 99 };
 
     const heading = document.createElement("div");
-    heading.className = "mt-3 mb-1 flex items-center gap-2";
+    heading.className = "mb-1 mt-3 flex items-center gap-2 first:mt-0";
     heading.innerHTML = `
-      <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]">${escapeHtml(config.label)}</span>
-      <span class="w-full h-[1px] bg-[#2a3644]"></span>
+      <span class="shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]">${escapeHtml(config.label)}</span>
+      <span class="h-px min-w-0 flex-1 bg-[#2a3644]"></span>
     `;
     root.append(heading);
 

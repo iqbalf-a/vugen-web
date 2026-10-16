@@ -45,7 +45,7 @@ const els = {
   newUserEachIterationCheckbox: document.querySelector("#newUserEachIteration"),
   insecureTLSCheckbox: document.querySelector("#insecureTLS"),
   thinkTimeSelect: document.querySelector("#thinkTime"),
-  runOptions: document.querySelector("#runOptions"),
+  runOptions: document.querySelector("#runOptionsControls"),
   toggleOptions: document.querySelector("#toggleOptions"),
 };
 
@@ -157,14 +157,7 @@ let activePanelId = "snapshot";
 function renderPanelTabs() {
   if (!els.panelTabBar) return;
   els.panelTabBar.innerHTML = panelTabs.map(tab => `
-    <button type="button"
-      class="px-3 py-1.5 rounded-t-[3px] font-mono text-[11px] ${tab.id === activePanelId
-        ? "bg-[#1b212b] text-[#e6edf3] border-b-2 border-[#d2a24c]"
-        : "text-[#7d8896] hover:text-[#e6edf3] hover:bg-[#1b212b]"
-      }"
-      data-panel="${tab.id}">
-      ${tab.label}
-    </button>
+    <button type="button" class="ui-tab" role="tab" aria-selected="${tab.id === activePanelId}" data-panel="${tab.id}">${tab.label}</button>
   `).join("");
 
   els.panelTabBar.querySelectorAll("button").forEach(btn => {
@@ -427,7 +420,7 @@ function handleRunEvent(event, runId, scriptPath) {
     }
 
     case "done":
-      store.set({ isRunning: false, health: data.status === "passed" ? "ok" : "warn", status: `Run selesai: ${data.status}` });
+      store.set({ isRunning: false, health: data.status === "passed" ? "ok" : data.status === "failed" ? "error" : "warn", status: `Run selesai: ${data.status}` });
       // Fetch full run result (event done baru dikirim setelah run.json tersimpan)
       void fetchRunResult(runId, scriptPath);
       if (eventSource) {

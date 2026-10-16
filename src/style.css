@@ -28,17 +28,132 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #3a4553;
   }
+
+  /* Pojok pertemuan scrollbar vertikal+horizontal (kotak putih bila tidak diberi gaya) */
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
-/* Status indikator toolbar (dipakai src/main.js lewat data-state). */
+/* Firefox: scrollbar-color hanya dipakai di sana (di Chrome ia menonaktifkan ::-webkit-scrollbar di atas). */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-color: #2b3440 #121821;
+  }
+}
+
+/* Judul seksi kolom kiri / panel: tinggi 32px, satu garis bawah */
+.section-head {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid #232a33;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7d8896;
+}
+
+.section-head.border-t {
+  border-top: 1px solid #232a33;
+}
+
+/* Gaya tab seragam (tab panel, tab snapshot, sub-tab parameter): aktif = teks terang + garis bawah aksen */
+.ui-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: #7d8896;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.ui-tab:hover {
+  color: #e6edf3;
+}
+
+.ui-tab[aria-selected="true"] {
+  color: #e6edf3;
+  border-bottom-color: #d2a24c;
+}
+
+/* Badge hitungan kecil di kanan label tab */
+.ui-count {
+  padding: 0 5px;
+  border-radius: 8px;
+  background: #1b212b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 16px;
+  color: #7d8896;
+}
+
+/* Toolbar panel: tinggi 36px, px-3 */
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid #232a33;
+}
+
+/* Status run/API di toolbar (dipakai src/main.js lewat data-state): badge titik warna + teks */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 40%;
+  padding: 4px 10px;
+  border: 1px solid #232a33;
+  border-radius: 999px;
+  background: #1b212b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #aab4c0;
+}
+
+.status-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #7d8896;
+}
+
 #status[data-state="ok"] {
+  border-color: #2f6b4a;
   color: #7ddba1;
 }
 
+#status[data-state="ok"]::before {
+  background: #7ddba1;
+}
+
 #status[data-state="warn"] {
+  border-color: #6b5a2a;
   color: #e3c664;
 }
 
+#status[data-state="warn"]::before {
+  background: #e3c664;
+}
+
 #status[data-state="error"] {
+  border-color: #6b3434;
   color: #f08a8a;
+}
+
+#status[data-state="error"]::before {
+  background: #f08a8a;
 }

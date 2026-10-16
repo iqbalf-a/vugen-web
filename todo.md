@@ -43,6 +43,16 @@ Status proyek yang **jujur** per akhir stabilisasi (S0–S7, 2026-10-16). Rencan
 | F7c | `[x]` | `web_remove_auto_header`, `web_revert_auto_header`, `lr_param_sprintf`, `web_convert_from_formatted` (Base64) — ImplicitGen= diabaikan dengan warning; arah konversi Base64 = encode (diverifikasi dari pemakaian `Basic {basicUsername}`) |
 | F7d | `[x]` | `web_concurrent_start/end` (no-op, log debug; request tetap berurutan). AC akhir: fixture `mcm-like` + smoke script nyata (lihat di bawah) |
 
+## Progres U1 (rapikan UI/UX — `prompt-sonnet.md`)
+
+| Tahap | Status | Isi |
+|---|---|---|
+| U1a | `[x]` | Layout & proporsi (kolom 18/1fr/34%, kolom kiri 38/62, bar opsi satu baris, status badge, scrollbar) — screenshot: scratchpad/u1/before|after (sm=1280x720, lg=1500x900) |
+| U1b | `[ ]` | Step list (nama transaksi diprioritaskan, kolom durasi rata kanan, badge method, selector iterasi) |
+| U1c | `[ ]` | Snapshot / Parameter / Log (tab seragam, header snapshot 2 baris, status tanpa '-', log grid) |
+| U1d | `[ ]` | Panel search CodeMirror (gaya aplikasi, label Indonesia, highlight) |
+| U1e | `[ ]` | Bug kecil (snapshot kosong setelah run, warning param palsu, teks kosong snapshot) |
+
 ## Status script referensi (compile + `import()` saja; belum pernah dijalankan ke server target)
 
 Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` setelah F7d. Semua 9 folder di `D:\Mandiri\KOPRA\R10.1\script` ter-compile dan ter-`import()` tanpa error sintaks.

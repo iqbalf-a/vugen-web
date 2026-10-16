@@ -76,5 +76,3 @@ export function createParameterPanel(container) {
     },
   };
 }
-
-export default { createParameterPanel };

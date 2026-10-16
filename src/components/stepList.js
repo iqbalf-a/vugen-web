@@ -239,5 +239,3 @@ export function createStepList(container, { onSelect } = {}) {
     selectStep,
   };
 }
-
-export default { createStepList };

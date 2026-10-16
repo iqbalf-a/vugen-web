@@ -15,5 +15,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["server/**/*.test.js", "src/**/*.test.js"],
+    // Import dingin + banyak proses anak paralel kadang melewati 5 detik (terlihat 2x di mesin ini).
+    testTimeout: 20000,
+    hookTimeout: 20000,
   },
 });

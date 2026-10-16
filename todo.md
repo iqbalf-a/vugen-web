@@ -1,44 +1,75 @@
-| F6 Parameter + control flow (opsional) | `[~]` | undefined | kode ada, AC belum terverifikasi — lihat plan-stabilisasi.md || F5 Fungsi lanjut | `[~]` | undefined | kode ada, AC belum terverifikasi — lihat plan-stabilisasi.md || F4 UI Run + Snapshot | `[~]` | undefined | kode ada, AC belum terverifikasi — lihat plan-stabilisasi.md || F3 Transpile + Runtime inti | `[~]` | undefined | kode ada, AC belum terverifikasi — lihat plan-stabilisasi.md |# TODO — VuGen Web
+# TODO — VuGen Web
 
-Checklist kerja bertahap. Satu tahap = satu commit + berhenti untuk review.
-Referensi kebenaran: `plan.md` (repo) dan `vugen-web-eksekusi.md` (rencana).
+Status proyek yang **jujur** per akhir stabilisasi (S0–S7, 2026-10-16). Rencana kerja: `plan-stabilisasi.md`; spesifikasi produk: `plan.md`.
 
-**Legenda status:** `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir/butuh keputusan
-
-**Default yang dipakai:**
-`[x]` git init di awal F0 · `[!]` parser `.usr` best-effort + fallback (belum terverifikasi, perlu sampel VuGen asli) · `[!]` tambah `samples/core` khusus fungsi F3 · `[!]` ritme: berhenti di akhir setiap tahap
+**Legenda status:** `[ ]` belum · `[~]` sebagian · `[x]` selesai · `[!]` terblokir/butuh keputusan
 
 > Catatan identitas git: repo ini memakai config lokal `adidata.ardiansyah <adidata.ardiansyah@users.noreply.github.com>`.
 > Ubah dengan `git config user.name/user.email` bila perlu.
 
 ---
 
-## Progres keseluruhan
+## Progres fitur (F0–F6)
 
-| Tahap | Status | Commit | Catatan |
+| Tahap | Status | Commit | Catatan jujur |
 |---|---|---|---|
-| F0 Scaffold | `[x]` | `F0: scaffold vite + tailwind + plugin middleware + vitest` | AC lulus (health ok, 4/4 test, lint bersih) |
-| F1 Loader + Editor | `[x]` | `F1: loader folder script + endpoint file + editor CodeMirror` | AC lulus (20/20 test, lint bersih, CRLF & isolation terverifikasi) |
-| F2 Tokenizer + Parser | `[x]` | `F2: tokenizer + parser call C + golden test` | AC lulus (51/51 test, lint bersih, `samples/basic/Action.c` terparse tanpa warning) |
-| F3 Transpile + Runtime inti | `[x]` | `F3: transpiler + runner fork + penyimpanan hasil run` | AC lulus (run.json step/status/header/body/transaksi/line benar; unsupported → warning; `iterations=3` → init & end 1×, Action 3×, `iteration` 1..3) |
-| F4 UI Run + Snapshot | `[x]` | `F4: UI run live + snapshot + panel` | AC lulus (run live via SSE, stepList, snapshot panel dengan iframe sandbox + CSP, panel Request/Response/Parameter/Log, sinkron editor↔step, opsi run di toolbar) |
-| F5 Fungsi lanjut | `[x]` | `F5: web_submit_data + correlation + cookie` | AC lulus (login 3 langkah dengan correlation, web_reg_save_param extract csrf, web_submit_data login, web_reg_find check) |
-| F6 Parameter + control flow (opsional) | `[x]` | `F6: parameter file + subset control flow C` | AC lulus (parameter file sequential, subset C control flow if/for/while, sprintf/atoi/strcmp/strcpy) |
+| F0 Scaffold | `[x]` | `74b0dc3` | health, vitest, lint |
+| F1 Loader + Editor | `[x]` | `21a3f2c` (+ `f0f711b` CRLF) | CRLF, save atomic, isolasi path terverifikasi |
+| F2 Tokenizer + Parser | `[x]` | `6b90a91` | diperluas di S4 (deklarasi, header kontrol alur, switch, cast) |
+| F3 Transpile + Runtime inti | `[x]` | kode: `f2dfb97` (S0) | Sebelumnya hanya "kode ada". Kini terverifikasi lewat test integrasi S2–S5 (`run.f5`, `run.kopra`, `run.lifecycle`, `runtime`). |
+| F4 UI Run + Snapshot | `[x]` | kode: `f2dfb97` (S0) | Terverifikasi di Chrome headless (S6): step live, snapshot di iframe sandbox, ganti iterasi, Stop, editor ↔ step. Dua sinkronisasi editor ↔ step baru benar-benar bekerja di S6 (sebelumnya tidak terpasang). |
+| F5 Fungsi lanjut | `[x]` | kode: `f2dfb97` (S0) | Login 3 langkah + correlation + `web_reg_find` jalan ke mock (`run.f5.test.js`). |
+| F6 Parameter + control flow | `[~]` | kode: `f2dfb97` (S0) | Control flow & deklarasi C: selesai (S4). Parameter `.dat`: selesai (S6). Mesin parameter `.prm` (Table/Time/Userid, `SelectNextRow`, `GenerateNewVal`, `OutOfRangePolicy`): **belum** — backlog. |
 
-Stabilisasi: rincian di `plan-stabilisasi.md`.
+## Progres stabilisasi (S0–S7)
 
-| Tahap | Status | Isi |
+| Tahap | Status | Commit | Isi |
+|---|---|---|---|
+| S0 | `[x]` | `f2dfb97` | Bersihkan working tree, lint 0, checkpoint kode F3–F6 |
+| S1 | `[x]` | `a6185cc` | Keamanan UI: `escapeHtml` benar (sebelumnya no-op di 6 tempat), snapshot HTML di `<iframe sandbox="">` |
+| S2 | `[x]` | `6127502` | Jalur step end-to-end: `execute.js`, event objek, body per step, `run.json` benar-benar tertulis, hapus mekanisme `snapshots/` |
+| S3 | `[x]` | `869d327` | Satu registri run, Stop < 2 s, SSE push + replay, routing satu lapis |
+| S4 | `[x]` | `a1ee85f` | Transpiler: header kontrol alur jadi ekspresi, deklarasi multi, global modul, `api-names.js`, makro status angka |
+| S5 | `[x]` | `f6197c9`, `21e314c` | Runtime: `web_js_run` (vm), header auto/sekali pakai, cookie, printf, transaksi bersarang Pass/Fail, step gagal; iterasi gagal tidak menghentikan run |
+| S6 | `[x]` | `e7c2565` | Loader parameter `.dat`, frontend: `selectedIteration` di store, grup `vuser_init`/`vuser_end`, transaksi Fail terlihat |
+| S7 | `[x]` | commit `S7: …` (`git log --grep "^S7"`) | Rapikan akhir: kode mati, escape `fileTree`, `__entries` hanya action, dokumen status |
+
+## Status script referensi (compile + `import()` saja; belum pernah dijalankan ke server target)
+
+Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` (S7). Semua 9 folder di `D:\Mandiri\KOPRA\R10.1\script` ter-compile dan ter-`import()` tanpa error sintaks.
+
+| Script | Warning | Rincian |
 |---|---|---|
-| S0 | `[x]` | Bersihkan working tree, lint bersih, checkpoint kode F3–F6 |
-| S1 | `[x]` | Keamanan UI: escape HTML + snapshot di iframe sandbox (K1, K2, F1) |
-| S2 | `[x]` | Jalur step & penyimpanan run (execute.js, event objek, body per step, hapus snapshots/) |
-| S3 | `[x]` | Lifecycle child, SSE, routing (registry.js, stop <2 s, SSE push+replay, routing satu lapis) |
-| S4 | `[x]` | Transpiler (header kontrol alur → ekspresi, deklarasi multi, global modul, api-names.js, makro status angka; smoke: 9/9 script KOPRA compile+import OK) |
-| S5 | `[x]` | Runtime: web_js_run (vm), header auto/sekali pakai, cookie, printf, transaksi bersarang Pass/Fail, step gagal (R6: iterasi gagal berhenti, iterasi berikutnya & vuser_end tetap jalan; transaksi terputus = Fail), http-client dirapikan |
-| S6 | `[x]` | Loader parameter `.dat` (header = nama param, multi-kolom, `parameters` array) + frontend (store.selectedIteration, grup vuser_init/vuser_end, transaksi Fail, editor↔step); diverifikasi di Chrome headless via CDP |
-| S7 | `[ ]` | Rapikan akhir + dokumentasi |
+| `BP000_VugenWeb` | **0** | `.dat` terbaca: `ip` (1 baris), `subTrans` (1 baris) |
+| `BP000_MCM_ViewDashboard` | **12** | `lr_exit` ×5, `web_reg_save_param_json` ×3, `web_revert_auto_header` ×2, `lr_param_sprintf` ×1, `web_convert_from_formatted` ×1. `.dat` terbaca: `companyId` (1), `ip` (2), `userApprover` (1), `userMaker` (1000 baris) |
+| Folder `BP211_*`, `BP601_*`, `BPXXX_*` | 90–133 | terutama `web_concurrent_start/end` (no-op yang belum ada), `web_reg_save_param_json`, `lr_exit`, `lr_unmask`, `web_remove_auto_header` |
+| `Recording` | 186 | `compareDuration` dipakai 45× tapi tidak didefinisikan di folder itu (masalah script, bukan transpiler) |
+
+## Known limitations
+
+- **Script KOPRA nyata belum pernah dijalankan ke server target.** Semua uji run memakai mock lokal.
+- **Fungsi yang dipakai script KOPRA tapi belum ada** (dipanggil sebagai *unsupported*: warning, lalu dilewati): `lr_exit`, `web_reg_save_param_json`, `web_remove_auto_header`, `web_revert_auto_header`, `web_concurrent_start/end`, `lr_unmask`, `lr_param_sprintf`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_convert_from_formatted`. Dampak terbesar: tanpa `lr_exit`, jalur gagal di script (`lr_exit(LR_EXIT_ITERATION_AND_CONTINUE, LR_FAIL)`) tidak menghentikan iterasi; tanpa `web_reg_save_param_json`, nilai correlation JSON tidak terisi.
+- **Parameter:** hanya `.dat` (baris pertama = header, pemisah koma tanpa quote, urut per iterasi, kembali ke awal bila habis). `.prm` tidak dibaca, jadi `Random`/`Unique`/`Time`/`Userid`/`OutOfRangePolicy` tidak ada. Satu VU saja.
+- **Compile mengabaikan** `pre_cci.c`, `combined_*.c`, dan semua file di `data/` (artefak VuGen).
+- **Subset C:** tidak ada `goto`, `struct`/`typedef`, array multi-dimensi, initializer list, operator pointer (`&`, `*`), dan `strcat`. Pembagian `int / int` memakai semantik JS (hasil pecahan). `char` array/pointer diperlakukan sebagai string JS.
+- **`web_js_run`:** `File=` belum didukung; `node:vm` memisahkan scope tapi bukan sandbox keamanan.
+- **HTTP:** `web_submit_data` multipart dikirim sebagai urlencoded; tanpa HTTP/2; urutan header tidak identik dengan VuGen.
+- **Perilaku error:** step gagal (exception, HTTP ≥ 400, `web_reg_find` tidak terpenuhi) menghentikan iterasi itu; iterasi berikutnya dan `vuser_end` tetap jalan; transaksi yang terputus dicatat `Fail`. `vuser_init` gagal melewati iterasi. Kasus lain yang tidak diverifikasi dengan VuGen asli perlu dicek bila hasilnya berbeda.
+- **`run.json`** tidak menyimpan status per iterasi; tanda ✗ di selector iterasi dihitung dari step error / transaksi Fail.
+- **UI:** panel Parameter menampilkan nilai akhir run (bukan per step). Tidak ada tab Transactions, README, atau `check:script`.
+- **Test:** timeout test dinaikkan ke 20 s karena import dingin sesekali melewati 5 s saat banyak proses paralel.
+
+## Backlog fitur (salinan `plan-stabilisasi.md` §9 — JANGAN dikerjakan di plan stabilisasi)
+
+Fungsi/fitur yang dipakai script KOPRA tapi belum ada — kerjakan nanti dengan plan terpisah:
+- `lr_exit` (36×), `web_reg_save_param_json` (50×), `web_remove_auto_header` (26×), `web_concurrent_start/end` (337×, cukup no-op), `lr_unmask`, `lr_param_sprintf`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_convert_from_formatted`, `web_revert_auto_header`, `web_rest` dengan header kompleks.
+- Mesin parameter `.prm` lengkap (Type Table/Time/Userid, `SelectNextRow`, `GenerateNewVal`, `OutOfRangePolicy`).
+- Tab Transactions, ringkasan transaksi, `npm run check:script`, README, multipart upload, HTTP/2.
+- Semua item `plan.md` §2/§10 (recording, multi-VU/k6, Step Toolbox).
 
 ---
+
+## Riwayat rinci per tahap (F0–F6)
 
 ## F0 — Scaffold ✅
 
@@ -81,7 +112,7 @@ Stabilisasi: rincian di `plan-stabilisasi.md`.
 - `[x]` **AC:** `samples/basic/Action.c` terparse tanpa error; 6 call dengan `file`+`line` benar (3, 5, 11, 20, 22, 24)
 - `[x]` Commit `F2: tokenizer + parser call C + golden test` (+ fix kecil: retry rename EPERM/EACCES/EBUSY di `save.js`)
 
-## F3 — Transpile + Runtime inti ⚠️ (AC belum terverifikasi)
+## F3 — Transpile + Runtime inti ✅ (terverifikasi S2–S5)
 
 - `[x]` `server/compiler/transpile.js` — AST → JS internal, penanda `__at("file", line)`, `await` untuk `web_*`/`lr_*`, `__unsupported("asli")`; output ke `.cache/<hash>/build/`
 - `[x]` `server/runtime/http-client.js` — undici + tough-cookie + redirect manual (catat hop) + timeout + `insecureTLS`
@@ -92,9 +123,9 @@ Stabilisasi: rincian di `plan-stabilisasi.md`.
 - `[x]` `samples/core/` — sampel fungsi F3 saja (`web_url`, `lr_*`, `web_add_header`)
 - `[x]` Test: run CLI langsung tanpa UI
 - `[x]` **AC:** `run.json` step/status/header/body/transaksi/line benar; unsupported → warning; `iterations=3` → init & end 1×, Action 3×, `iteration` 1..3
-- `[x]` Commit `F3: transpiler + runner fork + penyimpanan hasil run`
+- `[x]` Commit: tidak pernah dibuat terpisah (`F3: transpiler + runner fork + penyimpanan hasil run` hanya rencana); kode masuk lewat checkpoint S0 `f2dfb97`
 
-## F4 — UI Run + Snapshot ⚠️ (AC belum terverifikasi)
+## F4 — UI Run + Snapshot ✅ (terverifikasi S1 + S6)
 
 - `[x]` `server/routes/run.js` — `POST /api/run`, `GET /api/run/:id/events` (SSE), `POST /api/run/:id/stop`, `GET /api/run/:id`, `GET /api/run/:id/step/:seq/body`
 - `[x]` `src/components/stepList.js` + selector iterasi (1..N)
@@ -103,23 +134,23 @@ Stabilisasi: rincian di `plan-stabilisasi.md`.
 - `[x]` Sinkron klik step ↔ baris editor (dua arah)
 - `[x]` Kontrol jumlah iterasi + opsi run di toolbar; indikator status
 - `[x]` **AC:** Run → step live → snapshot tampil; Stop <2s tanpa proses yatim; error menunjuk baris C benar; restart Vite bersih
-- `[x]` Commit `F4: UI run live + snapshot + panel`
+- `[x]` Commit: tidak pernah dibuat terpisah (`F4: UI run live + snapshot + panel` hanya rencana); kode masuk lewat checkpoint S0 `f2dfb97`
 
-## F5 — Fungsi lanjut ⚠️ (AC belum terverifikasi)
+## F5 — Fungsi lanjut ✅ (terverifikasi S2–S5)
 
 - `[x]` `web_submit_data` (ITEMDATA/ENDITEM), `web_submit_form` (sederhana)
 - `[x]` `web_reg_save_param`, `web_reg_save_param_ex`, `web_reg_save_param_regexp`
 - `[x]` `web_reg_find`
 - `[x]` `web_add_cookie`, `web_cleanup_cookies`, `web_set_user`
 - `[x]` **AC:** login 3 langkah dengan correlation (token step 1 dipakai step 2); tab Parameter menampilkan nilai correlation
-- `[x]` Commit `F5: web_submit_data + correlation + cookie`
+- `[x]` Commit: tidak pernah dibuat terpisah (`F5: web_submit_data + correlation + cookie` hanya rencana); kode masuk lewat checkpoint S0 `f2dfb97`
 
-## F6 — Parameter file + control flow (opsional) ⚠️ (AC belum terverifikasi)
+## F6 — Parameter file + control flow (opsional) ◑ (`.dat` + control flow selesai; `.prm` backlog)
 
 - `[x]` Parameter `.prm`/`data/*.dat` (sequential, ganti per iterasi)
 - `[x]` Subset C: `if/else/for/while`, `int`, `char*`, `strcmp`, `sprintf`, `atoi`, `strcpy`
 - `[x]` **AC:** script sampel dengan loop + if berjalan sesuai ekspektasi
-- `[x]` Commit `F6: parameter file + subset control flow C`
+- `[x]` Commit: tidak pernah dibuat terpisah (`F6: parameter file + subset control flow C` hanya rencana); kode masuk lewat checkpoint S0 `f2dfb97`
 
 ---
 

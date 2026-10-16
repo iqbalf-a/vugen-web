@@ -137,11 +137,3 @@ export async function handleRunStepBody(req, res, url, { id: runId, seq }) {
   res.setHeader("Content-Type", "application/octet-stream");
   res.end(body);
 }
-
-export default {
-  handleRunPost,
-  handleRunEvents,
-  handleRunStop,
-  handleRunGet,
-  handleRunStepBody,
-};

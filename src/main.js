@@ -230,10 +230,6 @@ async function openProjectPath(path) {
     renderFileTree(els.fileTree, project, { activePath: null, onOpenFile: openDoc });
     renderTabs();
 
-    if (project.warnings.length > 0) {
-      console.warn("[vugen-web] warning project:", ...project.warnings);
-    }
-
     const first = project.actions[0]?.file ?? project.files.find((file) => file.ext === ".c")?.path;
     if (first) await openDoc(first);
   } catch (error) {

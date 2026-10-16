@@ -91,6 +91,5 @@ export async function __fn_Loadpage(parentTrans) {
 
 /** Nama action (basename file .c) -> fungsi hasil transpile. */
 export const __entries = {
-  "kopra-globals": __fn_compareDuration,
   "kopra-loadpage": __fn_Loadpage,
 };

@@ -233,5 +233,3 @@ export class HttpClient {
     }
   }
 }
-
-export default HttpClient;

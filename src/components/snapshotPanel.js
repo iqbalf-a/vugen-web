@@ -387,5 +387,3 @@ export function createSnapshotPanel(container) {
     },
   };
 }
-
-export default { createSnapshotPanel };

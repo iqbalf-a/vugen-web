@@ -1,3 +1,5 @@
+import { escapeHtml } from "../utils/html.js";
+
 /**
  * File tree: daftar file script, dikelompokkan per kategori (Action Utama, Action General, Parameter, Config).
  */
@@ -53,7 +55,7 @@ export function renderFileTree(root, project, { activePath, onOpenFile }) {
     const heading = document.createElement("div");
     heading.className = "mt-3 mb-1 flex items-center gap-2";
     heading.innerHTML = `
-      <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]">${config.label}</span>
+      <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]">${escapeHtml(config.label)}</span>
       <span class="w-full h-[1px] bg-[#2a3644]"></span>
     `;
     root.append(heading);

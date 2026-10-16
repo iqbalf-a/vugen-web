@@ -502,6 +502,8 @@ export function transpilePrograms(programs) {
     const declared = functionsByFile.get(program.file) ?? [];
     if (declared.length === 0) continue;
 
+    if (path.extname(program.file).toLowerCase() !== ".c") continue; // header (globals.h) bukan action
+
     const base = path.basename(program.file, path.extname(program.file));
     const match = declared.find((node) => node.name === base) ?? (declared.length === 1 ? declared[0] : null);
     if (!match) continue;

@@ -88,6 +88,13 @@ describe("transpile: hasil transpile valid secara sintaks (import)", () => {
 });
 
 describe("transpile: pola KOPRA (kopra-loadpage)", () => {
+  it("__entries hanya untuk file .c (action); globals.h bukan action", async () => {
+    const result = await transpileFixtureFiles(TRANSPILE_SETS["kopra-loadpage"]);
+    expect(result.entries).toEqual(["kopra-loadpage"]);
+    expect(result.code).not.toMatch(/"kopra-globals"/);
+    expect(result.functions).toContain("compareDuration"); // fungsinya tetap tersedia untuk dipanggil
+  });
+
   async function load() {
     const result = await transpileFixtureFiles(TRANSPILE_SETS["kopra-loadpage"]);
     const mod = await importCode("kopra-behaviour", result.code);

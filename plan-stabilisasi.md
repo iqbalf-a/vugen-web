@@ -35,7 +35,7 @@
 | S4 | Transpiler: perbaiki subset C yang sudah diklaim | **selesai** |
 | S5 | Runtime: perbaiki fungsi yang sudah ada | **selesai** |
 | S6 | Loader parameter `.dat` + rapikan frontend | **selesai** |
-| S7 | Rapikan akhir + dokumentasi status jujur | belum |
+| S7 | Rapikan akhir + dokumentasi status jujur | **selesai** |
 
 ---
 
@@ -186,10 +186,10 @@ Frontend:
 
 ## S7 — Rapikan akhir
 
-- [ ] `npx eslint .` 0; hapus file/ekspor yang tidak dipakai (`grep` setiap `export` di `server/` dan `src/` yang tidak di-import di mana pun, kecuali API publik test).
-- [ ] Pastikan tidak ada `console.log` di `server/` dan `src/` selain error nyata.
-- [ ] `todo.md`: status F3–F6 & S1–S7 jujur, daftar known limitations, salin §9 Backlog.
-- [ ] Laporkan ke user ringkasan perubahan S1–S7 dan apa yang masih belum bisa jalan pada script KOPRA (berdasarkan smoke test S4 dan warning unsupported).
+- [x] `npx eslint .` 0; hapus file/ekspor yang tidak dipakai (`grep` setiap `export` di `server/` dan `src/` yang tidak di-import di mana pun, kecuali API publik test).
+- [x] Pastikan tidak ada `console.log` di `server/` dan `src/` selain error nyata.
+- [x] `todo.md`: status F3–F6 & S1–S7 jujur, daftar known limitations, salin §9 Backlog.
+- [x] Laporkan ke user ringkasan perubahan S1–S7 dan apa yang masih belum bisa jalan pada script KOPRA (berdasarkan smoke test S4 dan warning unsupported).
 
 **AC:** semua test hijau; user setuju status di `todo.md`.
 

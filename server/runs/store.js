@@ -189,35 +189,6 @@ export async function loadStepBody(cacheDir, runId, seq) {
 }
 
 /**
- * List all run IDs in cache
- * @param {string} cacheDir
- * @returns {Promise<string[]>}
- */
-export async function listRuns(cacheDir) {
-  const runsDir = path.join(cacheDir, "runs");
-  try {
-    const entries = await fs.readdir(runsDir, { withFileTypes: true });
-    return entries
-      .filter(e => e.isDirectory())
-      .map(e => e.name)
-      .sort((a, b) => b.localeCompare(a)); // newest first
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Delete a run
- * @param {string} cacheDir
- * @param {string} runId
- */
-export async function deleteRun(cacheDir, runId) {
-  if (!isValidRunId(runId)) return;
-  const runDir = path.join(cacheDir, "runs", runId);
-  await fs.rm(runDir, { recursive: true, force: true });
-}
-
-/**
  * Build initial RunResult skeleton
  * @param {Object} params
  * @returns {RunResult}
@@ -301,20 +272,3 @@ export function finalizeRun(runResult, status) {
   runResult.status = status;
   runResult.durationMs = Date.now() - new Date(runResult.startedAt).getTime();
 }
-
-export default {
-  saveRun,
-  loadRun,
-  loadStepBody,
-  listRuns,
-  deleteRun,
-  createRunResult,
-  addStep,
-  addTransaction,
-  addLog,
-  finalizeRun,
-  decodeBody,
-  saveStepBody,
-  isValidRunId,
-  isValidSeq,
-};

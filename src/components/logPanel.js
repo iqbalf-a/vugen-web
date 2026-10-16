@@ -110,5 +110,3 @@ export function createLogPanel(container) {
     },
   };
 }
-
-export default { createLogPanel };

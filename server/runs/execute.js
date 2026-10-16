@@ -178,5 +178,3 @@ export async function startRun({ scriptDir, options = {} }) {
   registerRun(handle);
   return handle;
 }
-
-export default { startRun, generateRunId };

@@ -128,15 +128,6 @@ export function getRunEvents(runId, scriptPath, onEvent) {
 }
 
 /**
- * @param {string} runId
- * @param {number} seq
- * @param {string} scriptPath
- */
-export function getStepBody(runId, seq, scriptPath) {
-  return requestRaw(`/api/run/${runId}/step/${seq}/body?path=${encodeURIComponent(scriptPath)}`);
-}
-
-/**
  * GET request with query params, returns arrayBuffer
  * @param {string} path
  * @param {{ params?: Record<string, string> }} options

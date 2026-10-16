@@ -16,7 +16,8 @@ import path from "node:path";
 
 import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
 import { isValidRunId, loadRun, loadStepBody } from "../runs/store.js";
-import { getRun, startRun, stopRun } from "../runs/execute.js";
+import { startRun } from "../runs/execute.js";
+import { getRun, stopRun } from "../runs/registry.js";
 import { sendJson, sendError, startSse, readJsonBody } from "../http-utils.js";
 
 /**
@@ -52,7 +53,7 @@ export async function handleRunPost(req, res) {
 /**
  * GET /api/run/:id/events — Server-Sent Events
  */
-export async function handleRunEvents(req, res, runId) {
+export async function handleRunEvents(req, res, _url, { id: runId }) {
   if (!requireRunId(res, runId)) return;
   const run = getRun(runId);
   if (!run) return sendError(res, 404, `Run ${runId} tidak ditemukan`);
@@ -77,7 +78,7 @@ export async function handleRunEvents(req, res, runId) {
 /**
  * POST /api/run/:id/stop
  */
-export async function handleRunStop(req, res, runId) {
+export async function handleRunStop(req, res, _url, { id: runId }) {
   if (!requireRunId(res, runId)) return;
   if (!stopRun(runId)) {
     return sendError(res, 404, `Run ${runId} tidak ditemukan atau sudah selesai`);
@@ -88,7 +89,7 @@ export async function handleRunStop(req, res, runId) {
 /**
  * GET /api/run/:id — Get run.json
  */
-export async function handleRunGet(req, res, runId, url) {
+export async function handleRunGet(req, res, url, { id: runId }) {
   if (!requireRunId(res, runId)) return;
 
   const scriptDir = url.searchParams.get("path") ? await resolveScriptDir(url.searchParams.get("path")).catch(() => null) : null;
@@ -120,7 +121,7 @@ export async function handleRunGet(req, res, runId, url) {
 /**
  * GET /api/run/:id/step/:seq/body — Get raw response body
  */
-export async function handleRunStepBody(req, res, runId, seq, url) {
+export async function handleRunStepBody(req, res, url, { id: runId, seq }) {
   if (!requireRunId(res, runId)) return;
   if (!/^[1-9][0-9]*$/.test(String(seq))) return sendError(res, 400, "seq tidak valid");
 
@@ -137,51 +138,10 @@ export async function handleRunStepBody(req, res, runId, seq, url) {
   res.end(body);
 }
 
-/**
- * Main handler for /api/run/* routes
- * Note: Vite's Connect middleware strips /api prefix, so req.url is /run not /api/run
- */
-export async function handleRunRoutes(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname;
-
-  // Parse path segments (normalized: no /api prefix)
-  const segments = pathname.split("/").filter(Boolean);
-  // segments: ['run', ':id', 'events'] or ['run', ':id', 'step', ':seq', 'body']
-
-  if (req.method === "POST" && pathname === "/run") {
-    return handleRunPost(req, res);
-  }
-
-  if (segments.length >= 2 && segments[0] === "run") {
-    const runId = segments[1];
-
-    if (req.method === "GET" && segments[2] === "events") {
-      return handleRunEvents(req, res, runId);
-    }
-
-    if (req.method === "POST" && segments[2] === "stop") {
-      return handleRunStop(req, res, runId);
-    }
-
-    if (req.method === "GET" && segments.length === 2) {
-      return handleRunGet(req, res, runId, url);
-    }
-
-    if (req.method === "GET" && segments[2] === "step" && segments[4] === "body") {
-      const seq = segments[3];
-      return handleRunStepBody(req, res, runId, seq, url);
-    }
-  }
-
-  sendError(res, 404, "Endpoint tidak ditemukan");
-}
-
 export default {
   handleRunPost,
   handleRunEvents,
   handleRunStop,
   handleRunGet,
   handleRunStepBody,
-  handleRunRoutes,
 };

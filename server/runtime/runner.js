@@ -8,6 +8,8 @@
  * Plan §7.3: hasil run disimpan ke cache oleh parent; runner hanya kirim event.
  */
 
+import { pathToFileURL } from "node:url";
+
 import { HttpClient } from "./http-client.js";
 import * as vuserApi from "./vuser-api.js";
 
@@ -48,8 +50,8 @@ Object.assign(vu, vuserApi);
 vuserApi.__bind(vu);
 
 /** Kirim event ke parent process */
-function sendEvent(type, data) {
-  process.send({ type: "event", event: { type, data, ts: Date.now() } });
+function sendEvent(type, data, callback) {
+  process.send({ type: "event", event: { type, data, ts: Date.now() } }, callback);
 }
 
 /** Main run logic */
@@ -99,7 +101,7 @@ async function run(payload) {
     });
 
     // Import transpiled module
-    const moduleUrl = `file://${modulePath}`;
+    const moduleUrl = `${pathToFileURL(modulePath).href}?t=${Date.now()}`;
     let mod;
     try {
       mod = await import(moduleUrl);
@@ -213,8 +215,8 @@ process.on("message", (msg) => {
       process.exit(1);
     });
   } else if (msg?.type === "stop") {
-    sendEvent("stopped", { reason: "Received stop signal" });
-    process.exit(0);
+    // Keluar setelah event terkirim supaya parent tahu ini stop yang disengaja
+    sendEvent("stopped", { reason: "Received stop signal" }, () => process.exit(0));
   }
 });
 

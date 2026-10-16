@@ -5,6 +5,7 @@
  * - GET  /              -> HTML sederhana dengan form login + CSRF token
  * - POST /login         -> Validasi user/csrf, set cookie, redirect ke /dashboard
  * - GET  /dashboard     -> Halaman setelah login
+ * - GET  /slow          -> Menjawab setelah 10 detik (untuk tes Stop)
  *
  * Dipakai oleh runner test tanpa server eksternal.
  */
@@ -166,6 +167,16 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // GET /slow — jawaban lambat; dipakai tes Stop/killAllRuns
+  if (method === "GET" && url.pathname === "/slow") {
+    const timer = setTimeout(() => {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("slow ok");
+    }, 10_000);
+    res.on("close", () => clearTimeout(timer));
+    return;
+  }
+
   // GET /logout
   if (method === "GET" && url.pathname === "/logout") {
     res.setHeader("Set-Cookie", [
@@ -196,6 +207,7 @@ export function startMockServer(port = 18081) {
 export function stopMockServer() {
   return new Promise((resolve) => {
     if (serverInstance) {
+      serverInstance.closeAllConnections?.();
       serverInstance.close(() => {
         serverInstance = null;
         resolve();

@@ -7,13 +7,14 @@
  *
  * @typedef {import("../http-utils.js").IncomingMessage} IncomingMessage
  * @typedef {import("../http-utils.js").ServerResponse} ServerResponse
- * @typedef {{ methods: string[], path: string, handler: (req: IncomingMessage, res: ServerResponse, url: URL) => unknown }} ApiRoute
+ * @typedef {Record<string, string>} RouteParams - hasil match `:nama` di path
+ * @typedef {{ methods: string[], path: string, handler: (req: IncomingMessage, res: ServerResponse, url: URL, params: RouteParams) => unknown }} ApiRoute
  */
 
 import { requestUrl, sendError, sendJson } from "../http-utils.js";
 import { getFile, putFile } from "./file.js";
 import { getProject } from "./project.js";
-import { handleRunRoutes } from "./run.js";
+import { handleRunEvents, handleRunGet, handleRunPost, handleRunStepBody, handleRunStop } from "./run.js";
 
 /** @type {ApiRoute[]} */
 const routes = [
@@ -27,11 +28,11 @@ const routes = [
   { methods: ["GET"], path: "/project", handler: getProject },
   { methods: ["GET"], path: "/file", handler: getFile },
   { methods: ["PUT"], path: "/file", handler: putFile },
-  { methods: ["POST"], path: "/run", handler: handleRunRoutes },
-  { methods: ["GET"], path: "/run/:id/events", handler: handleRunRoutes },
-  { methods: ["POST"], path: "/run/:id/stop", handler: handleRunRoutes },
-  { methods: ["GET"], path: "/run/:id", handler: handleRunRoutes },
-  { methods: ["GET"], path: "/run/:id/step/:seq/body", handler: handleRunRoutes },
+  { methods: ["POST"], path: "/run", handler: handleRunPost },
+  { methods: ["GET"], path: "/run/:id/events", handler: handleRunEvents },
+  { methods: ["POST"], path: "/run/:id/stop", handler: handleRunStop },
+  { methods: ["GET"], path: "/run/:id", handler: handleRunGet },
+  { methods: ["GET"], path: "/run/:id/step/:seq/body", handler: handleRunStepBody },
 ];
 
 function normalizePath(pathname) {
@@ -40,15 +41,32 @@ function normalizePath(pathname) {
   return pathname;
 }
 
+/**
+ * Cocokkan pathname dengan pola route (`:nama` = satu segmen).
+ *
+ * @param {string} pathname
+ * @param {string} routePath
+ * @returns {RouteParams|null} params bila cocok, null bila tidak
+ */
 function matchRoute(pathname, routePath) {
-  // Exact match
-  if (pathname === routePath) return true;
-  // Dynamic route match (e.g., /run/:id/events matches /run/abc/events)
-  if (routePath.includes(":")) {
-    const routeRegex = new RegExp("^" + routePath.replace(/:[^/]+/g, "[^/]+") + "$");
-    return routeRegex.test(pathname);
-  }
-  return false;
+  const names = [];
+  const pattern = routePath.replace(/:([A-Za-z]+)/g, (_, name) => {
+    names.push(name);
+    return "([^/]+)";
+  });
+  const match = new RegExp(`^${pattern}$`).exec(pathname);
+  if (!match) return null;
+
+  /** @type {RouteParams} */
+  const params = {};
+  names.forEach((name, index) => {
+    try {
+      params[name] = decodeURIComponent(match[index + 1]);
+    } catch {
+      params[name] = match[index + 1];
+    }
+  });
+  return params;
 }
 
 function statusOf(error) {
@@ -61,21 +79,23 @@ export function apiRouter(req, res) {
   const pathname = normalizePath(url.pathname);
   const method = req.method ?? "GET";
 
-  // Find matching route (exact or dynamic)
-  const forPath = routes.filter((route) => matchRoute(pathname, route.path));
+  // Semua route yang cocok dengan path (method dicek setelahnya untuk 405)
+  const forPath = routes
+    .map((route) => ({ route, params: matchRoute(pathname, route.path) }))
+    .filter((entry) => entry.params !== null);
   if (forPath.length === 0) {
     sendError(res, 404, `Route tidak ditemukan: ${method} ${pathname}.`);
     return;
   }
 
-  const route = forPath.find((candidate) => candidate.methods.includes(method));
-  if (!route) {
+  const matched = forPath.find((entry) => entry.route.methods.includes(method));
+  if (!matched) {
     sendError(res, 405, `Method ${method} tidak didukung untuk ${pathname}.`);
     return;
   }
 
   Promise.resolve()
-    .then(() => route.handler(req, res, url))
+    .then(() => matched.route.handler(req, res, url, matched.params))
     .catch((error) => {
       const status = statusOf(error);
       if (status >= 500) console.error(`[api] ${method} ${pathname} gagal:`, error);

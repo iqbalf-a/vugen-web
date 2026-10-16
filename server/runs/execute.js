@@ -18,28 +18,17 @@ import { fileURLToPath } from "node:url";
 import { compileScript } from "../compiler/transpile.js";
 import { loadProject } from "../project/loader.js";
 import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
+import { KEEP_AFTER_DONE_MS, registerRun, retireRun } from "./registry.js";
 import { addLog, addStep, addTransaction, createRunResult, finalizeRun, saveRun } from "./store.js";
 
 const RUNNER_PATH = fileURLToPath(new URL("../runtime/runner.js", import.meta.url));
-const STOP_KILL_DELAY_MS = 2000;
-const KEEP_AFTER_DONE_MS = 5 * 60 * 1000;
 
 /**
  * @typedef {import("./store.js").RunResult} RunResult
  * @typedef {import("./store.js").RunOptions} RunOptions
  * @typedef {{ type: string, data: any, ts: number }} RunEvent
- * @typedef {Object} RunHandle
- * @property {string} runId
- * @property {import("node:child_process").ChildProcess} child
- * @property {EventEmitter} events - emit "event" (RunEvent) untuk tiap event baru
- * @property {RunEvent[]} history - semua event sejauh ini (untuk replay SSE)
- * @property {Promise<RunResult>} done - resolve setelah saveRun selesai
- * @property {{ file: string, line: number, message: string }[]} warnings - warning compile
- * @property {boolean} stopRequested
+ * @typedef {import("./registry.js").RunHandle} RunHandle
  */
-
-/** Run yang masih dikenal (berjalan, atau baru selesai) */
-const runs = new Map();
 
 /** @returns {string} runId, cocok dengan `isValidRunId` */
 export function generateRunId() {
@@ -60,30 +49,6 @@ function normalizeOptions(options = {}) {
     thinkTime: options.thinkTime ?? "ignore",
     timeoutMs: options.timeoutMs ?? 60000,
   };
-}
-
-/**
- * @param {string} runId
- * @returns {RunHandle|undefined}
- */
-export function getRun(runId) {
-  return runs.get(runId);
-}
-
-/**
- * Minta run berhenti; child dibunuh paksa bila belum keluar.
- * @param {string} runId
- * @returns {boolean} false bila run tidak ditemukan / sudah selesai
- */
-export function stopRun(runId) {
-  const run = runs.get(runId);
-  if (!run || run.child.exitCode !== null) return false;
-  run.stopRequested = true;
-  run.child.send({ type: "stop" });
-  setTimeout(() => {
-    if (run.child.exitCode === null) run.child.kill("SIGKILL");
-  }, STOP_KILL_DELAY_MS).unref();
-  return true;
 }
 
 /**
@@ -146,7 +111,7 @@ export async function startRun({ scriptDir, options = {} }) {
     resolveDone(runResult);
 
     if (child.exitCode === null) child.kill();
-    setTimeout(() => runs.delete(runId), KEEP_AFTER_DONE_MS).unref();
+    retireRun(runId, KEEP_AFTER_DONE_MS);
   }
 
   child.on("message", (msg) => {
@@ -210,8 +175,8 @@ export async function startRun({ scriptDir, options = {} }) {
 
   /** @type {RunHandle} */
   const handle = { runId, child, events, history, done, warnings: compileResult.warnings, stopRequested: false };
-  runs.set(runId, handle);
+  registerRun(handle);
   return handle;
 }
 
-export default { startRun, getRun, stopRun, generateRunId };
+export default { startRun, generateRunId };

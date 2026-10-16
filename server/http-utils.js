@@ -84,6 +84,8 @@ export function startSse(req, res, { heartbeatMs = 15_000 } = {}) {
     if (closed) return;
     closed = true;
     clearInterval(heartbeat);
+    // Listener onClose dipanggil sekali saat stream ditutup (klien putus / close())
+    for (const listener of listeners) listener();
     listeners.clear();
   }
 
@@ -94,7 +96,6 @@ export function startSse(req, res, { heartbeatMs = 15_000 } = {}) {
   return {
     send(event, data) {
       if (closed) return;
-      listeners.forEach((listener) => listener(event, data));
       res.write(`event: ${event}\ndata: ${JSON.stringify(data ?? null)}\n\n`);
     },
     comment(text = "") {

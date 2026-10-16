@@ -31,7 +31,7 @@
 | S0 | Bersihkan working tree, lint 0, checkpoint F3–F6 | **selesai** (`f2dfb97`) |
 | S1 | Keamanan UI: escape HTML + snapshot di iframe sandbox | **selesai** (`a6185cc`) |
 | S2 | Jalur step & penyimpanan run end-to-end | **selesai** |
-| S3 | Lifecycle child process, SSE, routing | belum |
+| S3 | Lifecycle child process, SSE, routing | **selesai** |
 | S4 | Transpiler: perbaiki subset C yang sudah diklaim | belum |
 | S5 | Runtime: perbaiki fungsi yang sudah ada | belum |
 | S6 | Loader parameter `.dat` + rapikan frontend | belum |
@@ -116,14 +116,14 @@ Langkah:
 
 ## S3 — Lifecycle child, SSE, routing (T6, T7)
 
-- [ ] Pindahkan registri child dari `server/vite-plugin.js` ke `server/runs/registry.js`; `vite-plugin.js` dan `execute.js` mengimpor dari sana. Hapus `runningChildren` di `routes/run.js`.
-- [ ] Fork path: `fileURLToPath(new URL("../runtime/runner.js", import.meta.url))`. Runner: `import(pathToFileURL(modulePath).href + "?t=" + Date.now())`.
-- [ ] Stop: kirim `{type:"stop"}`, fallback `child.kill()` setelah 1500 ms; status run `"stopped"`; `run.json` tetap tersimpan.
-- [ ] SSE pakai `startSse()` (heartbeat 15 s) + push dari `EventEmitter` (`execute.js`), replay event yang sudah ada saat klien terhubung, unsubscribe saat `req` close, tutup stream setelah `done`. Hapus polling `setInterval`.
-- [ ] Event run dibuang dari memori 5 menit setelah `done`.
-- [ ] Routing satu lapis: `routes/index.js` mendaftarkan handler spesifik (`handleRunPost`, `handleRunEvents`, …) dengan parameter path hasil match; hapus dispatch manual `handleRunRoutes` dan endpoint `/run/:id/debug`.
-- [ ] Hapus `console.log` operasional di `routes/run.js` (stdout/stderr runner boleh diteruskan ke log run level `debug`).
-- [ ] Test: mock endpoint lambat → stop → child `exit` < 2 s, status `stopped`; `killAllRuns()` membunuh semua child.
+- [x] Pindahkan registri child dari `server/vite-plugin.js` ke `server/runs/registry.js`; `vite-plugin.js` dan `execute.js` mengimpor dari sana. Hapus `runningChildren` di `routes/run.js`.
+- [x] Fork path: `fileURLToPath(new URL("../runtime/runner.js", import.meta.url))`. Runner: `import(pathToFileURL(modulePath).href + "?t=" + Date.now())`.
+- [x] Stop: kirim `{type:"stop"}`, fallback `child.kill()` setelah 1500 ms; status run `"stopped"`; `run.json` tetap tersimpan.
+- [x] SSE pakai `startSse()` (heartbeat 15 s) + push dari `EventEmitter` (`execute.js`), replay event yang sudah ada saat klien terhubung, unsubscribe saat `req` close, tutup stream setelah `done`. Hapus polling `setInterval`.
+- [x] Event run dibuang dari memori 5 menit setelah `done`.
+- [x] Routing satu lapis: `routes/index.js` mendaftarkan handler spesifik (`handleRunPost`, `handleRunEvents`, …) dengan parameter path hasil match; hapus dispatch manual `handleRunRoutes` dan endpoint `/run/:id/debug`.
+- [x] Hapus `console.log` operasional di `routes/run.js` (stdout/stderr runner boleh diteruskan ke log run level `debug`).
+- [x] Test: mock endpoint lambat → stop → child `exit` < 2 s, status `stopped`; `killAllRuns()` membunuh semua child.
 
 **AC:** test hijau; `grep -rn "runningChildren" server` → hanya di `registry.js`; manual: ubah `vite.config.js` di tengah run → tidak ada proses runner tersisa (beri user perintah PowerShell `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ? CommandLine -match 'runner.js'`).
 

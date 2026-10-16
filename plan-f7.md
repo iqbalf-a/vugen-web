@@ -51,10 +51,10 @@ Ini **tahap fitur** — menambah fungsi runtime diizinkan, tetapi **hanya** fung
 
 ### F7c — Header & parameter
 
-- [ ] `web_remove_auto_header(name, ..., LAST)` dan `web_revert_auto_header(name)`: hapus header itu dari `autoHeaders` (nama case-insensitive). Header lain tetap. **[cek]** atribut `ImplicitGen=` bila ditemukan di script: abaikan dengan warning.
-- [ ] `lr_param_sprintf(paramName, format, ...args)`: `lr_save_string(printf(format, ...args), paramName)` memakai `server/runtime/printf.js` dari S5.
-- [ ] `web_convert_from_formatted`: dukung hanya `Extensions=Base64` → `TargetParam` = Base64 dari `FormattedData` (setelah substitusi `{param}`, UTF-8). **[cek]** arah konversi: verifikasi read-only bahwa `{basicUsername}` dipakai sebagai `Authorization: Basic {basicUsername}` (berarti encode). Extension lain → warning, param tidak diisi.
-- [ ] Test: header hilang dari request berikutnya; `lr_param_sprintf` + `web_convert_from_formatted` menghasilkan `dXNlcjpwYXNz` untuk `user:pass`.
+- [x] `web_remove_auto_header(name, ..., LAST)` dan `web_revert_auto_header(name)`: hapus header itu dari `autoHeaders` (nama case-insensitive). Header lain tetap. **[cek]** atribut `ImplicitGen=` bila ditemukan di script: abaikan dengan warning.
+- [x] `lr_param_sprintf(paramName, format, ...args)`: `lr_save_string(printf(format, ...args), paramName)` memakai `server/runtime/printf.js` dari S5.
+- [x] `web_convert_from_formatted`: dukung hanya `Extensions=Base64` → `TargetParam` = Base64 dari `FormattedData` (setelah substitusi `{param}`, UTF-8). **[cek]** arah konversi: verifikasi read-only bahwa `{basicUsername}` dipakai sebagai `Authorization: Basic {basicUsername}` (berarti encode). Extension lain → warning, param tidak diisi.
+- [x] Test: header hilang dari request berikutnya; `lr_param_sprintf` + `web_convert_from_formatted` menghasilkan `dXNlcjpwYXNz` untuk `user:pass`.
 
 ### F7d — `web_concurrent_start/end` (no-op berurutan)
 

@@ -493,3 +493,101 @@ describe("R8 insecureTLS (server HTTPS self-signed lokal)", () => {
     expect(resp.body.toString()).toBe("secure ok");
   });
 });
+
+describe("F7c web_remove_auto_header / web_revert_auto_header", () => {
+  it("web_remove_auto_header(name, LAST): header hilang dari request berikutnya, header lain tetap; nama case-insensitive", async () => {
+    api.web_add_auto_header("Accept-Language", "id-ID");
+    api.web_add_auto_header("X-Keep", "tetap");
+    expect(api.web_remove_auto_header("accept-LANGUAGE", "LAST")).toBe(0);
+
+    await api.web_url("cek", `URL=${BASE}/echo-headers`, "LAST");
+    const headers = steps()[0].request.headers;
+    expect(headers["accept-language"]).toBeUndefined();
+    expect(headers["x-keep"]).toBe("tetap");
+  });
+
+  it("web_revert_auto_header(name): sama — header dicabut dari auto header", async () => {
+    api.web_add_auto_header("Device-Id", "abc");
+    expect(api.web_revert_auto_header("Device-Id")).toBe(0);
+    await api.web_url("cek", `URL=${BASE}/echo-headers`, "LAST");
+    expect(steps()[0].request.headers["device-id"]).toBeUndefined();
+  });
+
+  it("header yang tidak ada: tidak error; bisa ditambahkan lagi sesudahnya", async () => {
+    expect(api.web_revert_auto_header("Tidak-Ada")).toBe(0);
+    api.web_add_auto_header("X-A", "1");
+    api.web_remove_auto_header("X-A", "LAST");
+    api.web_add_auto_header("X-A", "2");
+    await api.web_url("cek", `URL=${BASE}/echo-headers`, "LAST");
+    expect(steps()[0].request.headers["x-a"]).toBe("2");
+  });
+
+  it("ImplicitGen= (pola KOPRA) diabaikan dengan warning; header tetap dihapus", async () => {
+    api.web_add_auto_header("X-Implicit", "1");
+    api.web_remove_auto_header("X-Implicit", "ImplicitGen=Yes", "LAST");
+    expect(env.logs.some(([level, msg]) => level === "warn" && /ImplicitGen/.test(msg))).toBe(true);
+    await api.web_url("cek", `URL=${BASE}/echo-headers`, "LAST");
+    expect(steps()[0].request.headers["x-implicit"]).toBeUndefined();
+  });
+
+  it("header sekali pakai (web_add_header) tidak ikut terhapus", async () => {
+    api.web_add_header("X-Once", "1");
+    api.web_remove_auto_header("X-Once", "LAST");
+    await api.web_url("cek", `URL=${BASE}/echo-headers`, "LAST");
+    expect(steps()[0].request.headers["x-once"]).toBe("1");
+  });
+});
+
+describe("F7c lr_param_sprintf + web_convert_from_formatted", () => {
+  it("lr_param_sprintf menyimpan hasil printf ke parameter (pola KOPRA: user:password)", () => {
+    env.ctx.params.set("username", "user");
+    env.ctx.params.set("password", "pass");
+    expect(api.lr_param_sprintf("usernamePassword", "%s", api.lr_eval_string("{username}:{password}"))).toBe(0);
+    expect(env.ctx.params.get("usernamePassword")).toBe("user:pass");
+  });
+
+  it("lr_param_sprintf: format lengkap dan argumen banyak", () => {
+    api.lr_param_sprintf("kode", "%s-%04d-%.1f%%", "ID", 42, 99.95);
+    expect(env.ctx.params.get("kode")).toBe("ID-0042-100.0%");
+  });
+
+  it("web_convert_from_formatted Extensions=Base64: 'user:pass' -> dXNlcjpwYXNz", () => {
+    env.ctx.params.set("usernamePassword", "user:pass");
+    expect(api.web_convert_from_formatted("FormattedData={usernamePassword}", "TargetParam=basicUsername", "Extensions=Base64", "LAST")).toBe(0);
+    expect(env.ctx.params.get("basicUsername")).toBe("dXNlcjpwYXNz");
+  });
+
+  it("pipeline lengkap pola KOPRA: lr_param_sprintf -> Base64 -> Authorization: Basic {basicUsername}", async () => {
+    env.ctx.params.set("username", "user");
+    env.ctx.params.set("password", "pass");
+    api.lr_param_sprintf("usernamePassword", "%s", api.lr_eval_string("{username}:{password}"));
+    api.web_convert_from_formatted("FormattedData={usernamePassword}", "TargetParam=basicUsername", "Extensions=Base64", "LAST");
+    api.web_add_header("Authorization", "Basic {basicUsername}");
+    await api.web_url("auth", `URL=${BASE}/echo-headers`, "LAST");
+    expect(steps()[0].request.headers.authorization).toBe("Basic dXNlcjpwYXNz");
+  });
+
+  it("Base64 memakai UTF-8 dan nilai kosong", () => {
+    env.ctx.params.set("teks", "é€");
+    api.web_convert_from_formatted("FormattedData={teks}", "TargetParam=b", "Extensions=base64", "LAST");
+    expect(env.ctx.params.get("b")).toBe(Buffer.from("é€", "utf8").toString("base64"));
+    api.web_convert_from_formatted("FormattedData=", "TargetParam=kosong", "Extensions=Base64", "LAST");
+    expect(env.ctx.params.get("kosong")).toBe("");
+  });
+
+  it("Extensions lain: warning, parameter tidak diisi, return 1 (tanpa melempar)", () => {
+    expect(api.web_convert_from_formatted("FormattedData=abc", "TargetParam=x", "Extensions=Hex", "LAST")).toBe(1);
+    expect(env.ctx.params.has("x")).toBe(false);
+    expect(env.logs.some(([level, msg]) => level === "warn" && /Hex/.test(msg))).toBe(true);
+  });
+
+  it("tanpa Extensions: warning, tidak diisi", () => {
+    expect(api.web_convert_from_formatted("FormattedData=abc", "TargetParam=y", "LAST")).toBe(1);
+    expect(env.ctx.params.has("y")).toBe(false);
+  });
+
+  it("FormattedData / TargetParam wajib", () => {
+    expect(() => api.web_convert_from_formatted("TargetParam=x", "Extensions=Base64", "LAST")).toThrow(/FormattedData/);
+    expect(() => api.web_convert_from_formatted("FormattedData=a", "Extensions=Base64", "LAST")).toThrow(/TargetParam/);
+  });
+});

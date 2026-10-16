@@ -89,6 +89,15 @@ export function lr_error_message(fmt, ...args) {
   return 0;
 }
 
+/** lr_param_sprintf(paramName, format, ...args) — simpan hasil format printf ke parameter */
+export function lr_param_sprintf(paramName, format, ...args) {
+  const { params, log } = needCtx();
+  const value = formatPrintf(format, args);
+  params.set(String(paramName), value);
+  log("info", `lr_param_sprintf: ${paramName} = "${value}"`);
+  return 0;
+}
+
 /** Think time */
 export function lr_think_time(seconds) {
   const { runOptions, log } = needCtx();
@@ -265,6 +274,32 @@ export function web_add_auto_header(name, value) {
 /** Hapus semua auto header */
 export function web_cleanup_auto_headers() {
   autoHeaders.clear();
+  return 0;
+}
+
+/**
+ * web_remove_auto_header — cabut auto header (nama case-insensitive). Header sekali pakai tidak terpengaruh.
+ * Argumen: "Nama-Header", [atribut], LAST. `ImplicitGen=` (header hasil rekaman) diabaikan dengan warning.
+ */
+export function web_remove_auto_header(name, ...rest) {
+  const { log } = needCtx();
+  for (const arg of rest) {
+    if (arg === "LAST") break;
+    if (typeof arg === "string" && arg.includes("=")) log("warn", `web_remove_auto_header("${name}"): atribut ${arg.split("=")[0]} diabaikan`);
+  }
+  const removed = autoHeaders.delete(String(name).toLowerCase());
+  log("info", `web_remove_auto_header: ${name}${removed ? "" : " (tidak ada)"}`);
+  return 0;
+}
+
+/**
+ * web_revert_auto_header — kembalikan header ke perilaku awal. Runtime ini tidak membuat header implisit,
+ * jadi artinya sama dengan mencabut auto header yang ditambahkan script.
+ */
+export function web_revert_auto_header(name) {
+  const { log } = needCtx();
+  const removed = autoHeaders.delete(String(name).toLowerCase());
+  log("info", `web_revert_auto_header: ${name}${removed ? "" : " (tidak ada)"}`);
   return 0;
 }
 
@@ -961,6 +996,36 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   log("info", `${type} "${resolvedStepName}": ${resp.status} ${resp.statusText} (${resp.size} bytes)`);
 
   return error ? concludeFailure(type, resolvedStepName, error) : 0;
+}
+
+/**
+ * web_convert_from_formatted — konversi teks ke parameter. Hanya `Extensions=Base64` yang didukung
+ * (encode UTF-8 -> Base64; dipakai untuk `Authorization: Basic {param}`). Extension lain: warning, param tidak diisi.
+ * Argumen: "FormattedData=...", "TargetParam=...", "Extensions=Base64", LAST
+ */
+export function web_convert_from_formatted(...args) {
+  const { params, log } = needCtx();
+  const opts = parseWebArgs(args);
+
+  const target = opts.TargetParam;
+  if (opts.FormattedData === undefined) return concludeFailure("web_convert_from_formatted", "", "atribut FormattedData wajib");
+  if (!target) return concludeFailure("web_convert_from_formatted", "", "atribut TargetParam wajib");
+
+  for (const key of Object.keys(opts)) {
+    if (key !== "headers" && !["FormattedData", "TargetParam", "Extensions"].includes(key)) {
+      log("warn", `web_convert_from_formatted: atribut ${key} diabaikan`);
+    }
+  }
+
+  if (!/^base64$/i.test(opts.Extensions ?? "")) {
+    log("warn", `web_convert_from_formatted: Extensions=${opts.Extensions ?? "(kosong)"} belum didukung (hanya Base64); ${target} tidak diisi`);
+    return 1;
+  }
+
+  const value = Buffer.from(substituteParams(opts.FormattedData), "utf8").toString("base64");
+  params.set(target, value);
+  log("info", `web_convert_from_formatted: ${target} = "${value}"`);
+  return 0;
 }
 
 /** Timer functions — `lr_end_timer` mengembalikan DETIK (double) seperti LoadRunner */

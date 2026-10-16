@@ -57,13 +57,13 @@ function sendEvent(type, data, callback) {
 
 /**
  * Siapkan file parameter (.dat): urut per iterasi, nilai baris pertama langsung tersedia.
- * `parameterFiles` berupa array [nama, { values }] hasil serialisasi Map dari parent.
+ * `parameters` berupa array [{ name, values }] dari loader (satu entri per kolom header .dat).
  */
-function initParameterFiles(parameterFiles) {
+function initParameterFiles(parameters) {
   vu.parameterFiles = new Map();
-  for (const [key, value] of parameterFiles ?? []) {
-    vu.parameterFiles.set(key, { values: value.values, currentIndex: 0 });
-    if (value.values.length > 0) vu.params.set(key, value.values[0]);
+  for (const { name, values } of parameters ?? []) {
+    vu.parameterFiles.set(name, { values, currentIndex: 0 });
+    if (values.length > 0) vu.params.set(name, values[0]);
   }
 }
 
@@ -79,7 +79,7 @@ function advanceParameterFiles() {
 async function run(payload) {
 
   try {
-    const { modulePath, options, runId, cacheDir, parameterFiles } = payload;
+    const { modulePath, options, runId, cacheDir, parameters } = payload;
 
     vu.runId = runId;
     vu.cacheDir = cacheDir;
@@ -95,7 +95,7 @@ async function run(payload) {
       newUserEachIteration: options.newUserEachIteration !== false,
     };
 
-    initParameterFiles(parameterFiles);
+    initParameterFiles(parameters);
 
     // Initialize HTTP client
     vu.http = new HttpClient({

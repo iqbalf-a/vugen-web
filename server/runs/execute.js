@@ -128,7 +128,7 @@ export async function startRun({ scriptDir, options = {} }) {
             cacheDir,
             options: runOptions,
             runId,
-            parameterFiles: project.parameterFiles ? Array.from(project.parameterFiles.entries()) : null,
+            parameters: project.parameters,
             runLogic: project.runLogic,
           },
         });

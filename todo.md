@@ -35,7 +35,7 @@ Stabilisasi: rincian di `plan-stabilisasi.md`.
 | S3 | `[x]` | Lifecycle child, SSE, routing (registry.js, stop <2 s, SSE push+replay, routing satu lapis) |
 | S4 | `[x]` | Transpiler (header kontrol alur → ekspresi, deklarasi multi, global modul, api-names.js, makro status angka; smoke: 9/9 script KOPRA compile+import OK) |
 | S5 | `[x]` | Runtime: web_js_run (vm), header auto/sekali pakai, cookie, printf, transaksi bersarang Pass/Fail, step gagal (R6: iterasi gagal berhenti, iterasi berikutnya & vuser_end tetap jalan; transaksi terputus = Fail), http-client dirapikan |
-| S6 | `[ ]` | Loader parameter + frontend |
+| S6 | `[x]` | Loader parameter `.dat` (header = nama param, multi-kolom, `parameters` array) + frontend (store.selectedIteration, grup vuser_init/vuser_end, transaksi Fail, editor↔step); diverifikasi di Chrome headless via CDP |
 | S7 | `[ ]` | Rapikan akhir + dokumentasi |
 
 ---

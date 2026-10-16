@@ -16,5 +16,8 @@ import { resolveScriptDir } from "../project/paths.js";
  */
 export async function getProject(_req, res, url) {
   const scriptDir = await resolveScriptDir(url.searchParams.get("path"));
-  sendJson(res, 200, await loadProject(scriptDir));
+  const project = await loadProject(scriptDir);
+  // Nilai parameter (.dat bisa berisi user/password) hanya untuk runner, tidak dikirim ke browser.
+  const parameters = project.parameters.map(({ name, file, rows }) => ({ name, file, rows }));
+  sendJson(res, 200, { ...project, parameters });
 }

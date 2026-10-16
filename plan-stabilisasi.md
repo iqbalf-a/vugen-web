@@ -34,7 +34,7 @@
 | S3 | Lifecycle child process, SSE, routing | **selesai** |
 | S4 | Transpiler: perbaiki subset C yang sudah diklaim | **selesai** |
 | S5 | Runtime: perbaiki fungsi yang sudah ada | **selesai** |
-| S6 | Loader parameter `.dat` + rapikan frontend | belum |
+| S6 | Loader parameter `.dat` + rapikan frontend | **selesai** |
 | S7 | Rapikan akhir + dokumentasi status jujur | belum |
 
 ---
@@ -169,16 +169,16 @@ Tidak ada fungsi baru. Setiap perbaikan disertai unit test terhadap mock.
 ## S6 — Loader parameter + rapikan frontend (L1–L3, F2, T8 sisi UI)
 
 Loader (perbaikan perilaku yang ada, bukan mesin `.prm` baru):
-- [ ] Hapus parsing `.prm` sebagai CSV (L1). `.prm` tidak dibaca dulu (lihat backlog).
-- [ ] `.dat` (L2): baris pertama **selalu** header; pisah dengan koma; setiap kolom header jadi nama param (case-sensitive, trim); nilai = baris berikutnya; baris kosong dilewati. Pertahankan perilaku iterasi sequential + wrap yang sudah ada. Sesuai memori user: `.dat` seperti `ip.dat`/`subTrans.dat` sudah berisi nilai — tidak perlu `lr_save_string`.
-- [ ] L3: `GET /api/project` mengembalikan `parameters: [{ name, file, rows }]` (array biasa), bukan `Map`. Runner menerima bentuk yang sama.
-- [ ] Test loader dengan fixture sintetis: header beda kapitalisasi dari nama file, multi-kolom, CRLF, baris kosong di akhir.
+- [x] Hapus parsing `.prm` sebagai CSV (L1). `.prm` tidak dibaca dulu (lihat backlog).
+- [x] `.dat` (L2): baris pertama **selalu** header; pisah dengan koma; setiap kolom header jadi nama param (case-sensitive, trim); nilai = baris berikutnya; baris kosong dilewati. Pertahankan perilaku iterasi sequential + wrap yang sudah ada. Sesuai memori user: `.dat` seperti `ip.dat`/`subTrans.dat` sudah berisi nilai — tidak perlu `lr_save_string`.
+- [x] L3: `GET /api/project` mengembalikan `parameters: [{ name, file, rows }]` (array biasa), bukan `Map`. Runner menerima bentuk yang sama.
+- [x] Test loader dengan fixture sintetis: header beda kapitalisasi dari nama file, multi-kolom, CRLF, baris kosong di akhir.
 
 Frontend:
-- [ ] `main.js` mengonsumsi event bentuk baru dari S2 (`step`, `transaction`, `log`, `done`); hapus pelacakan transaksi lewat parse teks log dan `JSON.parse(data.data)`.
-- [ ] Setelah `done`, ambil `run.json` (aman karena S2 menjamin sudah tersimpan).
-- [ ] F2: iterasi terpilih hanya di `store` (`selectedIteration`); `stepList.js` membaca/menulis store, bukan variabel modul. `stepSelect` tidak lagi menimpa `currentRun`.
-- [ ] Hapus handler kosong (`stepHighlight` di `main.js`) dan kode tak terpakai yang ditemukan eslint/grep.
+- [x] `main.js` mengonsumsi event bentuk baru dari S2 (`step`, `transaction`, `log`, `done`); hapus pelacakan transaksi lewat parse teks log dan `JSON.parse(data.data)`.
+- [x] Setelah `done`, ambil `run.json` (aman karena S2 menjamin sudah tersimpan).
+- [x] F2: iterasi terpilih hanya di `store` (`selectedIteration`); `stepList.js` membaca/menulis store, bukan variabel modul. `stepSelect` tidak lagi menimpa `currentRun`.
+- [x] Hapus handler kosong (`stepHighlight` di `main.js`) dan kode tak terpakai yang ditemukan eslint/grep.
 
 **AC:** test loader hijau; manual `npm run dev` + mock: run `samples/f5` → step live dengan baris & durasi, klik step → snapshot di iframe, ganti iterasi bekerja, editor lompat ke baris; tidak ada error di console browser.
 

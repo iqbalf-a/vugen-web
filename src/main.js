@@ -16,6 +16,7 @@ import { createEditor } from "./components/editor.js";
 import { renderFileTree } from "./components/fileTree.js";
 import { createToolbar } from "./components/runToolbar.js";
 import { createStepList } from "./components/stepList.js";
+import { stepGroupOf } from "./utils/steps.js";
 import { createSnapshotPanel } from "./components/snapshotPanel.js";
 import { createParameterPanel } from "./components/parameterPanel.js";
 import { createLogPanel } from "./components/logPanel.js";
@@ -68,6 +69,8 @@ const store = initStore({
   currentRun: null,
   /** @type {Object | null} */
   selectedStep: null,
+  /** Grup step terpilih di daftar step: nomor iterasi, "init", atau "end" (satu-satunya sumber kebenaran) */
+  selectedIteration: 1,
   /** @type {boolean} */
   isRunning: false,
 });
@@ -92,33 +95,26 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-// Step select event from stepList
-document.addEventListener("stepSelect", (e) => {
-  const { step, run } = e.detail;
-  store.set({ selectedStep: step, currentRun: run });
-});
-
-// Editor line click -> select step
+// Kursor editor di baris sebuah step -> pilih step itu (grup terpilih). Tanpa lompat balik ke editor.
 editor.on("cursorActivity", () => {
   const state = store.get();
-  if (!state.currentRun || !state.currentRun.steps) return;
-  const line = editor.getCursor().line + 1; // 1-based
+  const steps = state.currentRun?.steps;
   const file = state.activePath;
-  if (!file) return;
-  // Find step at this line in current iteration
-  const iteration = store.get().selectedIteration || 1;
-  const step = state.currentRun.steps.find(s => s.file === file && s.line === line && s.iteration === iteration);
-  if (step && step.seq !== state.selectedStep?.seq) {
-    store.set({ selectedStep: step });
-    // Highlight in stepList via custom event
-    document.dispatchEvent(new CustomEvent("stepHighlight", { detail: { seq: step.seq, iteration } }));
-  }
+  if (!steps || !file) return;
+
+  const line = editor.getCursor().line + 1; // 1-based
+  const runLogic = state.project?.runLogic;
+  const step = steps.find((candidate) => candidate.file === file && candidate.line === line && stepGroupOf(candidate, runLogic) === state.selectedIteration);
+  if (step && step.seq !== state.selectedStep?.seq) store.set({ selectedStep: step });
 });
 
-// Step highlight event from stepList
-document.addEventListener("stepHighlight", () => {
-  // stepList handles scrolling to the step
-});
+/** Klik step di daftar -> buka file-nya di editor dan lompat ke barisnya */
+async function revealStep(step) {
+  const project = store.get().project;
+  if (!project || !project.files.some((file) => file.path === step.file)) return;
+  await openDoc(step.file);
+  editor.focusLine(step.line);
+}
 
 createToolbar({
   input: els.scriptPath,
@@ -188,7 +184,7 @@ renderTabs();
 renderPanelTabs();
 
 // Initialize panels
-createStepList(els.stepList);
+createStepList(els.stepList, { onSelect: (step) => void revealStep(step) });
 createSnapshotPanel(els.snapshotPanel);
 createParameterPanel(els.parameterPanel);
 createLogPanel(els.logPanel);
@@ -367,7 +363,12 @@ async function startRunFlow(options) {
     store.set({ isRunning: true, status: "Memulai run…" });
 
     const { runId } = await startRun(project.path, options);
-    store.set({ currentRunId: runId, currentRun: null, selectedStep: null });
+    store.set({
+      currentRunId: runId,
+      currentRun: { runId, scriptPath: project.path, options: { iterations: options.iterations }, steps: [], transactions: [], log: [] },
+      selectedStep: null,
+      selectedIteration: 1,
+    });
 
     // Connect SSE
     eventSource = await getRunEvents(runId, project.path, (event) => handleRunEvent(event, runId, project.path));
@@ -417,7 +418,7 @@ function handleRunEvent(event, runId, scriptPath) {
     }
 
     case "done":
-      store.set({ isRunning: false, status: `Run selesai: ${data.status}` });
+      store.set({ isRunning: false, health: data.status === "passed" ? "ok" : "warn", status: `Run selesai: ${data.status}` });
       // Fetch full run result (event done baru dikirim setelah run.json tersimpan)
       void fetchRunResult(runId, scriptPath);
       if (eventSource) {
@@ -427,11 +428,8 @@ function handleRunEvent(event, runId, scriptPath) {
       break;
 
     case "stopped":
-      store.set({ isRunning: false, status: `Run dihentikan: ${data.reason}` });
-      if (eventSource) {
-        eventSource.close();
-        eventSource = null;
-      }
+      // Event "done" menyusul (setelah run.json tersimpan) dan menutup stream.
+      store.set({ status: `Run dihentikan: ${data.reason}` });
       break;
 
     case "error":
@@ -457,13 +455,11 @@ async function stopRunFlow() {
 
   try {
     await stopRun(currentRunId);
-    store.set({ isRunning: false, status: "Stop signal sent" });
+    // Stream SSE tetap terbuka: event "stopped" lalu "done" mengakhiri run dan memuat run.json.
+    store.set({ status: "Menghentikan run…" });
   } catch (error) {
-    store.set({ health: "error", status: `Gagal stop: ${messageOf(error)}` });
-  }
-
-  if (eventSource) {
-    eventSource.close();
+    store.set({ isRunning: false, health: "error", status: `Gagal stop: ${messageOf(error)}` });
+    eventSource?.close();
     eventSource = null;
   }
 }

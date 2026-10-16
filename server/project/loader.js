@@ -12,6 +12,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { cacheKeyFor, toPosix } from "./paths.js";
+import { loadParameters } from "./parameters.js";
 
 const SCRIPT_EXTENSIONS = new Set([".c", ".h"]);
 const CONFIG_EXTENSIONS = new Set([".usr", ".cfg", ".usp", ".prm", ".dat"]);
@@ -320,74 +321,6 @@ function collectActions(files) {
 }
 
 /**
- * Load parameter files (.prm, data/*.dat) for sequential parameter substitution.
- * Returns a map of parameterName -> { values: string[], currentIndex: number }
- *
- * @param {string} scriptDir
- * @param {Array<{ path: string, name: string, ext: string }>} files
- * @returns {Promise<Map<string, { values: string[], currentIndex: number }>>}
- */
-async function loadParameterFiles(scriptDir, files) {
-  /** @type {Map<string, { values: string[], currentIndex: number }>} */
-  const params = new Map();
-
-  // Load .prm files
-  const prmFiles = files.filter((file) => file.ext === ".prm");
-  for (const prmFile of prmFiles) {
-    try {
-      const content = await fs.readFile(path.join(scriptDir, prmFile.path), "utf8");
-      // Parse .prm format: typically CSV-like or name=value per line
-      // VuGen .prm format: each line is a row, first row may be headers
-      const lines = content.split(/\r?\n/).filter((line) => line.trim() !== "");
-      if (lines.length === 0) continue;
-
-      // Check if first line is headers
-      const firstLine = lines[0];
-      const hasHeaders = firstLine.includes(",") || firstLine.includes("=");
-
-      if (hasHeaders) {
-        const headers = firstLine.split(",").map((h) => h.trim());
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(",").map((v) => v.trim());
-          headers.forEach((header, idx) => {
-            if (values[idx] !== undefined) {
-              if (!params.has(header)) params.set(header, { values: [], currentIndex: 0 });
-              params.get(header).values.push(values[idx]);
-            }
-          });
-        }
-      } else {
-        // Single column, use filename as param name
-        const paramName = path.basename(prmFile.name, ".prm");
-        params.set(paramName, { values: lines, currentIndex: 0 });
-      }
-    } catch {
-      // Silently ignore parameter file errors
-    }
-  }
-
-  // Load data/*.dat files (both in data/ subfolder and root folder)
-  const datFiles = files.filter((file) => file.ext === ".dat" && (file.path.startsWith("data/") || !file.path.includes("/")));
-  for (const datFile of datFiles) {
-    try {
-      const content = await fs.readFile(path.join(scriptDir, datFile.path), "utf8");
-      const lines = content.split(/\r?\n/).filter((line) => line.trim() !== "");
-      if (lines.length === 0) continue;
-
-      const paramName = path.basename(datFile.name, ".dat");
-      // Skip header line if it matches the parameter name (VuGen .dat format)
-      const values = lines[0] === paramName ? lines.slice(1) : lines;
-      if (values.length === 0) continue;
-      params.set(paramName, { values, currentIndex: 0 });
-    } catch {
-      // Silently ignore parameter file errors
-    }
-  }
-
-  return params;
-}
-
-/**
  * Kategori file untuk UI grouping
  * @param {string} name
  * @param {string} ext
@@ -422,7 +355,7 @@ export async function loadProject(scriptDir) {
     category: categorizeFile(file.name, file.ext, file.kind, mainActionFile),
   }));
 
-  const parameterFiles = await loadParameterFiles(scriptDir, files);
+  const { parameters, warnings: parameterWarnings } = await loadParameters(scriptDir, files);
 
   return {
     path: scriptDir,
@@ -430,7 +363,7 @@ export async function loadProject(scriptDir) {
     files: categorizedFiles,
     actions,
     runLogic,
-    parameterFiles,
-    warnings: [...warnings, ...runLogic.warnings],
+    parameters,
+    warnings: [...warnings, ...runLogic.warnings, ...parameterWarnings],
   };
 }

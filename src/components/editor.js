@@ -9,7 +9,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { cpp } from "@codemirror/lang-cpp";
 import { bracketMatching, indentOnInput } from "@codemirror/language";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
-import { EditorState } from "@codemirror/state";
+import { EditorState, StateEffect } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import {
   EditorView,
@@ -96,17 +96,24 @@ export function createEditor(root, { onChange } = {}) {
     },
 
     /**
-     * Listen to editor events
-     * @param {"cursorActivity"} event
+     * Pasang listener ke editor.
+     * @param {"cursorActivity"} event dipanggil saat seleksi/kursor berubah
      * @param {Function} handler
      */
     on(event, handler) {
-      if (event === "cursorActivity") {
-        // Use updateListener to detect cursor/selection changes
-        return EditorView.updateListener.of((update) => {
-          if (update.selectionSet) handler(update);
-        });
-      }
+      if (event !== "cursorActivity") return;
+      view.dispatch({
+        effects: StateEffect.appendConfig.of(
+          EditorView.updateListener.of((update) => {
+            if (update.selectionSet) handler(update);
+          }),
+        ),
+      });
+    },
+
+    /** Posisi kursor: { line } 0-based */
+    getCursor() {
+      return { line: view.state.doc.lineAt(view.state.selection.main.head).number - 1 };
     },
 
     destroy() {

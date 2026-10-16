@@ -15,6 +15,7 @@ export const SUPPORTED_FUNCTIONS = Object.freeze([
   "lr_end_transaction",
   "lr_error_message",
   "lr_eval_string",
+  "lr_exit",
   "lr_get_transaction_status",
   "lr_output_message",
   "lr_save_string",

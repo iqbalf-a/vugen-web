@@ -151,18 +151,30 @@ export function lr_end_transaction(name, status = 2) {
 }
 
 /**
- * Dipanggil runner saat iterasi berhenti karena error: transaksi yang masih terbuka
- * dicatat `Fail` dengan durasi sampai titik error.
+ * Tutup semua transaksi yang masih terbuka dan catat hasilnya.
+ * @param {boolean} forceFail true: semua jadi Fail; false: Pass/Fail otomatis per transaksi
+ * @param {string} reason alasan untuk log
  */
-export function __failOpenTransactions() {
+function closeOpenTransactions(forceFail, reason) {
   const c = needCtx();
   for (const [name, transaction] of c.transactions) {
     const durationMs = Date.now() - transaction.startMs;
-    c.transactionResults.set(name, "Fail");
-    c.log("warn", `Transaksi "${name}" ditutup sebagai Fail karena iterasi berhenti karena error`);
-    c.sendEvent("transaction", { iteration: c.currentIteration || 1, name, status: "Fail", durationMs });
+    const result = forceFail || transaction.failed ? "Fail" : "Pass";
+    c.transactionResults.set(name, result);
+    c.log("warn", `Transaksi "${name}" ditutup sebagai ${result} karena ${reason}`);
+    c.sendEvent("transaction", { iteration: c.currentIteration || 1, name, status: result, durationMs });
   }
   c.transactions.clear();
+}
+
+/** Dipanggil runner saat iterasi berhenti karena error: transaksi yang masih terbuka dicatat `Fail`. */
+export function __failOpenTransactions() {
+  closeOpenTransactions(true, "iterasi berhenti karena error");
+}
+
+/** Dipanggil runner saat iterasi diakhiri `lr_exit`: `Fail` bila statusnya LR_FAIL, selain itu otomatis per transaksi. */
+export function __endOpenTransactionsOnExit(status) {
+  closeOpenTransactions(status === 1, "lr_exit");
 }
 
 /** LR_FAIL (1) bila transaksi itu gagal (terbuka atau sudah selesai), selain itu LR_PASS (0) */
@@ -182,6 +194,50 @@ export function lr_set_transaction(name, duration, status = 2) {
   c.log("info", `lr_set_transaction: ${name} ${result} ${durationMs}ms`);
   c.sendEvent("transaction", { iteration: c.currentIteration || 1, name, status: result, durationMs });
   return 0;
+}
+
+const EXIT_MODE_NAMES = ["LR_EXIT_VUSER", "LR_EXIT_ACTION_AND_CONTINUE", "LR_EXIT_ITERATION_AND_CONTINUE", "LR_EXIT_VUSER_AFTER_ITERATION", "LR_EXIT_VUSER_AFTER_ACTION"];
+const EXIT_STATUS_NAMES = ["LR_PASS", "LR_FAIL", "LR_AUTO"];
+
+/**
+ * Sinyal `lr_exit` yang menghentikan unit (iterasi/action) saat ini. BUKAN Error biasa:
+ * runner (`runUnit`) menanganinya sebagai akhir normal unit dengan status dari `status`.
+ */
+export class __VuserExit {
+  /** @param {number} mode 0..2 @param {number} status 0=PASS 1=FAIL 2=AUTO */
+  constructor(mode, status) {
+    this.mode = mode;
+    this.status = status;
+  }
+}
+
+/** Mode/status (angka atau nama string lama) -> indeks, atau -1 */
+function exitIndex(value, names) {
+  if (typeof value === "string" && names.includes(value)) return names.indexOf(value);
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0 && n < names.length ? n : -1;
+}
+
+/**
+ * lr_exit — keluar dari iterasi/action/Vuser.
+ * - ITERATION_AND_CONTINUE (2) / ACTION_AND_CONTINUE (1): akhiri iterasi ini, lanjut iterasi berikutnya.
+ * - VUSER (0): hentikan iterasi tersisa dan langsung ke vuser_end.
+ * - VUSER_AFTER_ITERATION (3) / VUSER_AFTER_ACTION (4): selesaikan iterasi ini (kode setelah lr_exit tetap
+ *   jalan), lalu tidak ada iterasi baru; vuser_end tetap jalan.
+ * Status: LR_FAIL (1) = iterasi failed, LR_PASS (0) = passed, LR_AUTO (2, default) = failed bila ada step gagal.
+ */
+export function lr_exit(mode, status = 2) {
+  const c = needCtx();
+  const modeIndex = exitIndex(mode, EXIT_MODE_NAMES);
+  if (modeIndex < 0) return concludeFailure("lr_exit", "", `mode tidak dikenal: ${mode}`);
+  const statusIndex = Math.max(0, exitIndex(status, EXIT_STATUS_NAMES) === -1 ? 2 : exitIndex(status, EXIT_STATUS_NAMES));
+
+  c.log("info", `lr_exit: ${EXIT_MODE_NAMES[modeIndex]} ${EXIT_STATUS_NAMES[statusIndex]}`);
+  if (modeIndex >= 3) {
+    c.exitRequest = { mode: modeIndex, status: statusIndex };
+    return 0;
+  }
+  throw new __VuserExit(modeIndex, statusIndex);
 }
 
 /** Header permanen (web_add_auto_header): dikirim di setiap request sampai dibersihkan */
@@ -616,6 +672,7 @@ function concludeFailure(type, name, problem) {
   const { log, runOptions } = needCtx();
   const label = name ? `${type} "${name}"` : type;
   markTransactionsFailed();
+  needCtx().stepFailures = (needCtx().stepFailures ?? 0) + 1;
   log("error", `${label} gagal: ${problem}`);
   if (runOptions.continueOnError) return 1; // LR_FAIL, script lanjut
   throw new Error(`${label}: ${problem}`);

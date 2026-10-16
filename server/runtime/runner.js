@@ -24,6 +24,8 @@ const vu = {
   currentIteration: 1,  // Track current iteration
   runOptions: {},
   seq: 0,            // counter step, runner yang memberi nomor
+  stepFailures: 0,   // jumlah step gagal sejauh ini (untuk lr_exit LR_AUTO)
+  exitRequest: null, // permintaan lr_exit(VUSER_AFTER_*): { mode, status }
   runStartMs: 0,     // epoch ms awal run (untuk timing.startMs)
   cacheDir: "",
   runId: "",
@@ -144,34 +146,59 @@ async function run(payload) {
     sendEvent("started", { runId, actions: [initFn, mainFn, endFn].filter(Boolean).map((unit) => unit.name) });
 
     /**
-     * Jalankan satu unit (vuser_init, satu iterasi action, vuser_end). Error = unit itu gagal:
-     * transaksi yang masih terbuka dicatat Fail, lalu pemanggil lanjut (perilaku VuGen).
+     * Jalankan satu unit (vuser_init, satu iterasi action, vuser_end).
+     * - Error biasa = unit gagal: transaksi terbuka dicatat Fail, pemanggil lanjut (perilaku VuGen).
+     * - lr_exit = akhir normal unit; status dari argumen lr_exit (LR_AUTO: gagal bila ada step gagal).
+     * @returns {Promise<{ failed: boolean, stopAll: boolean }>} stopAll: tidak ada iterasi baru lagi
      */
     const runUnit = async (unit, iteration) => {
       // Konteks iterasi dulu, supaya log/step/transaksi memakai nomor yang benar
       vu.currentIteration = iteration;
       vu.transactions.clear();
+      vu.exitRequest = null;
+      const failuresBefore = vu.stepFailures;
       sendEvent("iterationStart", { iteration, action: unit.name });
+
+      let failed = false;
+      let errorMessage = null;
+      let exit = null;
       try {
         await unit.fn();
-        sendEvent("iterationEnd", { iteration, action: unit.name, status: "passed" });
-        return true;
       } catch (error) {
-        vu.log("error", `Iteration ${iteration} ${unit.name} failed: ${error.message}`);
-        vuserApi.__failOpenTransactions();
-        sendEvent("iterationEnd", { iteration, action: unit.name, status: "failed", error: error.message });
-        return false;
+        if (error instanceof vuserApi.__VuserExit) {
+          exit = { mode: error.mode, status: error.status };
+          vuserApi.__endOpenTransactionsOnExit(error.status);
+        } else {
+          failed = true;
+          errorMessage = error.message;
+          vu.log("error", `Iteration ${iteration} ${unit.name} failed: ${error.message}`);
+          vuserApi.__failOpenTransactions();
+        }
       }
+      exit ??= vu.exitRequest; // lr_exit(VUSER_AFTER_*) tidak melempar
+      if (exit) failed = exit.status === 1 || (exit.status === 2 && vu.stepFailures > failuresBefore);
+
+      sendEvent("iterationEnd", {
+        iteration,
+        action: unit.name,
+        status: failed ? "failed" : "passed",
+        ...(errorMessage ? { error: errorMessage } : {}),
+      });
+      return { failed, stopAll: Boolean(exit && (exit.mode === 0 || exit.mode >= 3)) };
     };
 
     // Status run = failed bila ada unit yang gagal. Stop dari user menghentikan proses ini (lihat handler "stop").
     let anyFailed = false;
+    let stopIterations = false;
 
-    // vuser_init gagal: tidak ada iterasi, tetapi vuser_end tetap dijalankan
-    const initOk = initFn ? await runUnit(initFn, 1) : true;
-    anyFailed = !initOk;
+    // vuser_init gagal / lr_exit(VUSER): tidak ada iterasi, tetapi vuser_end tetap dijalankan
+    if (initFn) {
+      const result = await runUnit(initFn, 1);
+      anyFailed ||= result.failed;
+      stopIterations = result.failed || result.stopAll;
+    }
 
-    if (initOk && mainFn) {
+    if (!stopIterations && mainFn) {
       for (let iter = 1; iter <= iterations; iter++) {
         // New user each iteration: clear cookies; header sekali pakai dibuang, auto header tetap.
         // lr_save_string params persist across iterations per plan §6.
@@ -181,7 +208,9 @@ async function run(payload) {
         }
         if (iter > 1) advanceParameterFiles();
 
-        if (!(await runUnit(mainFn, iter))) anyFailed = true;
+        const result = await runUnit(mainFn, iter);
+        anyFailed ||= result.failed;
+        if (result.stopAll) break;
 
         // Delay between iterations
         if (iter < iterations && vu.runOptions.iterationDelayMs > 0) {
@@ -191,7 +220,10 @@ async function run(payload) {
     }
 
     // vuser_end selalu dijalankan sekali di akhir
-    if (endFn && !(await runUnit(endFn, 1))) anyFailed = true;
+    if (endFn) {
+      const result = await runUnit(endFn, 1); // dijalankan walau iterasi sebelumnya gagal (jangan di dalam ||=)
+      anyFailed ||= result.failed;
+    }
 
     // Send done BEFORE cleanup so parent gets it even if close hangs
     sendEvent("done", { runId, status: anyFailed ? "failed" : "passed", params: Object.fromEntries(vu.params) });

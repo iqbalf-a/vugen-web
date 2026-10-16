@@ -79,7 +79,7 @@ export async function __fn_Loadpage(parentTrans) {
     __at("kopra-loadpage.c", 44);
     await __vu.lr_error_message("transaksi gagal: %s", await __vu.lr_eval_string("{transName}"));
     __at("kopra-loadpage.c", 45);
-    await __unsupportedCall("lr_exit", "kopra-loadpage.c", 45);
+    await __vu.lr_exit(2, 1);
   }
   __at("kopra-loadpage.c", 48);
   (totalSeq = (seq1 + seq2));

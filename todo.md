@@ -34,6 +34,15 @@ Status proyek yang **jujur** per akhir stabilisasi (S0–S7, 2026-10-16). Rencan
 | S6 | `[x]` | `e7c2565` | Loader parameter `.dat`, frontend: `selectedIteration` di store, grup `vuser_init`/`vuser_end`, transaksi Fail terlihat |
 | S7 | `[x]` | commit `S7: …` (`git log --grep "^S7"`) | Rapikan akhir: kode mati, escape `fileTree`, `__entries` hanya action, dokumen status |
 
+## Progres F7 (fungsi VuGen untuk script KOPRA — `plan-f7.md`)
+
+| Sub-tahap | Status | Isi |
+|---|---|---|
+| F7a | `[x]` | `lr_exit` — mode 0–4, status PASS/FAIL/AUTO, transaksi terbuka ditutup; iterasi gagal tidak menghentikan run |
+| F7b | `[ ]` | `web_reg_save_param_json` + subset JSONPath |
+| F7c | `[ ]` | `web_remove_auto_header`, `web_revert_auto_header`, `lr_param_sprintf`, `web_convert_from_formatted` (Base64) |
+| F7d | `[ ]` | `web_concurrent_start/end` (no-op, request tetap berurutan) |
+
 ## Status script referensi (compile + `import()` saja; belum pernah dijalankan ke server target)
 
 Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` (S7). Semua 9 folder di `D:\Mandiri\KOPRA\R10.1\script` ter-compile dan ter-`import()` tanpa error sintaks.
@@ -48,7 +57,7 @@ Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` (S7). Semua 9 folder di `D
 ## Known limitations
 
 - **Script KOPRA nyata belum pernah dijalankan ke server target.** Semua uji run memakai mock lokal.
-- **Fungsi yang dipakai script KOPRA tapi belum ada** (dipanggil sebagai *unsupported*: warning, lalu dilewati): `lr_exit`, `web_reg_save_param_json`, `web_remove_auto_header`, `web_revert_auto_header`, `web_concurrent_start/end`, `lr_unmask`, `lr_param_sprintf`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_convert_from_formatted`. Dampak terbesar: tanpa `lr_exit`, jalur gagal di script (`lr_exit(LR_EXIT_ITERATION_AND_CONTINUE, LR_FAIL)`) tidak menghentikan iterasi; tanpa `web_reg_save_param_json`, nilai correlation JSON tidak terisi.
+- **Fungsi yang dipakai script KOPRA tapi belum ada** (dipanggil sebagai *unsupported*: warning, lalu dilewati): `web_reg_save_param_json`, `web_remove_auto_header`, `web_revert_auto_header`, `web_concurrent_start/end`, `lr_unmask`, `lr_param_sprintf`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_convert_from_formatted`. Dampak terbesar: tanpa `web_reg_save_param_json`, nilai correlation JSON tidak terisi.
 - **Parameter:** hanya `.dat` (baris pertama = header, pemisah koma tanpa quote, urut per iterasi, kembali ke awal bila habis). `.prm` tidak dibaca, jadi `Random`/`Unique`/`Time`/`Userid`/`OutOfRangePolicy` tidak ada. Satu VU saja.
 - **Compile mengabaikan** `pre_cci.c`, `combined_*.c`, dan semua file di `data/` (artefak VuGen).
 - **Subset C:** tidak ada `goto`, `struct`/`typedef`, array multi-dimensi, initializer list, operator pointer (`&`, `*`), dan `strcat`. Pembagian `int / int` memakai semantik JS (hasil pecahan). `char` array/pointer diperlakukan sebagai string JS.

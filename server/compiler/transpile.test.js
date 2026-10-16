@@ -115,8 +115,8 @@ describe("transpile: pola KOPRA (kopra-loadpage)", () => {
     const { result } = await load();
     const messages = result.warnings.map((w) => w.message);
     expect(messages.filter((m) => /lr_start_timer|lr_end_timer|web_js_run|web_set_sockets_option|web_set_max_html_param_len|compareDuration/.test(m))).toEqual([]);
-    // hanya lr_exit yang belum didukung (backlog)
-    expect(messages.filter((m) => /belum didukung/.test(m))).toEqual([expect.stringContaining("lr_exit")]);
+    // sejak F7a lr_exit juga didukung: tidak ada fungsi unsupported tersisa di fixture ini
+    expect(messages.filter((m) => /belum didukung/.test(m))).toEqual([]);
   });
 
   it("fungsi user mengembalikan nilai (compareDuration)", async () => {
@@ -139,9 +139,10 @@ describe("transpile: pola KOPRA (kopra-loadpage)", () => {
 
     await mod.__fn_Loadpage("PARENT");
 
-    // cabang `== LR_FAIL` dimasuki: error dicatat, lr_exit (belum didukung) lewat unsupported
+    // cabang `== LR_FAIL` dimasuki: error dicatat, lalu lr_exit(LR_EXIT_ITERATION_AND_CONTINUE=2, LR_FAIL=1) dipanggil
     expect(calls.find((c) => c[0] === "lr_error_message")).toEqual(["lr_error_message", "transaksi gagal: %s", "{transName}"]);
-    expect(unsupported).toEqual(["lr_exit"]);
+    expect(unsupported).toEqual([]);
+    expect(calls.find((c) => c[0] === "lr_exit")).toEqual(["lr_exit", 2, 1]);
     // seq1 = compareDuration(0, 5) = 5 -> totalSeq = 5; status = 1
     expect(calls.find((c) => c[0] === "lr_set_transaction").slice(2)).toEqual([5, 1]);
     // makro argumen web tetap sentinel string

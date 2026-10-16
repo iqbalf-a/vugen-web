@@ -33,7 +33,7 @@
 | S2 | Jalur step & penyimpanan run end-to-end | **selesai** |
 | S3 | Lifecycle child process, SSE, routing | **selesai** |
 | S4 | Transpiler: perbaiki subset C yang sudah diklaim | **selesai** |
-| S5 | Runtime: perbaiki fungsi yang sudah ada | belum |
+| S5 | Runtime: perbaiki fungsi yang sudah ada | **selesai** |
 | S6 | Loader parameter `.dat` + rapikan frontend | belum |
 | S7 | Rapikan akhir + dokumentasi status jujur | belum |
 
@@ -152,15 +152,15 @@ Kerjakan TDD dengan golden. Golden F2 lama tidak boleh berubah kecuali karena no
 
 Tidak ada fungsi baru. Setiap perbaikan disertai unit test terhadap mock.
 
-- [ ] R1 `web_js_run`: eksekusi semua `Code=` di blok `SOURCES ... ENDITEM` lebih dulu, lalu `Code=` utama, dalam satu `vm.createContext({ LR })` dengan `timeout` 1000 ms. Pertahankan `LR.getParam/setParam` yang ada.
-- [ ] R2 Header: pisahkan `autoHeaders` (permanen; `web_add_auto_header`, `web_cleanup_auto_headers`) dan `nextHeaders` (`web_add_header`, dipakai lalu dikosongkan setelah satu request). Iterasi baru dengan `newUserEachIteration` hanya membersihkan cookie + `nextHeaders`, **bukan** auto header.
-- [ ] R3 `web_add_cookie`: substitusi `{param}`, ambil `DOMAIN=` dari string untuk URL konteks (fallback `lastUrl`), `await` penyimpanan, log `warn` bila cookie ditolak.
-- [ ] R4 `sprintf`: perbaiki `%%`, presisi, lebar & padding nol untuk `%s %d %i %f %c`. `lr_output_message`/`lr_error_message` memakai `sprintf` yang sama. Test tabel kasus.
-- [ ] R5 Transaksi: `Map<name, {startMs, failed}>` (bersarang diizinkan); `lr_end_transaction(name, LR_AUTO)` → `Pass`/`Fail` tergantung ada step gagal sejak start; status eksplisit dihormati; event transaksi membawa `iteration`. `lr_get_transaction_status(name)` → `LR_FAIL` bila transaksi itu sudah tercatat gagal, selain itu `LR_PASS`. `step.transaction` = transaksi terdalam yang terbuka.
-- [ ] R6 Step gagal bila: exception request, status ≥ 400, atau `web_reg_find` tidak terpenuhi → isi `step.error`, tandai transaksi aktif gagal; lalu lempar error ke runner kecuali `continueOnError` (perilaku default VuGen: action gagal).
-- [ ] R7 Regex correlation invalid → log `error` + step error, bukan crash. Hapus `default export` usang di `vuser-api.js`.
-- [ ] R8 `http-client.js`: rapikan indentasi `doRequest`, hapus opsi `connectTimeout` yang tidak berlaku (atau pakai `Agent({ connect: { timeout } })` yang sudah dibuat), hapus `setCookieJar/getCookieJar/createHttpClientFromState`, gabungkan `cleanupCookies` ke `clearCookies`. Ukur `durationMs` per request dengan benar.
-- [ ] Bersihkan `runner.js`: blok parameter-file inisialisasi/advance dipindah ke fungsi kecil; status iterasi/akhir konsisten (`passed|failed|stopped`).
+- [x] R1 `web_js_run`: eksekusi semua `Code=` di blok `SOURCES ... ENDITEM` lebih dulu, lalu `Code=` utama, dalam satu `vm.createContext({ LR })` dengan `timeout` 1000 ms. Pertahankan `LR.getParam/setParam` yang ada.
+- [x] R2 Header: pisahkan `autoHeaders` (permanen; `web_add_auto_header`, `web_cleanup_auto_headers`) dan `nextHeaders` (`web_add_header`, dipakai lalu dikosongkan setelah satu request). Iterasi baru dengan `newUserEachIteration` hanya membersihkan cookie + `nextHeaders`, **bukan** auto header.
+- [x] R3 `web_add_cookie`: substitusi `{param}`, ambil `DOMAIN=` dari string untuk URL konteks (fallback `lastUrl`), `await` penyimpanan, log `warn` bila cookie ditolak.
+- [x] R4 `sprintf`: perbaiki `%%`, presisi, lebar & padding nol untuk `%s %d %i %f %c`. `lr_output_message`/`lr_error_message` memakai `sprintf` yang sama. Test tabel kasus.
+- [x] R5 Transaksi: `Map<name, {startMs, failed}>` (bersarang diizinkan); `lr_end_transaction(name, LR_AUTO)` → `Pass`/`Fail` tergantung ada step gagal sejak start; status eksplisit dihormati; event transaksi membawa `iteration`. `lr_get_transaction_status(name)` → `LR_FAIL` bila transaksi itu sudah tercatat gagal, selain itu `LR_PASS`. `step.transaction` = transaksi terdalam yang terbuka.
+- [x] R6 Step gagal bila: exception request, status ≥ 400, atau `web_reg_find` tidak terpenuhi → isi `step.error`, tandai transaksi aktif gagal; lalu lempar error ke runner kecuali `continueOnError` (perilaku default VuGen: action gagal).
+- [x] R7 Regex correlation invalid → log `error` + step error, bukan crash. Hapus `default export` usang di `vuser-api.js`.
+- [x] R8 `http-client.js`: rapikan indentasi `doRequest`, hapus opsi `connectTimeout` yang tidak berlaku (atau pakai `Agent({ connect: { timeout } })` yang sudah dibuat), hapus `setCookieJar/getCookieJar/createHttpClientFromState`, gabungkan `cleanupCookies` ke `clearCookies`. Ukur `durationMs` per request dengan benar.
+- [x] Bersihkan `runner.js`: blok parameter-file inisialisasi/advance dipindah ke fungsi kecil; status iterasi/akhir konsisten (`passed|failed|stopped`).
 
 **AC:** fixture `kopra-loadpage.c` dijalankan ke mock: `{subTrans}` terisi dari `web_js_run`, nama step tanpa `{...}`, timer + `compareDuration` menghasilkan angka > 0; transaksi dengan step 500 berstatus `Fail` dan `lr_get_transaction_status` mengembalikan `LR_FAIL`; header `web_add_header` hanya ada di request pertama sesudahnya.
 
@@ -198,7 +198,7 @@ Frontend:
 ## 9. Backlog fitur (JANGAN dikerjakan di plan ini)
 
 Fungsi/fitur yang dipakai script KOPRA tapi belum ada — kerjakan nanti dengan plan terpisah setelah S7:
-- `lr_exit` (36×), `web_reg_save_param_json` (50×), `web_remove_auto_header` (26×), `web_concurrent_start/end` (337×, cukup no-op), `lr_unmask`, `lr_param_sprintf`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_convert_from_formatted`, `web_rest` dengan header kompleks.
+- `lr_exit` (36×), `web_reg_save_param_json` (50×), `web_remove_auto_header` (26×), `web_concurrent_start/end` (337×, cukup no-op), `lr_unmask`, `lr_param_sprintf`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_convert_from_formatted`, `web_revert_auto_header`, `web_rest` dengan header kompleks.
 - Mesin parameter `.prm` lengkap (Type Table/Time/Userid, `SelectNextRow`, `GenerateNewVal`, `OutOfRangePolicy`).
 - Tab Transactions, ringkasan transaksi, `npm run check:script`, README, multipart upload, HTTP/2.
 - Semua item `plan.md` §2/§10 (recording, multi-VU/k6, Step Toolbox).

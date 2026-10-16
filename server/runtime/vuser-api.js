@@ -10,7 +10,10 @@
  * Fungsi yang belum didukung diarahkan ke `__unsupportedCall` oleh transpiler.
  */
 
+import vm from "node:vm";
+
 import { decodeBody, saveStepBody } from "../runs/store.js";
+import { formatPrintf } from "./printf.js";
 
 /** @typedef {import("./http-client.js").ResponseInfo} ResponseInfo */
 
@@ -18,7 +21,8 @@ import { decodeBody, saveStepBody } from "../runs/store.js";
  * @typedef {Object} VuContext
  * @property {HttpClient} http
  * @property {Map<string, string>} params - Parameter runtime (lr_save_string, correlation)
- * @property {Object} transaction - { name, startMs }
+ * @property {Map<string, { startMs: number, failed: boolean }>} transactions - transaksi terbuka (urutan = urutan dibuka)
+ * @property {Map<string, "Pass"|"Fail">} transactionResults - hasil transaksi yang sudah selesai
  * @property {number} seq - counter step (runner), mulai 0
  * @property {number} runStartMs - epoch ms awal run
  * @property {string} cacheDir
@@ -72,19 +76,15 @@ export function lr_eval_string(str) {
   return str.replace(/\{([^}]+)\}/g, (_, key) => params.get(key) ?? `{${key}}`);
 }
 
-/** Output message ke log */
+/** Output message ke log (format printf) */
 export function lr_output_message(fmt, ...args) {
-  const { log } = needCtx();
-  const msg = args.length > 0 ? fmt.replace(/%s/g, () => String(args.shift())) : fmt;
-  log("info", msg);
+  needCtx().log("info", formatPrintf(fmt, args));
   return 0;
 }
 
-/** Error message ke log */
+/** Error message ke log (format printf) */
 export function lr_error_message(fmt, ...args) {
-  const { log } = needCtx();
-  const msg = args.length > 0 ? fmt.replace(/%s/g, () => String(args.shift())) : fmt;
-  log("error", msg);
+  needCtx().log("error", formatPrintf(fmt, args));
   return 0;
 }
 
@@ -100,82 +100,111 @@ export function lr_think_time(seconds) {
   return Promise.resolve(0);
 }
 
-/** Start transaction */
+/** Nama transaksi terbuka paling dalam (dibuka paling akhir), atau null */
+function innermostTransaction() {
+  const open = [...needCtx().transactions.keys()];
+  return open.length > 0 ? open[open.length - 1] : null;
+}
+
+/** Tandai semua transaksi yang sedang terbuka gagal (step gagal di dalamnya) */
+function markTransactionsFailed() {
+  for (const transaction of needCtx().transactions.values()) transaction.failed = true;
+}
+
+/** Status eksplisit LR_PASS / LR_FAIL (angka atau string lama) -> "Pass" | "Fail"; selain itu null (LR_AUTO) */
+function explicitTransactionStatus(status) {
+  if (status === 0 || status === "0" || status === "LR_PASS") return "Pass";
+  if (status === 1 || status === "1" || status === "LR_FAIL") return "Fail";
+  return null;
+}
+
+/** Start transaction (boleh bersarang) */
 export function lr_start_transaction(name) {
-  const { transaction, log } = needCtx();
-  transaction.name = name;
-  transaction.startMs = Date.now();
+  const { transactions, transactionResults, log } = needCtx();
+  if (transactions.has(name)) log("warn", `lr_start_transaction: transaksi "${name}" sudah terbuka; dimulai ulang`);
+  transactions.set(name, { startMs: Date.now(), failed: false });
+  transactionResults.delete(name);
   log("info", `lr_start_transaction: ${name}`);
   return 0;
 }
 
-/** Label status transaksi sesuai TransactionResult: Pass | Fail | Auto */
-function transactionStatusLabel(status) {
-  if (status === 0 || status === "0" || status === "LR_PASS") return "Pass";
-  if (status === 1 || status === "1" || status === "LR_FAIL") return "Fail";
-  return "Auto";
-}
-
-/** End transaction */
-export function lr_end_transaction(name, status = "LR_AUTO") {
-  const { transaction, log } = needCtx();
-  if (!transaction.name || transaction.name !== name) {
-    log("warn", `lr_end_transaction: name mismatch (started="${transaction.name}", ended="${name}")`);
+/**
+ * End transaction. `LR_AUTO` (2) -> Pass/Fail sesuai ada tidaknya step gagal sejak start;
+ * `LR_PASS` (0) / `LR_FAIL` (1) dihormati. Angka maupun string lama ("LR_FAIL") diterima.
+ */
+export function lr_end_transaction(name, status = 2) {
+  const c = needCtx();
+  const transaction = c.transactions.get(name);
+  if (!transaction) {
+    c.log("warn", `lr_end_transaction: transaksi "${name}" tidak sedang terbuka`);
+    return 1;
   }
-  const durationMs = Date.now() - (transaction.startMs || Date.now());
-  const statusStr = String(status);
-  log("info", `lr_end_transaction: ${name} ${statusStr} ${durationMs}ms`);
-  needCtx().sendEvent("transaction", {
-    iteration: needCtx().currentIteration || 1,
-    name,
-    status: transactionStatusLabel(status),
-    durationMs,
-  });
-  transaction.name = null;
-  transaction.startMs = 0;
+
+  const durationMs = Date.now() - transaction.startMs;
+  const result = explicitTransactionStatus(status) ?? (transaction.failed ? "Fail" : "Pass");
+  c.transactions.delete(name);
+  c.transactionResults.set(name, result);
+
+  c.log("info", `lr_end_transaction: ${name} ${result} ${durationMs}ms`);
+  c.sendEvent("transaction", { iteration: c.currentIteration || 1, name, status: result, durationMs });
   return 0;
 }
 
-/** Get transaction status */
+/** LR_FAIL (1) bila transaksi itu gagal (terbuka atau sudah selesai), selain itu LR_PASS (0) */
 export function lr_get_transaction_status(name) {
-  const { transaction } = needCtx();
-  if (transaction.name && transaction.name === name) {
-    return 0; // LR_PASS equivalent - transaction in progress
-  }
-  return 1; // LR_FAIL equivalent - transaction not found or ended
+  const { transactions, transactionResults } = needCtx();
+  const open = transactions.get(name);
+  if (open) return open.failed ? 1 : 0;
+  return transactionResults.get(name) === "Fail" ? 1 : 0;
 }
 
-/** Set transaction status/duration manually */
-export function lr_set_transaction(name, duration, status = "LR_AUTO") {
-  const { log } = needCtx();
-  // Convert numeric status to string constants (VuGen compatibility)
-  let statusStr = String(status);
-  if (status === 0 || status === "0") statusStr = "LR_PASS";
-  else if (status === 1 || status === "1") statusStr = "LR_FAIL";
-  else if (status === 2 || status === "2") statusStr = "LR_AUTO";
-  log("info", `lr_set_transaction: ${name} ${duration}ms ${statusStr}`);
+/** Catat transaksi langsung: durasi dalam detik (seperti LoadRunner), status LR_PASS/LR_FAIL (LR_AUTO -> Pass) */
+export function lr_set_transaction(name, duration, status = 2) {
+  const c = needCtx();
+  const result = explicitTransactionStatus(status) ?? "Pass";
+  const durationMs = Math.round((Number(duration) || 0) * 1000);
+  c.transactionResults.set(name, result);
+  c.log("info", `lr_set_transaction: ${name} ${result} ${durationMs}ms`);
+  c.sendEvent("transaction", { iteration: c.currentIteration || 1, name, status: result, durationMs });
   return 0;
 }
 
-/** Add header untuk request berikutnya */
-const headerStore = new Map();
+/** Header permanen (web_add_auto_header): dikirim di setiap request sampai dibersihkan */
+const autoHeaders = new Map();
+/** Header sekali pakai (web_add_header): hanya untuk request berikutnya */
+const nextHeaders = new Map();
 
 export function web_add_header(name, value) {
   const { log } = needCtx();
-  headerStore.set(String(name).toLowerCase(), String(value ?? ""));
+  nextHeaders.set(String(name).toLowerCase(), String(value ?? ""));
   log("info", `web_add_header: ${name} = ${value}`);
   return 0;
 }
 
 export function web_add_auto_header(name, value) {
-  // Same as web_add_header in this implementation
-  return web_add_header(name, value);
+  const { log } = needCtx();
+  autoHeaders.set(String(name).toLowerCase(), String(value ?? ""));
+  log("info", `web_add_auto_header: ${name} = ${value}`);
+  return 0;
 }
 
-/** Clear auto headers (not in core but useful) */
+/** Hapus semua auto header */
 export function web_cleanup_auto_headers() {
-  headerStore.clear();
+  autoHeaders.clear();
   return 0;
+}
+
+/**
+ * Gabungkan header request: auto < next < eksplisit (argumen fungsi web_*).
+ * `consume`: kosongkan header sekali pakai (dipanggil tepat saat request dikirim).
+ *
+ * @param {Record<string, string>} explicit
+ * @param {{ consume?: boolean }} [options]
+ */
+function mergeRequestHeaders(explicit = {}, { consume = false } = {}) {
+  const headers = { ...Object.fromEntries(autoHeaders), ...Object.fromEntries(nextHeaders), ...explicit };
+  if (consume) nextHeaders.clear();
+  return headers;
 }
 
 /**
@@ -184,7 +213,7 @@ export function web_cleanup_auto_headers() {
  * Similar to web_custom_request but with REST-specific defaults
  */
 export async function web_rest(name, ...args) {
-  const { http, log, runOptions } = needCtx();
+  const { log } = needCtx();
 
   const opts = parseWebArgs(args);
   const url = opts.URL || opts.Url || opts.url;
@@ -197,8 +226,8 @@ export async function web_rest(name, ...args) {
     return -1;
   }
 
-  // Merge headers: stored headers + explicit headers from args
-  const headers = { ...getRequestHeaders() };
+  // Header eksplisit dari argumen (auto/next header digabung di sendRequest)
+  const headers = {};
   if (opts.Header) {
     // Header can be array of "Name: Value" or object
     if (Array.isArray(opts.Header)) {
@@ -214,40 +243,19 @@ export async function web_rest(name, ...args) {
       }
     }
   }
-  // Set default content-type if body provided
-  if (body && !headers["content-type"]) {
-    headers["content-type"] = opts.EncType || opts.enctype || "application/json";
-  }
-
-  // Substitute params in URL and body
   const finalUrl = substituteParams(url);
-  const finalBody = substituteParams(body);
-
   log("info", `web_rest: ${name} ${method} -> ${finalUrl}`);
 
-  try {
-    const resp = await http.doRequest({
-      method,
-      url: finalUrl,
-      headers,
-      body: finalBody,
-      followRedirects: true,
-      timeoutMs: runOptions.timeoutMs,
-    });
-
-    await handleResponse(name, resp, "web_rest", snapshotName);
-    return 0;
-  } catch (error) {
-    log("error", `web_rest("${name}") failed: ${error.message}`);
-    throw error;
-  }
-}
-
-/** Get merged headers for a request */
-function getRequestHeaders() {
-  const headers = {};
-  for (const [k, v] of headerStore) headers[k] = v;
-  return headers;
+  return sendRequest({
+    type: "web_rest",
+    name,
+    snapshotName,
+    method,
+    url: finalUrl,
+    explicitHeaders: headers,
+    defaultContentType: opts.EncType || opts.enctype || "application/json",
+    body: substituteParams(body),
+  });
 }
 
 /**
@@ -255,7 +263,7 @@ function getRequestHeaders() {
  * Argumen: "URL=...", "TargetFrame=", "Resource=", "RecContentType=", "Referer=", "Mode=", "Snapshot=...", LAST
  */
 export async function web_url(name, ...args) {
-  const { http, log, runOptions } = needCtx();
+  const { log } = needCtx();
 
   // Parse named arguments from args array
   const opts = parseWebArgs(args);
@@ -266,25 +274,9 @@ export async function web_url(name, ...args) {
     return -1;
   }
 
-  const headers = { ...getRequestHeaders(), ...opts.headers };
-
   log("info", `web_url: ${name} -> ${url}`);
 
-  try {
-    const resp = await http.doRequest({
-      method: "GET",
-      url: substituteParams(url),
-      headers,
-      followRedirects: true,
-      timeoutMs: runOptions.timeoutMs,
-    });
-
-    await handleResponse(name, resp, "web_url", snapshotName);
-    return 0;
-  } catch (error) {
-    log("error", `web_url("${name}") failed: ${error.message}`);
-    throw error;
-  }
+  return sendRequest({ type: "web_url", name, snapshotName, method: "GET", url, explicitHeaders: opts.headers });
 }
 
 /**
@@ -292,7 +284,7 @@ export async function web_url(name, ...args) {
  * Argumen: "URL=...", "Method=...", "Body=...", "EncType=...", "Referer=", "Mode=", "Snapshot=...", LAST
  */
 export async function web_custom_request(name, ...args) {
-  const { http, log, runOptions } = needCtx();
+  const { log } = needCtx();
 
   const opts = parseWebArgs(args);
   const url = opts.URL || opts.Url || opts.url;
@@ -306,29 +298,18 @@ export async function web_custom_request(name, ...args) {
     return -1;
   }
 
-  const headers = { ...getRequestHeaders(), ...opts.headers };
-  if (body && !headers["content-type"]) {
-    headers["content-type"] = encType;
-  }
-
   log("info", `web_custom_request: ${name} ${method} -> ${url}`);
 
-  try {
-    const resp = await http.doRequest({
-      method,
-      url: substituteParams(url),
-      headers,
-      body: substituteParams(body),
-      followRedirects: true,
-      timeoutMs: runOptions.timeoutMs,
-    });
-
-    await handleResponse(name, resp, "web_custom_request", snapshotName);
-    return 0;
-  } catch (error) {
-    log("error", `web_custom_request("${name}") failed: ${error.message}`);
-    throw error;
-  }
+  return sendRequest({
+    type: "web_custom_request",
+    name,
+    snapshotName,
+    method,
+    url,
+    explicitHeaders: opts.headers,
+    defaultContentType: encType,
+    body: substituteParams(body),
+  });
 }
 
 /**
@@ -336,7 +317,7 @@ export async function web_custom_request(name, ...args) {
  * Argumen: "Action=...", "Method=...", "Mode=...", ITEMDATA, "Name=...", "Value=...", ENDITEM, ..., LAST
  */
 export async function web_submit_data(name, ...args) {
-  const { http, log, runOptions } = needCtx();
+  const { log } = needCtx();
 
   const opts = parseWebArgs(args);
   const url = opts.Action || opts.URL || opts.Url || opts.url;
@@ -378,9 +359,7 @@ export async function web_submit_data(name, ...args) {
     }
   }
 
-  const headers = { ...getRequestHeaders(), ...opts.headers };
-  const contentType = headers["content-type"] || "application/x-www-form-urlencoded";
-  headers["content-type"] = contentType;
+  const contentType = mergeRequestHeaders(opts.headers)["content-type"] || "application/x-www-form-urlencoded";
 
   // Build body
   let body = "";
@@ -393,22 +372,16 @@ export async function web_submit_data(name, ...args) {
 
   log("info", `web_submit_data: ${name} ${method} -> ${url} (${formData.length} fields)`);
 
-  try {
-    const resp = await http.doRequest({
-      method,
-      url: substituteParams(url),
-      headers,
-      body,
-      followRedirects: true,
-      timeoutMs: runOptions.timeoutMs,
-    });
-
-    await handleResponse(name, resp, "web_submit_data", opts.Snapshot);
-    return 0;
-  } catch (error) {
-    log("error", `web_submit_data("${name}") failed: ${error.message}`);
-    throw error;
-  }
+  return sendRequest({
+    type: "web_submit_data",
+    name,
+    snapshotName: opts.Snapshot,
+    method,
+    url,
+    explicitHeaders: opts.headers,
+    defaultContentType: contentType,
+    body,
+  });
 }
 
 /**
@@ -524,17 +497,27 @@ export function web_reg_find(...args) {
 
 /**
  * web_add_cookie — Add cookie to jar.
- * Argumen: "cookie string", LAST
+ * Argumen: "name=value; DOMAIN=host; PATH=/; ...", LAST
+ * `{param}` disubstitusi; DOMAIN= menentukan host konteks (fallback: URL request terakhir).
  */
-export function web_add_cookie(...args) {
+export async function web_add_cookie(...args) {
   const { http, log } = needCtx();
-  const cookieStr = args[0];
-  if (!cookieStr || typeof cookieStr !== "string") {
+  const raw = args[0];
+  if (!raw || typeof raw !== "string") {
     log("error", `web_add_cookie: missing cookie string`);
     return -1;
   }
-  const url = http.lastUrl || "http://localhost/";
-  http.addCookie(cookieStr, url);
+
+  const cookieStr = substituteParams(raw);
+  const domain = /(?:^|;)\s*domain\s*=\s*([^;\s]+)/i.exec(cookieStr)?.[1]?.replace(/^\./, "");
+  const secure = /(?:^|;)\s*secure\s*(?:;|$)/i.test(cookieStr);
+  const url = domain ? `${secure ? "https" : "http"}://${domain}/` : http.lastUrl || "http://localhost/";
+
+  const result = await http.addCookie(cookieStr, url);
+  if (!result.ok) {
+    log("warn", `web_add_cookie ditolak: ${result.error} (${cookieStr})`);
+    return -1;
+  }
   log("info", `web_add_cookie: ${cookieStr}`);
   return 0;
 }
@@ -544,7 +527,7 @@ export function web_add_cookie(...args) {
  */
 export function web_cleanup_cookies() {
   const { http, log } = needCtx();
-  http.cleanupCookies();
+  http.clearCookies();
   log("info", `web_cleanup_cookies: cleared`);
   return 0;
 }
@@ -573,7 +556,7 @@ function parseWebArgs(args) {
     const value = arg.slice(eq + 1).trim();
     // Handle known headers
     if (key.toLowerCase() === "referer") {
-      result.headers.referer = value;
+      if (value !== "") result.headers.referer = value; // "Referer=" kosong: tidak ada header
     } else {
       result[key] = value;
     }
@@ -595,7 +578,7 @@ function substituteParams(str) {
   });
 }
 
-/** Batas bodyPreview request (byte/karakter) */
+/** Batas bodyPreview request (karakter) */
 const BODY_PREVIEW_MAX = 2048;
 
 /** Ringkas body request untuk ditampilkan (≤ 2 KB) */
@@ -605,7 +588,117 @@ function previewBody(body) {
   return text.length > BODY_PREVIEW_MAX ? text.slice(0, BODY_PREVIEW_MAX) : text;
 }
 
-/** Handle response: simpan body, correlation, web_reg_find, lalu kirim event step */
+/** Pesan error request yang mudah dibaca (timeout, koneksi ditolak, dst.) */
+function describeRequestError(error, timeoutMs) {
+  if (error?.name === "AbortError") return `timeout setelah ${timeoutMs} ms`;
+  const code = error?.cause?.code ?? error?.code;
+  const message = error instanceof Error ? error.message : String(error);
+  return code && !message.includes(code) ? `${message} (${code})` : message;
+}
+
+/** Hasil akhir step gagal: tandai transaksi, catat log, lalu lempar kecuali continueOnError */
+function concludeFailure(type, name, problem) {
+  const { log, runOptions } = needCtx();
+  markTransactionsFailed();
+  log("error", `${type} "${name}" gagal: ${problem}`);
+  if (runOptions.continueOnError) return 1; // LR_FAIL, script lanjut
+  throw new Error(`${type} "${name}": ${problem}`);
+}
+
+/**
+ * Kirim request lalu proses response. Satu jalur untuk semua web_* yang melakukan request.
+ *
+ * @param {{ type: string, name: string, snapshotName?: string, method: string, url: string,
+ *   explicitHeaders?: Record<string, string>, defaultContentType?: string, body?: string }} spec
+ */
+async function sendRequest({ type, name, snapshotName, method, url, explicitHeaders = {}, defaultContentType, body }) {
+  const c = needCtx();
+  const finalUrl = substituteParams(url);
+  const headers = mergeRequestHeaders(explicitHeaders, { consume: true });
+  if (body && defaultContentType && !headers["content-type"]) headers["content-type"] = defaultContentType;
+
+  let resp;
+  try {
+    resp = await c.http.doRequest({
+      method,
+      url: finalUrl,
+      headers,
+      body: body || undefined,
+      followRedirects: true,
+      timeoutMs: c.runOptions.timeoutMs,
+    });
+  } catch (error) {
+    const problem = describeRequestError(error, c.runOptions.timeoutMs);
+    emitFailedRequestStep({ type, name, snapshotName, method, url: finalUrl, headers, body, problem });
+    return concludeFailure(type, name, problem);
+  }
+
+  return handleResponse(name, resp, type, snapshotName);
+}
+
+/** Step untuk request yang gagal sebelum ada response (koneksi ditolak, timeout, ...) */
+function emitFailedRequestStep({ type, name, snapshotName, method, url, headers, body, problem }) {
+  const c = needCtx();
+  // reg_* hanya berlaku untuk request berikutnya, berhasil atau tidak
+  correlationRegistry.length = 0;
+  webRegFindRegistry.length = 0;
+
+  c.sendEvent("step", {
+    seq: ++c.seq,
+    type,
+    name: substituteParams(name),
+    snapshot: snapshotName || null,
+    file: c.currentFile || "",
+    line: c.currentLine || 0,
+    iteration: c.currentIteration || 1,
+    transaction: innermostTransaction(),
+    request: { method, url, headers, bodyPreview: previewBody(body) },
+    response: { status: 0, statusText: "", headers: {}, contentType: "", size: 0, bodyFile: "", truncated: false, redirects: [] },
+    timing: { startMs: Math.max(0, Date.now() - (c.runStartMs || 0)), durationMs: 0 },
+    checks: [],
+    error: problem,
+  });
+}
+
+/**
+ * Ambil nilai correlation dari body. Kembalikan { value } atau { error } (regex tidak valid).
+ * @param {{ regexp: string|null, lb: string, rb: string, ord: number }} rule
+ * @param {string} bodyText
+ */
+function extractCorrelation(rule, bodyText) {
+  if (rule.regexp) {
+    let regex;
+    try {
+      regex = new RegExp(rule.regexp);
+    } catch (error) {
+      return { error: `RegExp tidak valid (${error.message})` };
+    }
+    const matches = bodyText.match(regex);
+    if (matches && matches.length > rule.ord) return { value: matches[rule.ord] };
+    if (matches && matches.length > 0) return { value: matches[0] };
+    return { value: null };
+  }
+
+  if (rule.lb && rule.rb) {
+    // Left/right boundary extraction
+    let value = null;
+    let startIdx = 0;
+    for (let i = 0; i < rule.ord; i++) {
+      const lbIdx = bodyText.indexOf(rule.lb, startIdx);
+      if (lbIdx === -1) { value = null; break; }
+      startIdx = lbIdx + rule.lb.length;
+      const rbIdx = bodyText.indexOf(rule.rb, startIdx);
+      if (rbIdx === -1) { value = null; break; }
+      if (i === rule.ord - 1) value = bodyText.substring(startIdx, rbIdx);
+      startIdx = rbIdx + rule.rb.length;
+    }
+    return { value };
+  }
+
+  return { value: null };
+}
+
+/** Handle response: simpan body, correlation, web_reg_find, kirim event step, lalu nilai sukses/gagal */
 async function handleResponse(stepName, resp, type, snapshotName) {
   const c = needCtx();
   const { log, params } = c;
@@ -615,34 +708,16 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   const isText = contentType.includes("text/") || contentType.includes("json") || contentType.includes("xml");
   const bodyText = isText ? decodeBody(resp.body, contentType) : "";
 
+  /** Alasan step gagal (R6/R7) */
+  const problems = [];
+  if (resp.status >= 400) problems.push(`HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""}`);
+
   // Process correlations: extract values and save to params
   for (const rule of correlationRegistry) {
-    let value = null;
-    if (rule.regexp) {
-      // Regex-based extraction
-      const regex = new RegExp(rule.regexp);
-      const matches = bodyText.match(regex);
-      if (matches && matches.length > rule.ord) {
-        value = matches[rule.ord];
-      } else if (matches && matches.length > 0) {
-        value = matches[0];
-      }
-    } else if (rule.lb && rule.rb) {
-      // Left/right boundary extraction
-      let startIdx = 0;
-      for (let i = 0; i < rule.ord; i++) {
-        const lbIdx = bodyText.indexOf(rule.lb, startIdx);
-        if (lbIdx === -1) { value = null; break; }
-        startIdx = lbIdx + rule.lb.length;
-        const rbIdx = bodyText.indexOf(rule.rb, startIdx);
-        if (rbIdx === -1) { value = null; break; }
-        if (i === rule.ord - 1) {
-          value = bodyText.substring(startIdx, rbIdx);
-        }
-        startIdx = rbIdx + rule.rb.length;
-      }
-    }
-    if (value !== null) {
+    const { value, error } = extractCorrelation(rule, bodyText);
+    if (error) {
+      problems.push(`Correlation "${rule.name}": ${error}`);
+    } else if (value !== null) {
       params.set(rule.saveParam, value);
       log("info", `Correlation: ${rule.saveParam} = "${value}"`);
     } else {
@@ -660,6 +735,7 @@ async function handleResponse(stepName, resp, type, snapshotName) {
     const found = bodyText.includes(rule.text);
     checks.push({ type: "web_reg_find", text: rule.text, passed: found });
     log(found ? "info" : "error", `web_reg_find: Text="${rule.text}" ${found ? "FOUND" : "NOT FOUND"}`);
+    if (!found) problems.push(`web_reg_find: teks "${rule.text}" tidak ditemukan`);
   }
   webRegFindRegistry.length = 0;
 
@@ -667,8 +743,9 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   const seq = ++c.seq;
   const saved = await saveStepBody(c.cacheDir, c.runId, seq, resp.body);
   const sent = resp.request || { method: "", url: "", headers: {} };
+  const error = problems.length > 0 ? problems.join("; ") : null;
 
-  const stepData = {
+  c.sendEvent("step", {
     seq,
     type,
     name: resolvedStepName,
@@ -676,7 +753,7 @@ async function handleResponse(stepName, resp, type, snapshotName) {
     file: c.currentFile || "",
     line: c.currentLine || 0,
     iteration: c.currentIteration || 1,
-    transaction: c.transaction?.name || null,
+    transaction: innermostTransaction(),
     request: {
       method: sent.method,
       url: sent.url,
@@ -698,18 +775,20 @@ async function handleResponse(stepName, resp, type, snapshotName) {
       durationMs: resp.durationMs || 0,
     },
     checks,
-  };
-
-  c.sendEvent("step", stepData);
+    error,
+  });
   log("info", `${type} "${resolvedStepName}": ${resp.status} ${resp.statusText} (${resp.size} bytes)`);
+
+  return error ? concludeFailure(type, resolvedStepName, error) : 0;
 }
 
-/** Timer functions */
+/** Timer functions — `lr_end_timer` mengembalikan DETIK (double) seperti LoadRunner */
 const timerStore = new Map();
+let nextTimerHandle = 1;
 
 export function lr_start_timer() {
-  const handle = Date.now() + Math.random();
-  timerStore.set(handle, Date.now());
+  const handle = nextTimerHandle++;
+  timerStore.set(handle, performance.now());
   return handle;
 }
 
@@ -717,7 +796,7 @@ export function lr_end_timer(handle) {
   const start = timerStore.get(handle);
   if (start === undefined) return 0;
   timerStore.delete(handle);
-  return Date.now() - start;
+  return (performance.now() - start) / 1000;
 }
 
 /** web_set_max_html_param_len — set max HTML parameter length */
@@ -734,31 +813,54 @@ export function web_set_sockets_option(option, value) {
   return 0;
 }
 
-/** web_js_run — execute JavaScript code */
+/** Batas waktu eksekusi satu potongan JavaScript di web_js_run */
+const JS_RUN_TIMEOUT_MS = 1000;
+
+/**
+ * web_js_run — jalankan JavaScript.
+ * Argumen: "Code=<kode utama>", SOURCES, "Code=<definisi>", ..., ENDITEM, LAST
+ * Semua `Code=` di blok SOURCES...ENDITEM dijalankan lebih dulu, lalu kode utama,
+ * dalam satu context `node:vm` (timeout 1 detik). `LR.getParam/setParam` tersedia.
+ * Catatan: `vm` memisahkan scope global, bukan sandbox keamanan penuh.
+ */
 export async function web_js_run(...args) {
-  const { log } = needCtx();
-  // Parse VuGen web_js_run arguments: "Code=...", SOURCES, "File=...", ENDITEM, LAST
-  let code = "";
-  let file = "";
+  const { log, params } = needCtx();
+
+  let mainCode = "";
+  const sources = [];
+  let inSources = false;
   for (const arg of args) {
-    if (typeof arg === "string") {
-      if (arg.startsWith("Code=")) code = arg.slice(5);
-      else if (arg.startsWith("File=")) file = arg.slice(5);
+    if (arg === "LAST") break;
+    if (arg === "SOURCES") { inSources = true; continue; }
+    if (arg === "ENDITEM") { inSources = false; continue; }
+    if (typeof arg !== "string") continue;
+
+    if (arg.startsWith("Code=")) {
+      const code = arg.slice(5);
+      if (inSources) sources.push(code);
+      else mainCode = code;
+    } else if (arg.startsWith("File=")) {
+      log("warn", `web_js_run: File= belum didukung (${arg.slice(5)})`);
     }
   }
-  log("info", `web_js_run: executing JS${file ? ` from ${file}` : ""}`);
-  // Execute in a sandboxed context with LR object
+
+  log("info", `web_js_run: executing JS (${sources.length} source${sources.length === 1 ? "" : "s"})`);
+  const context = vm.createContext({
+    LR: {
+      getParam: (name) => params.get(name) ?? "",
+      setParam: (name, value) => params.set(name, String(value ?? "")),
+    },
+  });
+
   try {
-    const LR = {
-      getParam: (name) => needCtx().params.get(name) ?? "",
-      setParam: (name, value) => needCtx().params.set(name, String(value ?? "")),
-    };
-    const fn = new Function("LR", code);
-    await fn(LR);
-  } catch (e) {
-    log("error", `web_js_run failed: ${e.message}`);
+    for (const code of [...sources, mainCode]) {
+      if (code.trim() !== "") vm.runInContext(code, context, { timeout: JS_RUN_TIMEOUT_MS });
+    }
+    return 0;
+  } catch (error) {
+    log("error", `web_js_run failed: ${error.message}`);
+    return 1;
   }
-  return 0;
 }
 
 /** Placeholder for unsupported functions */
@@ -780,9 +882,9 @@ export function __at(file, line) {
   c.currentLine = line;
 }
 
-/** Reset header store (called per iteration if needed) */
+/** Header sekali pakai dibuang saat user baru; auto header (web_add_auto_header) tetap */
 export function __resetHeaders() {
-  headerStore.clear();
+  nextHeaders.clear();
 }
 
 /** C standard library functions (subset for F6) */
@@ -804,22 +906,7 @@ export function strstr(haystack, needle) {
 }
 
 export function sprintf(format, ...args) {
-  // Simple sprintf implementation supporting %s, %d, %f, %%
-  let result = String(format ?? "");
-  let argIndex = 0;
-  result = result.replace(/%([0-9]*\.?[0-9]*)([sdfeEgG%])/g, (match, width, type) => {
-    const arg = args[argIndex++];
-    switch (type) {
-      case "s": return String(arg ?? "");
-      case "d": return Number.parseInt(arg, 10).toString();
-      case "f": return Number.parseFloat(arg).toFixed(width ? parseInt(width, 10) : 6);
-      case "e": case "E": return Number.parseFloat(arg).toExponential(width ? parseInt(width, 10) : 6);
-      case "g": case "G": return Number.parseFloat(arg).toPrecision(width ? parseInt(width, 10) : 6);
-      case "%": return "%";
-      default: return match;
-    }
-  });
-  return result;
+  return formatPrintf(format, args);
 }
 
 export function atoi(str) {
@@ -832,36 +919,3 @@ export function strcpy(dest, src) {
   // For lr_save_string usage: lr_save_string(strcpy(buf, "value"), "param")
   return String(src ?? "");
 }
-
-export default {
-  __bind,
-  lr_save_string,
-  lr_eval_string,
-  lr_output_message,
-  lr_error_message,
-  lr_think_time,
-  lr_start_transaction,
-  lr_end_transaction,
-  web_add_header,
-  web_add_auto_header,
-  web_cleanup_auto_headers,
-  web_url,
-  web_custom_request,
-  web_submit_data,
-  web_submit_form,
-  web_reg_save_param,
-  web_reg_save_param_ex,
-  web_reg_save_param_regexp,
-  web_reg_find,
-  web_add_cookie,
-  web_cleanup_cookies,
-  web_set_user,
-  strcmp,
-  sprintf,
-  atoi,
-  strcpy,
-  __unsupportedCall,
-  __unsupported,
-  __at,
-  __resetHeaders,
-};

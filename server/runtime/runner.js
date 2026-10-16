@@ -17,7 +17,8 @@ import * as vuserApi from "./vuser-api.js";
 const vu = {
   http: null,
   params: new Map(),
-  transaction: { name: null, startMs: 0 },
+  transactions: new Map(),        // transaksi terbuka: nama -> { startMs, failed }
+  transactionResults: new Map(),  // hasil transaksi yang sudah selesai: nama -> Pass|Fail
   currentFile: "",
   currentLine: 0,
   currentIteration: 1,  // Track current iteration
@@ -54,6 +55,26 @@ function sendEvent(type, data, callback) {
   process.send({ type: "event", event: { type, data, ts: Date.now() } }, callback);
 }
 
+/**
+ * Siapkan file parameter (.dat): urut per iterasi, nilai baris pertama langsung tersedia.
+ * `parameterFiles` berupa array [nama, { values }] hasil serialisasi Map dari parent.
+ */
+function initParameterFiles(parameterFiles) {
+  vu.parameterFiles = new Map();
+  for (const [key, value] of parameterFiles ?? []) {
+    vu.parameterFiles.set(key, { values: value.values, currentIndex: 0 });
+    if (value.values.length > 0) vu.params.set(key, value.values[0]);
+  }
+}
+
+/** Iterasi berikutnya: maju satu baris per file parameter, kembali ke awal bila habis (perilaku VuGen) */
+function advanceParameterFiles() {
+  for (const [name, file] of vu.parameterFiles) {
+    file.currentIndex = file.currentIndex < file.values.length - 1 ? file.currentIndex + 1 : 0;
+    vu.params.set(name, file.values[file.currentIndex]);
+  }
+}
+
 /** Main run logic */
 async function run(payload) {
 
@@ -74,22 +95,7 @@ async function run(payload) {
       newUserEachIteration: options.newUserEachIteration !== false,
     };
 
-    // Initialize parameter files for sequential substitution
-    // parameterFiles is a Map serialized as array of [key, { values, currentIndex }]
-    const paramFileMap = new Map();
-    if (parameterFiles) {
-      for (const [key, value] of parameterFiles) {
-        paramFileMap.set(key, { values: value.values, currentIndex: 0 });
-      }
-    }
-    vu.parameterFiles = paramFileMap;
-
-    // Initialize params with first values from parameter files (for lr_eval_string substitution)
-    for (const [key, value] of vu.parameterFiles) {
-      if (value.values.length > 0) {
-        vu.params.set(key, value.values[0]);
-      }
-    }
+    initParameterFiles(parameterFiles);
 
     // Initialize HTTP client
     vu.http = new HttpClient({
@@ -97,7 +103,7 @@ async function run(payload) {
       insecureTLS: vu.runOptions.insecureTLS,
       followRedirects: true,
       maxRedirects: 10,
-      debugCallback: (level, msg) => sendEvent("log", { level, msg }),
+      debugCallback: (level, msg) => vu.log(level, msg), // sertakan file/line/iterasi dari konteks step
     });
 
     // Import transpiled module
@@ -154,31 +160,20 @@ async function run(payload) {
           // Only correlation params are overwritten each iteration
         }
 
-        // Advance parameter files for this iteration (sequential mode)
-        // Each iteration gets the next row from each parameter file
-        if (iter > 1 && vu.parameterFiles) {
-          for (const [paramName, paramFile] of vu.parameterFiles) {
-            if (paramFile.currentIndex < paramFile.values.length - 1) {
-              paramFile.currentIndex++;
-            } else {
-              // Wrap around to beginning (VuGen behavior)
-              paramFile.currentIndex = 0;
-            }
-            // Substitute into runtime params
-            vu.params.set(paramName, paramFile.values[paramFile.currentIndex]);
-          }
-        }
+        if (iter > 1) advanceParameterFiles();
 
+        // Konteks iterasi dulu, supaya log/step/transaksi memakai nomor yang benar
+        vu.currentIteration = iter;
+        vu.transactions.clear();
         sendEvent("iterationStart", { iteration: iter, action: action.name });
 
         try {
-          // Set current iteration for logging
-          vu.currentIteration = iter;
           // action.fn is already the function (from entries)
           await action.fn();
           sendEvent("iterationEnd", { iteration: iter, action: action.name, status: "passed" });
         } catch (error) {
           vu.log("error", `Iteration ${iter} ${action.name} failed: ${error.message}`);
+          for (const name of vu.transactions.keys()) vu.log("warn", `Transaksi "${name}" tidak ditutup karena iterasi gagal; tidak dicatat`);
           sendEvent("iterationEnd", { iteration: iter, action: action.name, status: "failed", error: error.message });
           globalError = error;
           if (!vu.runOptions.continueOnError) break;

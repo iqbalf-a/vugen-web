@@ -10,6 +10,8 @@
  * @module http-client
  */
 
+import { performance } from "node:perf_hooks";
+
 import { request, Agent } from "undici";
 import { CookieJar } from "tough-cookie";
 
@@ -20,6 +22,7 @@ import { CookieJar } from "tough-cookie";
  * @property {boolean} [insecureTLS=false]
  * @property {boolean} [followRedirects=false] // manual redirect, default false
  * @property {number} [maxRedirects=10]
+ * @property {(level: string, msg: string) => void} [debugCallback]
  */
 
 /**
@@ -30,7 +33,7 @@ import { CookieJar } from "tough-cookie";
  * @property {string|Buffer} [body]
  * @property {boolean} [followRedirects=false]
  * @property {number} [maxRedirects=10]
- * @property {number} [connectTimeoutMs] // per-request override
+ * @property {number} [timeoutMs] // override timeout per request
  */
 
 /**
@@ -42,10 +45,20 @@ import { CookieJar } from "tough-cookie";
  * @property {number} size
  * @property {Buffer} body
  * @property {Object[]} redirectChain - [{ url, status, headers }]
- * @property {number} durationMs
+ * @property {number} durationMs - total waktu request (termasuk redirect), milidetik
  * @property {number} startedAt - epoch ms request pertama dikirim
  * @property {{ method: string, url: string, headers: Record<string, string>, body?: string|Buffer }} request - request asli (hop pertama, header sudah termasuk Cookie)
  */
+
+/**
+ * Jar baru. `DOMAIN=<IP>` (umum di web_add_cookie script KOPRA) ditolak tough-cookie sebagai
+ * "public suffix"; untuk load test proteksi itu dimatikan.
+ */
+function newCookieJar() {
+  return new CookieJar(undefined, { rejectPublicSuffixes: false });
+}
+
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 export class HttpClient {
   /**
@@ -59,196 +72,140 @@ export class HttpClient {
     this.defaultFollowRedirects = options.followRedirects ?? false;
     this.maxRedirects = options.maxRedirects ?? 10;
 
+    // Opsi koneksi/TLS undici ada di `connect` (bukan `tls` / `connectTimeout` per request).
     /** @type {Agent} */
-    const agentOptions = { connections: 10 };
-    if (this.insecureTLS) {
-      // Configure agent to accept self-signed certificates
-      agentOptions.tls = { rejectUnauthorized: false };
-    }
-    this.agent = new Agent(agentOptions);
+    this.agent = new Agent({
+      connections: 10,
+      connect: {
+        timeout: this.connectTimeoutMs,
+        ...(this.insecureTLS ? { rejectUnauthorized: false } : {}),
+      },
+    });
 
     /** @type {CookieJar} */
-    this.cookieJar = new CookieJar();
+    this.cookieJar = newCookieJar();
 
-    /** @type {string} */
+    /** URL request terakhir; konteks default `web_add_cookie` */
     this.lastUrl = "";
   }
 
-  /**
-   * Set cookie jar (used when restoring state across iterations)
-   * @param {CookieJar} jar
-   */
-  setCookieJar(jar) {
-    this.cookieJar = jar;
-  }
-
-  /**
-   * Get current cookie jar (for saving state)
-   * @returns {CookieJar}
-   */
-  getCookieJar() {
-    return this.cookieJar;
-  }
-
-  /**
-   * Clear cookie jar (simulate new user)
-   */
+  /** Hapus semua cookie (user baru / web_cleanup_cookies) */
   clearCookies() {
-    this.cookieJar = new CookieJar();
+    this.cookieJar = newCookieJar();
   }
 
   /**
-   * Add cookie from web_add_cookie style string
-   * @param {string} cookieString - e.g. "name=value; domain=.example.com; path=/; secure"
-   * @param {string} url - URL context for cookie
+   * Tambah cookie ala `web_add_cookie`.
+   *
+   * @param {string} cookieString - mis. "name=value; Domain=example.com; Path=/; Secure"
+   * @param {string} url - URL konteks cookie
+   * @returns {Promise<{ ok: boolean, error?: string }>} ok=false bila cookie ditolak
    */
   async addCookie(cookieString, url) {
     try {
-      const parsedUrl = new URL(url);
-      await this.cookieJar.setCookie(cookieString, parsedUrl.href);
-    } catch {
-      // Silently ignore invalid cookies, like VuGen
+      await this.cookieJar.setCookie(cookieString, new URL(url).href);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
   /**
-   * Cleanup cookies (web_cleanup_cookies)
-   */
-  cleanupCookies() {
-    this.cookieJar = new CookieJar();
-  }
-
-  /**
-   * Execute HTTP request with manual redirect handling
+   * Eksekusi request HTTP dengan redirect manual (tiap hop dicatat).
    *
    * @param {RequestOptions} opts
    * @returns {Promise<ResponseInfo>}
    */
   async doRequest(opts) {
     const { method, url, headers = {}, body, followRedirects = this.defaultFollowRedirects, maxRedirects = this.maxRedirects } = opts;
+    const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
 
-    // Store last URL for web_add_cookie
     this.lastUrl = url;
 
-    const startTime = Date.now();
+    const startedAt = Date.now();
+    const startedPerf = performance.now();
     const redirectChain = [];
     let currentUrl = url;
     let currentMethod = method;
     let currentBody = body;
-    let currentHeaders = { ...headers };
+    const currentHeaders = { ...headers };
     let redirectCount = 0;
     /** @type {ResponseInfo["request"]|null} */
     let sentRequest = null;
 
-    while (true) {
-      const parsedUrl = new URL(currentUrl);
-      const cookieHeader = await this.cookieJar.getCookieString(parsedUrl.href);
-      if (cookieHeader) {
-        currentHeaders.Cookie = cookieHeader;
-      }
+    for (;;) {
+      const cookieHeader = await this.cookieJar.getCookieString(new URL(currentUrl).href);
+      if (cookieHeader) currentHeaders.Cookie = cookieHeader;
 
       if (!sentRequest) {
         sentRequest = { method: currentMethod, url: currentUrl, headers: { ...currentHeaders }, body: currentBody };
       }
-
-      if (this.debugCallback) {
-        this.debugCallback("info", `[http-client] ${currentMethod} ${currentUrl}`);
-      }
-
-      const requestOptions = {
-        method: currentMethod,
-        headers: currentHeaders,
-        body: currentBody,
-        dispatcher: this.agent,
-        // Timeout handled via AbortController
-        connectTimeout: opts.connectTimeoutMs ?? this.connectTimeoutMs,
-      };
+      this.debugCallback?.("info", `[http-client] ${currentMethod} ${currentUrl}`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      let response;
       try {
-        response = await request(currentUrl, {
-          ...requestOptions,
+        const response = await request(currentUrl, {
+          method: currentMethod,
+          headers: currentHeaders,
+          body: currentBody,
+          dispatcher: this.agent,
           signal: controller.signal,
         });
+        const bodyBuffer = Buffer.from(await response.body.arrayBuffer());
 
-        // Read response body
-        const responseBody = await response.body.arrayBuffer();
-        const bodyBuffer = Buffer.from(responseBody);
+        this.debugCallback?.("info", `[http-client] ${currentMethod} ${currentUrl} -> ${response.statusCode} (${bodyBuffer.length} bytes)`);
 
-        if (this.debugCallback) {
-          this.debugCallback("info", `[http-client] ${currentMethod} ${currentUrl} -> ${response.statusCode} (${bodyBuffer.length} bytes)`);
-        }
-
-        // Save cookies from response
-        const setCookieHeaders = response.headers["set-cookie"];
-        if (setCookieHeaders) {
-          const cookies = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
-          for (const cookie of cookies) {
+        // Simpan cookie dari response
+        const setCookie = response.headers["set-cookie"];
+        if (setCookie) {
+          for (const cookie of Array.isArray(setCookie) ? setCookie : [setCookie]) {
             try {
-              await this.cookieJar.setCookie(cookie, parsedUrl.href);
+              await this.cookieJar.setCookie(cookie, new URL(currentUrl).href);
             } catch {
-              // Ignore invalid cookies
+              // Cookie tidak valid diabaikan seperti browser
             }
           }
         }
 
-        // Build response info
-        const contentType = response.headers["content-type"] || "";
-        const durationMs = Date.now() - startTime;
-        const responseInfo = {
+        const location = response.headers.location;
+        if (REDIRECT_STATUSES.has(response.statusCode) && location && followRedirects && redirectCount < maxRedirects) {
+          redirectChain.push({ url: currentUrl, status: response.statusCode, headers: this._normalizeHeaders(response.headers) });
+          redirectCount++;
+          currentUrl = new URL(location, currentUrl).href;
+
+          // 301/302/303: ubah ke GET dan buang body (perilaku browser); 307/308 mempertahankan method & body
+          if ([301, 302, 303].includes(response.statusCode)) {
+            currentMethod = "GET";
+            currentBody = undefined;
+            for (const name of Object.keys(currentHeaders)) {
+              if (["content-length", "content-type"].includes(name.toLowerCase())) delete currentHeaders[name];
+            }
+          }
+          continue;
+        }
+
+        return {
           status: response.statusCode,
           statusText: response.statusMessage || "",
           headers: this._normalizeHeaders(response.headers),
-          contentType,
+          contentType: response.headers["content-type"] || "",
           size: bodyBuffer.length,
           body: bodyBuffer,
-          redirectChain: [...redirectChain],
-          durationMs,
-          startedAt: startTime,
+          redirectChain,
+          durationMs: Math.round((performance.now() - startedPerf) * 100) / 100,
+          startedAt,
           request: sentRequest,
         };
-
-      // Check for redirect
-      const isRedirect = [301, 302, 303, 307, 308].includes(response.statusCode);
-      const location = response.headers.location;
-
-      if (isRedirect && location && followRedirects && redirectCount < maxRedirects) {
-        redirectChain.push({
-          url: currentUrl,
-          status: response.statusCode,
-          headers: this._normalizeHeaders(response.headers),
-        });
-
-        redirectCount++;
-        currentUrl = new URL(location, currentUrl).href;
-
-        // For 301/302/303, change method to GET and drop body (browser behavior)
-        if ([301, 302, 303].includes(response.statusCode)) {
-          currentMethod = "GET";
-          currentBody = undefined;
-          // Remove content headers
-          delete currentHeaders["content-length"];
-          delete currentHeaders["content-type"];
-        }
-        // For 307/308, keep method and body
-        continue;
+      } catch (error) {
+        this.debugCallback?.("error", `[http-client] ${currentMethod} ${currentUrl} failed: ${error.message}`);
+        throw error;
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      return responseInfo;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (this.debugCallback) {
-        this.debugCallback("error", `[http-client] ${currentMethod} ${currentUrl} failed: ${error.message}`);
-      }
-      throw error;
-    } finally {
-      clearTimeout(timeoutId);
     }
   }
-  } // end while loop, end doRequest
 
   /**
    * Normalize headers to Record<string, string>
@@ -258,44 +215,23 @@ export class HttpClient {
   _normalizeHeaders(headers) {
     const result = {};
     for (const [key, value] of Object.entries(headers)) {
-      if (Array.isArray(value)) {
-        result[key.toLowerCase()] = value.join(", ");
-      } else {
-        result[key.toLowerCase()] = value;
-      }
+      result[key.toLowerCase()] = Array.isArray(value) ? value.join(", ") : value;
     }
     return result;
   }
 
-  /**
-   * Close agent connections
-   */
+  /** Tutup koneksi agent (maks 5 detik) */
   async close() {
     try {
       await Promise.race([
         this.agent.close(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('close timeout')), 5000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error("close timeout")), 5000)),
       ]);
     } catch (error) {
-      // Ignore close errors - agent may already be closed or have pending requests
-      console.error(`[http-client] Close warning: ${error.message}`);
+      // Agent mungkin sudah tertutup / masih ada request tertunda
+      this.debugCallback?.("debug", `[http-client] close warning: ${error.message}`);
     }
   }
-}
-
-/**
- * Create HttpClient from saved state (for iteration continuity)
- * @param {Object} state
- * @param {Object} state.cookieJar - Serialized CookieJar
- * @param {HttpClientOptions} options
- * @returns {HttpClient}
- */
-export function createHttpClientFromState(state, options = {}) {
-  const client = new HttpClient(options);
-  if (state.cookieJar) {
-    client.cookieJar = CookieJar.fromJSON(state.cookieJar);
-  }
-  return client;
 }
 
 export default HttpClient;

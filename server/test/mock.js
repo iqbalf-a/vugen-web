@@ -6,6 +6,8 @@
  * - POST /login         -> Validasi user/csrf, set cookie, redirect ke /dashboard
  * - GET  /dashboard     -> Halaman setelah login
  * - GET  /slow          -> Menjawab setelah 10 detik (untuk tes Stop)
+ * - GET  /status/:code  -> Menjawab dengan status HTTP tertentu (untuk tes step gagal)
+ * - GET  /echo-headers  -> Mengembalikan header request sebagai JSON (untuk tes header/cookie)
  *
  * Dipakai oleh runner test tanpa server eksternal.
  */
@@ -164,6 +166,21 @@ const server = createServer(async (req, res) => {
     // Not authenticated
     res.writeHead(302, { Location: "/" });
     res.end("Redirecting to login...");
+    return;
+  }
+
+  // GET /status/:code — status HTTP sembarang
+  const statusMatch = /^\/status\/(\d{3})$/.exec(url.pathname);
+  if (statusMatch) {
+    res.writeHead(Number(statusMatch[1]), { "Content-Type": "text/plain" });
+    res.end(`status ${statusMatch[1]}`);
+    return;
+  }
+
+  // GET /echo-headers — header request dikembalikan sebagai JSON
+  if (url.pathname === "/echo-headers") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(req.headers));
     return;
   }
 

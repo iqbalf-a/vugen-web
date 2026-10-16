@@ -104,12 +104,23 @@ describe("R1 web_js_run", () => {
     expect(env.ctx.params.get("x")).toBe("ok");
   });
 
-  it("loop tak berujung dihentikan oleh timeout (tidak menggantung)", async () => {
+  it("loop tak berujung dihentikan oleh timeout dan diperlakukan seperti error web_* (lempar)", async () => {
+    api.lr_start_transaction("T_JS");
     const t0 = Date.now();
-    const result = await api.web_js_run("Code= while (true) {}", "LAST");
+    await expect(api.web_js_run("Code= while (true) {}", "LAST")).rejects.toThrow(/web_js_run: .*(timed out|Script execution)/i);
     expect(Date.now() - t0).toBeLessThan(4000);
-    expect(result).toBe(1);
-    expect(env.logs.some(([level, msg]) => level === "error" && /timed out|Script execution/i.test(msg))).toBe(true);
+    expect(env.logs.some(([level, msg]) => level === "error" && /web_js_run gagal/.test(msg))).toBe(true);
+    expect(api.lr_get_transaction_status("T_JS")).toBe(1); // transaksi terbuka ditandai gagal
+    expect(steps()).toEqual([]); // tidak ada entri step palsu
+  });
+
+  it("continueOnError: error web_js_run -> log error, return 1, script lanjut", async () => {
+    env.ctx.runOptions.continueOnError = true;
+    api.lr_start_transaction("T_JS");
+    expect(await api.web_js_run("Code= throw new Error('boom');", "LAST")).toBe(1);
+    expect(env.logs.some(([level, msg]) => level === "error" && /web_js_run gagal: boom/.test(msg))).toBe(true);
+    expect(api.lr_get_transaction_status("T_JS")).toBe(1);
+    expect(steps()).toEqual([]);
   });
 
   it("kode tidak bisa mengakses global proses (require/process)", async () => {
@@ -282,14 +293,32 @@ describe("R5 transaksi", () => {
     expect(transactions()).toEqual([]);
   });
 
-  it("lr_set_transaction mencatat transaksi (durasi detik -> ms)", () => {
+  it("lr_set_transaction mencatat transaksi: durasi DETIK x 1000 = durationMs (konsisten dengan lr_end_timer)", () => {
     api.lr_set_transaction("manual", 1.5, 1);
     api.lr_set_transaction("manual2", 0.25, 2);
+    api.lr_set_transaction("kecil", 0.0042, 0);
+    api.lr_set_transaction("nol", 0, 0);
     expect(transactions()).toEqual([
       expect.objectContaining({ name: "manual", status: "Fail", durationMs: 1500, iteration: 1 }),
       expect.objectContaining({ name: "manual2", status: "Pass", durationMs: 250 }),
+      expect.objectContaining({ name: "kecil", status: "Pass", durationMs: 4.2 }),
+      expect.objectContaining({ name: "nol", status: "Pass", durationMs: 0 }),
     ]);
     expect(api.lr_get_transaction_status("manual")).toBe(1);
+  });
+});
+
+describe("lr_end_timer (detik) + lr_set_transaction", () => {
+  it("lr_end_timer mengembalikan detik; dipakai langsung di lr_set_transaction", async () => {
+    const handle = api.lr_start_timer();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    const seconds = api.lr_end_timer(handle);
+    expect(seconds).toBeGreaterThan(0.04);
+    expect(seconds).toBeLessThan(1); // detik, bukan milidetik (60 ms ≈ 0.06)
+
+    api.lr_set_transaction("diukur", seconds, 0);
+    expect(transactions().at(-1).durationMs).toBeCloseTo(seconds * 1000, 2);
+    expect(api.lr_end_timer(handle)).toBe(0); // handle sudah dipakai
   });
 });
 

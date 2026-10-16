@@ -12,6 +12,7 @@ import { startRun } from "../runs/execute.js";
 import { startMockServer, stopMockServer } from "./mock.js";
 
 const KOPRA_DIR = path.resolve("server/test/__fixtures__/kopra-run");
+const FLAKY_DIR = path.resolve("server/test/__fixtures__/flaky-run");
 
 let tmpCache;
 let previousCache;
@@ -59,10 +60,12 @@ describe("AC S5: pola KOPRA ke mock (continueOnError)", () => {
     expect(boom).toMatchObject({ transaction: "T_FAIL", error: expect.stringContaining("HTTP 500") });
   });
 
-  it("lr_set_transaction tercatat dengan durasi detik -> ms", () => {
+  it("lr_set_transaction: durationMs = detik (totalSeq dari lr_end_timer) x 1000", () => {
     const total = result.transactions.find((t) => t.name === "DEMO_01_total");
     expect(total).toMatchObject({ status: "Pass", iteration: 1 });
     expect(total.durationMs).toBeGreaterThan(0);
+    // totalSeq disimpan lewat sprintf("%f") (6 desimal); toleransi pembulatan 1 ms
+    expect(Math.abs(total.durationMs - Number(result.params.totalSeq) * 1000)).toBeLessThan(1);
   });
 
   it("web_add_header hanya ada di request pertama sesudahnya; auto header di semua request", () => {
@@ -79,16 +82,45 @@ describe("AC S5: pola KOPRA ke mock (continueOnError)", () => {
   });
 });
 
-describe("tanpa continueOnError: step gagal menghentikan iterasi", () => {
-  it("run failed, transaksi yang sudah selesai tercatat, transaksi yang terputus tidak", async () => {
+describe("tanpa continueOnError: step gagal menghentikan iterasi itu saja", () => {
+  it("run failed; transaksi yang terputus dicatat Fail", async () => {
     const run = await startRun({ scriptDir: KOPRA_DIR, options: { iterations: 1, continueOnError: false } });
     const result = await run.done;
 
     expect(result.status).toBe("failed");
     expect(result.steps.at(-1)).toMatchObject({ name: "boom", error: expect.stringContaining("HTTP 500") });
-    expect(result.transactions.map((t) => t.name)).toEqual(["T_ECHO"]);
-    expect(result.log.some((entry) => entry.level === "warn" && /T_FAIL/.test(entry.msg))).toBe(true);
+    expect(result.transactions.map((t) => [t.name, t.status])).toEqual([["T_ECHO", "Pass"], ["T_FAIL", "Fail"]]);
+    expect(result.transactions[1].durationMs).toBeGreaterThanOrEqual(0);
+    expect(result.log.some((entry) => entry.level === "warn" && /T_FAIL.*Fail/.test(entry.msg))).toBe(true);
     expect(result.log.some((entry) => entry.level === "error" && /Iteration 1 Action failed/.test(entry.msg))).toBe(true);
+  }, 30000);
+
+  it("iterations=3, iterasi 1 gagal: iterasi 2 dan 3 tetap jalan, vuser_init/vuser_end 1x, run failed", async () => {
+    const run = await startRun({ scriptDir: FLAKY_DIR, options: { iterations: 3, continueOnError: false } });
+    const result = await run.done;
+
+    const ends = run.history.filter((e) => e.type === "iterationEnd").map((e) => [e.data.action, e.data.iteration, e.data.status]);
+    expect(ends).toEqual([
+      ["vuser_init", 1, "passed"],
+      ["Action", 1, "failed"],
+      ["Action", 2, "passed"],
+      ["Action", 3, "passed"],
+      ["vuser_end", 1, "passed"],
+    ]);
+
+    expect(result.status).toBe("failed");
+    expect(result.steps.map((s) => [s.iteration, s.response.status, s.error !== null])).toEqual([
+      [1, 500, true],
+      [2, 200, false],
+      [3, 200, false],
+    ]);
+    expect(result.transactions.map((t) => [t.iteration, t.name, t.status])).toEqual([
+      [1, "T_FLAKY", "Fail"],
+      [2, "T_FLAKY", "Pass"],
+      [3, "T_FLAKY", "Pass"],
+    ]);
+    expect(result.log.filter((entry) => entry.msg === "init")).toHaveLength(1);
+    expect(result.log.filter((entry) => entry.msg === "end")).toHaveLength(1);
   }, 30000);
 });
 

@@ -8,6 +8,7 @@
  * - GET  /slow          -> Menjawab setelah 10 detik (untuk tes Stop)
  * - GET  /status/:code  -> Menjawab dengan status HTTP tertentu (untuk tes step gagal)
  * - GET  /echo-headers  -> Mengembalikan header request sebagai JSON (untuk tes header/cookie)
+ * - GET  /flaky         -> 500 pada hit pertama sejak mock start, 200 sesudahnya (tes iterasi gagal)
  *
  * Dipakai oleh runner test tanpa server eksternal.
  */
@@ -39,6 +40,8 @@ function parseForm(body) {
   for (const [k, v] of params) result[k] = v;
   return result;
 }
+
+let flakyHits = 0; // hit ke /flaky sejak mock dinyalakan
 
 const csrfTokens = new Map(); // sessionId -> token
 
@@ -177,6 +180,14 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // GET /flaky — gagal hanya sekali
+  if (url.pathname === "/flaky") {
+    flakyHits += 1;
+    res.writeHead(flakyHits === 1 ? 500 : 200, { "Content-Type": "text/plain" });
+    res.end(flakyHits === 1 ? "flaky gagal" : "flaky ok");
+    return;
+  }
+
   // GET /echo-headers — header request dikembalikan sebagai JSON
   if (url.pathname === "/echo-headers") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -213,6 +224,7 @@ const server = createServer(async (req, res) => {
 let serverInstance = null;
 
 export function startMockServer(port = 18081) {
+  flakyHits = 0;
   return new Promise((resolve) => {
     serverInstance = server.listen(port, '127.0.0.1', () => {
       console.log(`[mock] Server running on http://127.0.0.1:${port}`);

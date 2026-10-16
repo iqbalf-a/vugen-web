@@ -150,6 +150,21 @@ export function lr_end_transaction(name, status = 2) {
   return 0;
 }
 
+/**
+ * Dipanggil runner saat iterasi berhenti karena error: transaksi yang masih terbuka
+ * dicatat `Fail` dengan durasi sampai titik error.
+ */
+export function __failOpenTransactions() {
+  const c = needCtx();
+  for (const [name, transaction] of c.transactions) {
+    const durationMs = Date.now() - transaction.startMs;
+    c.transactionResults.set(name, "Fail");
+    c.log("warn", `Transaksi "${name}" ditutup sebagai Fail karena iterasi berhenti karena error`);
+    c.sendEvent("transaction", { iteration: c.currentIteration || 1, name, status: "Fail", durationMs });
+  }
+  c.transactions.clear();
+}
+
 /** LR_FAIL (1) bila transaksi itu gagal (terbuka atau sudah selesai), selain itu LR_PASS (0) */
 export function lr_get_transaction_status(name) {
   const { transactions, transactionResults } = needCtx();
@@ -162,7 +177,7 @@ export function lr_get_transaction_status(name) {
 export function lr_set_transaction(name, duration, status = 2) {
   const c = needCtx();
   const result = explicitTransactionStatus(status) ?? "Pass";
-  const durationMs = Math.round((Number(duration) || 0) * 1000);
+  const durationMs = Math.round((Number(duration) || 0) * 1000 * 1000) / 1000; // detik -> ms (3 desimal)
   c.transactionResults.set(name, result);
   c.log("info", `lr_set_transaction: ${name} ${result} ${durationMs}ms`);
   c.sendEvent("transaction", { iteration: c.currentIteration || 1, name, status: result, durationMs });
@@ -599,10 +614,11 @@ function describeRequestError(error, timeoutMs) {
 /** Hasil akhir step gagal: tandai transaksi, catat log, lalu lempar kecuali continueOnError */
 function concludeFailure(type, name, problem) {
   const { log, runOptions } = needCtx();
+  const label = name ? `${type} "${name}"` : type;
   markTransactionsFailed();
-  log("error", `${type} "${name}" gagal: ${problem}`);
+  log("error", `${label} gagal: ${problem}`);
   if (runOptions.continueOnError) return 1; // LR_FAIL, script lanjut
-  throw new Error(`${type} "${name}": ${problem}`);
+  throw new Error(`${label}: ${problem}`);
 }
 
 /**
@@ -858,8 +874,8 @@ export async function web_js_run(...args) {
     }
     return 0;
   } catch (error) {
-    log("error", `web_js_run failed: ${error.message}`);
-    return 1;
+    // Seperti error web_* lain, tetapi bukan step HTTP: tidak ada entri step
+    return concludeFailure("web_js_run", "", error.message);
   }
 }
 

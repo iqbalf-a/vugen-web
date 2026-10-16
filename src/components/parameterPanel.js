@@ -3,6 +3,7 @@
  */
 
 import { subscribe, getState } from "../store.js";
+import { escapeHtml } from "../utils/html.js";
 
 /** @type {HTMLElement|null} */
 let root = null;
@@ -10,16 +11,6 @@ let root = null;
 let contentEl = null;
 /** @type {Function|null} */
 let unsubscribe = null;
-
-/** Escape HTML for safe display */
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, "\"")
-    .replace(/'/g, "'");
-}
 
 /** Render parameter panel */
 function render() {

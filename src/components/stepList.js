@@ -10,6 +10,7 @@
  */
 
 import { subscribe, getState } from "../store.js";
+import { escapeHtml } from "../utils/html.js";
 
 /** @type {HTMLElement|null} */
 let root = null;
@@ -85,18 +86,18 @@ function renderSteps() {
 
             return `
               <div class="step-item px-3 py-2 border-b border-gray-700 hover:bg-gray-800 cursor-pointer ${isSelected} ${statusClass} pl-6"
-                   data-seq="${step.seq}"
-                   data-iteration="${step.iteration}"
-                   title="${escapeHtml(step.file)}:${step.line}">
+                   data-seq="${escapeHtml(step.seq)}"
+                   data-iteration="${escapeHtml(step.iteration)}"
+                   title="${escapeHtml(step.file)}:${escapeHtml(step.line)}">
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-xs">${statusIcon}</span>
-                  <span class="font-mono text-xs text-gray-400">#${step.seq}</span>
+                  <span class="font-mono text-xs text-gray-400">#${escapeHtml(step.seq)}</span>
                   <span class="flex-1 truncate">${escapeHtml(step.name)}</span>
-                  <span class="font-mono text-xs">${step.type}</span>
-                  <span class="font-mono text-xs text-gray-500">${step.response?.status || "-"}</span>
-                  <span class="font-mono text-xs text-gray-500">${step.timing?.durationMs || 0}ms</span>
+                  <span class="font-mono text-xs">${escapeHtml(step.type)}</span>
+                  <span class="font-mono text-xs text-gray-500">${escapeHtml(step.response?.status || "-")}</span>
+                  <span class="font-mono text-xs text-gray-500">${escapeHtml(step.timing?.durationMs || 0)}ms</span>
                 </div>
-                <div class="text-xs text-gray-500 mt-1 truncate">${escapeHtml(step.file)}:${step.line}</div>
+                <div class="text-xs text-gray-500 mt-1 truncate">${escapeHtml(step.file)}:${escapeHtml(step.line)}</div>
               </div>
             `;
           }).join("")}
@@ -127,16 +128,6 @@ function renderSteps() {
       selectStep(seq, iteration);
     });
   });
-}
-
-/** Escape HTML for safe rendering */
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, "&#34;")
-    .replace(/'/g, "&#039;");
 }
 
 /** Pilih step dan emit event */

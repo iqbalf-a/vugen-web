@@ -30,13 +30,13 @@ Stabilisasi: rincian di `plan-stabilisasi.md`.
 | Tahap | Status | Isi |
 |---|---|---|
 | S0 | `[x]` | Bersihkan working tree, lint bersih, checkpoint kode F3–F6 |
-| S1 | `[ ]` | Jalur step end-to-end + test integrasi |
-| S2 | `[ ]` | Lifecycle child process & SSE |
-| S3 | `[ ]` | Transpiler benar untuk subset C KOPRA |
-| S4 | `[ ]` | Semantik runtime VuGen |
-| S5 | `[ ]` | Mesin parameter sesuai `.prm` |
-| S6 | `[ ]` | UI menyesuaikan kontrak baru |
-| S7 | `[ ]` | Validasi script nyata + dokumentasi |
+| S1 | `[x]` | Keamanan UI: escape HTML + snapshot di iframe sandbox (K1, K2, F1) |
+| S2 | `[ ]` | Jalur step & penyimpanan run |
+| S3 | `[ ]` | Lifecycle child, SSE, routing |
+| S4 | `[ ]` | Transpiler |
+| S5 | `[ ]` | Runtime: perbaiki fungsi yang ada |
+| S6 | `[ ]` | Loader parameter + frontend |
+| S7 | `[ ]` | Rapikan akhir + dokumentasi |
 
 ---
 

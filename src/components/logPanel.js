@@ -3,6 +3,7 @@
  */
 
 import { subscribe, getState } from "../store.js";
+import { escapeHtml } from "../utils/html.js";
 
 /** @type {HTMLElement|null} */
 let root = null;
@@ -41,16 +42,6 @@ function formatTime(ts) {
   return date.toLocaleTimeString("id-ID", { hour12: false }) + "." + String(date.getMilliseconds()).padStart(3, "0");
 }
 
-/** Escape HTML for safe display */
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, "\"")
-    .replace(/'/g, "'");
-}
-
 /** Render log panel */
 function render() {
   if (!contentEl) return;
@@ -71,7 +62,7 @@ function render() {
       <div class="flex items-start gap-2 text-xs">
         <span class="font-mono text-gray-500 shrink-0">${formatTime(entry.ts)}</span>
         <span class="font-mono shrink-0">${getLevelIcon(entry.level)}</span>
-        <span class="font-mono text-gray-400 shrink-0">${entry.file || ""}:${entry.line || ""}</span>
+        <span class="font-mono text-gray-400 shrink-0">${escapeHtml(entry.file || "")}:${escapeHtml(entry.line || "")}</span>
         <span class="flex-1 break-all">${escapeHtml(entry.msg)}</span>
       </div>
     </div>

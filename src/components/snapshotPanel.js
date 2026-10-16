@@ -11,6 +11,7 @@
 
 import { subscribe, getState } from "../store.js";
 import { apiGet } from "../api.js";
+import { escapeHtml } from "../utils/html.js";
 
 /** @type {HTMLElement|null} */
 let root = null;
@@ -62,16 +63,6 @@ function prettyXml(str) {
   }
 }
 
-/** Escape HTML for safe display */
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, "&#34;")
-    .replace(/'/g, "&#039;");
-}
-
 /** Format headers object to string */
 function formatHeaders(headers) {
   if (!headers || typeof headers !== 'object') return '-';
@@ -80,16 +71,25 @@ function formatHeaders(headers) {
     .join('\n');
 }
 
-/** Render content based on category */
-function renderContent(text, category, loadResources, meta = {}) {
-  if (category === "html") {
-    const baseHref = loadResources ? `<base href="${new URL(currentStep.request?.url || "").origin}/">` : "";
-    const csp = loadResources
-      ? "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self';"
-      : "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:;";
+/** State lokal panel: toggle "Load resources" untuk HTML response */
+let loadResources = false;
 
-    return `
-<!DOCTYPE html>
+/** Bangun dokumen HTML untuk iframe sandbox (dipasang lewat DOM API, bukan innerHTML) */
+function buildSnapshotDoc(text, withResources) {
+  let baseHref = "";
+  if (withResources) {
+    try {
+      baseHref = `<base href="${escapeHtml(new URL(currentStep.request?.url || "").origin)}/">`;
+    } catch {
+      baseHref = "";
+    }
+  }
+  // Iframe tetap sandbox="" (tanpa allow-scripts); CSP hanya mengatur resource.
+  const csp = withResources
+    ? "default-src * data: blob:; script-src 'none'; form-action 'none';"
+    : "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; form-action 'none';";
+
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta http-equiv="Content-Security-Policy" content="${csp}">
@@ -105,8 +105,23 @@ function renderContent(text, category, loadResources, meta = {}) {
   </style>
 </head>
 <body>${text}</body>
-</html>
-    `;
+</html>`;
+}
+
+/** Pasang iframe sandbox ke placeholder lewat DOM API */
+function mountHtmlFrame(container, text) {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("sandbox", "");
+  frame.className = "w-full bg-gray-900 border-0";
+  frame.style.height = "480px";
+  frame.srcdoc = buildSnapshotDoc(text, loadResources);
+  container.replaceChildren(frame);
+}
+
+/** Render content based on category */
+function renderContent(text, category, meta = {}) {
+  if (category === "html") {
+    return '<div data-html-frame></div>';
   } else if (category === "json") {
     return `<pre class="p-4 bg-gray-800 rounded text-green-300 text-sm overflow-auto max-h-full">${escapeHtml(prettyJson(text))}</pre>`;
   } else if (category === "xml") {
@@ -142,22 +157,22 @@ function renderRequestTab(req, snapshotRequest) {
   const reqContentType = snapReq.headers?.['content-type'] || snapReq.headers?.['Content-Type'] || '';
   const reqCategory = getContentCategory(reqContentType);
   const reqBodyText = typeof snapReq.body === 'string' ? snapReq.body : (snapReq.body ? JSON.stringify(snapReq.body, null, 2) : '');
-  const reqBodyHtml = reqBodyText ? renderContent(reqBodyText, reqCategory, false, { contentType: reqContentType, size: reqBodyText.length, truncated: false }) : '<div class="p-4 text-gray-500 text-center">No request body</div>';
+  const reqBodyHtml = reqBodyText ? renderContent(reqBodyText, reqCategory === 'html' ? 'text' : reqCategory, { contentType: reqContentType, size: reqBodyText.length, truncated: false }) : '<div class="p-4 text-gray-500 text-center">No request body</div>';
   const reqSize = snapReq.body ? `${(new Blob([reqBodyText]).size / 1024).toFixed(1)} KB` : '0 KB';
   
   return `
     <div class="space-y-4">
       <div class="flex items-center gap-2 mb-2">
-        <span class="px-2 py-0.5 bg-blue-600 text-white text-xs rounded">${reqMethod}</span>
-        <span class="font-mono text-xs text-gray-300 break-all">${snapReq.url || '-'}</span>
-        <span class="text-xs text-gray-500">${reqCategory} • ${reqSize}</span>
+        <span class="px-2 py-0.5 bg-blue-600 text-white text-xs rounded">${escapeHtml(reqMethod)}</span>
+        <span class="font-mono text-xs text-gray-300 break-all">${escapeHtml(snapReq.url || '-')}</span>
+        <span class="text-xs text-gray-500">${escapeHtml(reqCategory)} • ${escapeHtml(reqSize)}</span>
       </div>
       <div>
         <label class="block text-xs font-medium text-gray-400 mb-1">Headers</label>
         <pre class="p-3 bg-gray-800 rounded text-gray-300 text-xs overflow-auto max-h-48">${escapeHtml(formatHeaders(snapReq.headers))}</pre>
       </div>
       <div>
-        <label class="block text-xs font-medium text-gray-400 mb-1">Body (${reqCategory})</label>
+        <label class="block text-xs font-medium text-gray-400 mb-1">Body (${escapeHtml(reqCategory)})</label>
         <div class="bg-gray-800 rounded overflow-hidden">${reqBodyHtml}</div>
       </div>
     </div>
@@ -165,7 +180,7 @@ function renderRequestTab(req, snapshotRequest) {
 }
 
 /** Render tab content for Response */
-function renderResponseTab(resp, contentHtml) {
+function renderResponseTab(resp, contentHtml, isHtml) {
   const respStatus = resp.status || '-';
   const respStatusText = resp.statusText || '-';
   const respSize = resp.size ? `${(resp.size / 1024).toFixed(1)} KB` : '-';
@@ -173,8 +188,9 @@ function renderResponseTab(resp, contentHtml) {
   return `
     <div class="space-y-4">
       <div class="flex items-center gap-2 mb-2">
-        <span class="px-2 py-0.5 ${respStatus >= 400 ? 'bg-red-600' : 'bg-green-600'} text-white text-xs rounded">${respStatus} ${respStatusText}</span>
-        <span class="text-xs text-gray-500">${resp.contentType || '-'} • ${respSize}</span>
+        <span class="px-2 py-0.5 ${respStatus >= 400 ? 'bg-red-600' : 'bg-green-600'} text-white text-xs rounded">${escapeHtml(respStatus)} ${escapeHtml(respStatusText)}</span>
+        <span class="text-xs text-gray-500">${escapeHtml(resp.contentType || '-')} • ${escapeHtml(respSize)}</span>
+        ${isHtml ? `<label class="ml-auto flex items-center gap-1 text-xs text-gray-400 cursor-pointer"><input type="checkbox" data-load-resources class="accent-blue-500" ${loadResources ? 'checked' : ''}> Load resources</label>` : ''}
       </div>
       <div>
         <label class="block text-xs font-medium text-gray-400 mb-1">Headers</label>
@@ -265,7 +281,6 @@ async function renderSnapshot() {
   let contentType = response?.contentType || "application/octet-stream";
   let category;
   let truncated = response?.truncated;
-  let loadResources = false;
 
   // Fetch body (from snapshot or step)
   if (snapshotName) {
@@ -293,7 +308,7 @@ async function renderSnapshot() {
 
   category = getContentCategory(contentType);
   const text = body ? new TextDecoder("utf-8").decode(body) : '';
-  const contentHtml = renderContent(text, category, loadResources, { contentType, size: body?.byteLength ?? 0, truncated });
+  const contentHtml = renderContent(text, category, { contentType, size: body?.byteLength ?? 0, truncated });
 
   // Request info - use snapshot's request if available (has full headers + body)
   const req = request || {};
@@ -311,7 +326,7 @@ async function renderSnapshot() {
   if (activeTab === 'request') {
     contentInnerHtml = renderRequestTab(req, snapshotRequest);
   } else if (activeTab === 'response') {
-    contentInnerHtml = renderResponseTab(resp, contentHtml);
+    contentInnerHtml = renderResponseTab(resp, contentHtml, category === 'html');
   } else {
     contentInnerHtml = renderRawTab(req, snapshotRequest);
   }
@@ -326,8 +341,8 @@ async function renderSnapshot() {
       <!-- Header with tabs -->
       <div class="p-3 border-b border-gray-700 flex flex-col gap-2">
         <div class="flex items-center justify-between">
-          <span class="font-medium text-gray-300">Snapshot: ${currentStep.name || 'Step ' + currentStep.seq}</span>
-          <span class="text-xs text-gray-500">${respStatus} ${respStatusText} • ${respContentType} • ${respSize}</span>
+          <span class="font-medium text-gray-300">Snapshot: ${escapeHtml(currentStep.name || 'Step ' + currentStep.seq)}</span>
+          <span class="text-xs text-gray-500">${escapeHtml(respStatus)} ${escapeHtml(respStatusText)} • ${escapeHtml(respContentType)} • ${escapeHtml(respSize)}</span>
         </div>
         <div class="flex gap-1 border-b border-gray-700">
           <button data-tab="request" class="tab-btn px-3 py-1 text-xs font-medium rounded-t transition-colors ${activeTab === 'request' ? 'bg-gray-800 text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-gray-200'}">Request</button>
@@ -342,6 +357,14 @@ async function renderSnapshot() {
       </div>
     </div>
   `;
+
+  // Pasang iframe sandbox HTML (DOM API) + toggle Load resources
+  const frameSlot = root.querySelector('[data-html-frame]');
+  if (frameSlot) mountHtmlFrame(frameSlot, text);
+  root.querySelector('[data-load-resources]')?.addEventListener('change', (e) => {
+    loadResources = e.target.checked;
+    renderSnapshot();
+  });
 
   // Attach tab listeners
   root.querySelectorAll('.tab-btn').forEach(btn => {

@@ -33,6 +33,8 @@ export const SUPPORTED_FUNCTIONS = Object.freeze([
   "web_add_header",
   "web_cleanup_auto_headers",
   "web_cleanup_cookies",
+  "web_concurrent_end",
+  "web_concurrent_start",
   "web_convert_from_formatted",
   "web_custom_request",
   "web_js_run",

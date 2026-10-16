@@ -591,3 +591,41 @@ describe("F7c lr_param_sprintf + web_convert_from_formatted", () => {
     expect(() => api.web_convert_from_formatted("FormattedData=a", "Extensions=Base64", "LAST")).toThrow(/TargetParam/);
   });
 });
+
+describe("F7d web_concurrent_start / web_concurrent_end (no-op berurutan)", () => {
+  it("menerima argumen apa pun (NULL, kosong), log debug, mengembalikan 0", () => {
+    expect(api.web_concurrent_start(null)).toBe(0);
+    expect(api.web_concurrent_end(null)).toBe(0);
+    expect(api.web_concurrent_start()).toBe(0);
+    expect(api.web_concurrent_end("x", 1)).toBe(0);
+    const levels = env.logs.filter(([, msg]) => /web_concurrent/.test(msg)).map(([level]) => level);
+    expect(levels).toEqual(["debug", "debug", "debug", "debug"]);
+  });
+
+  it("request di dalam blok dijalankan berurutan sebagai step normal (urutan seq = urutan script)", async () => {
+    api.web_concurrent_start(null);
+    await api.web_url("satu", `URL=${BASE}/echo-headers`, "LAST");
+    await api.web_url("dua", `URL=${BASE}/echo-headers`, "LAST");
+    await api.web_url("tiga", `URL=${BASE}/echo-headers`, "LAST");
+    api.web_concurrent_end(null);
+
+    expect(steps().map((step) => [step.seq, step.name, step.response.status])).toEqual([
+      [1, "satu", 200],
+      [2, "dua", 200],
+      [3, "tiga", 200],
+    ]);
+    // berurutan: tiap request mulai setelah yang sebelumnya selesai
+    const [a, b, c] = steps();
+    expect(b.timing.startMs).toBeGreaterThanOrEqual(a.timing.startMs + a.timing.durationMs - 1);
+    expect(c.timing.startMs).toBeGreaterThanOrEqual(b.timing.startMs + b.timing.durationMs - 1);
+  });
+
+  it("step gagal di dalam blok tetap menandai transaksi (perilaku S5 tidak berubah)", async () => {
+    env.ctx.runOptions.continueOnError = true;
+    api.lr_start_transaction("T_C");
+    api.web_concurrent_start(null);
+    await api.web_url("rusak", `URL=${BASE}/status/500`, "LAST");
+    api.web_concurrent_end(null);
+    expect(api.lr_get_transaction_status("T_C")).toBe(1);
+  });
+});

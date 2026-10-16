@@ -41,23 +41,29 @@ Status proyek yang **jujur** per akhir stabilisasi (S0–S7, 2026-10-16). Rencan
 | F7a | `[x]` | `lr_exit` — mode 0–4, status PASS/FAIL/AUTO, transaksi terbuka ditutup; iterasi gagal tidak menghentikan run |
 | F7b | `[x]` | `web_reg_save_param_json` + subset JSONPath — subset JSONPath sendiri (`jsonpath.js`), SelectAll/Ordinal/NotFound; {param} di nilai header kini disubstitusi |
 | F7c | `[x]` | `web_remove_auto_header`, `web_revert_auto_header`, `lr_param_sprintf`, `web_convert_from_formatted` (Base64) — ImplicitGen= diabaikan dengan warning; arah konversi Base64 = encode (diverifikasi dari pemakaian `Basic {basicUsername}`) |
-| F7d | `[ ]` | `web_concurrent_start/end` (no-op, request tetap berurutan) |
+| F7d | `[x]` | `web_concurrent_start/end` (no-op, log debug; request tetap berurutan). AC akhir: fixture `mcm-like` + smoke script nyata (lihat di bawah) |
 
 ## Status script referensi (compile + `import()` saja; belum pernah dijalankan ke server target)
 
-Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` (S7). Semua 9 folder di `D:\Mandiri\KOPRA\R10.1\script` ter-compile dan ter-`import()` tanpa error sintaks.
+Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` setelah F7d. Semua 9 folder di `D:\Mandiri\KOPRA\R10.1\script` ter-compile dan ter-`import()` tanpa error sintaks.
 
 | Script | Warning | Rincian |
 |---|---|---|
 | `BP000_VugenWeb` | **0** | `.dat` terbaca: `ip` (1 baris), `subTrans` (1 baris) |
-| `BP000_MCM_ViewDashboard` | **12** | `lr_exit` ×5, `web_reg_save_param_json` ×3, `web_revert_auto_header` ×2, `lr_param_sprintf` ×1, `web_convert_from_formatted` ×1. `.dat` terbaca: `companyId` (1), `ip` (2), `userApprover` (1), `userMaker` (1000 baris) |
-| Folder `BP211_*`, `BP601_*`, `BPXXX_*` | 90–133 | terutama `web_concurrent_start/end` (no-op yang belum ada), `web_reg_save_param_json`, `lr_exit`, `lr_unmask`, `web_remove_auto_header` |
-| `Recording` | 186 | `compareDuration` dipakai 45× tapi tidak didefinisikan di folder itu (masalah script, bukan transpiler) |
+| `BP000_MCM_ViewDashboard` | **0** | (sebelum F7: 12) `.dat` terbaca: `companyId` (1), `ip` (2), `userApprover` (1), `userMaker` (1000 baris) |
+| `BP211_Adjustment_UDC_ST`, `BP211_MCM_Adjustment_UDC_ST`, `BP211_MCM_AdjustmentUDC_ST`, `BP601_MenuTransferToAccount_MI_ST`, `BPXXX_Adjustment_UDC_ST` | 4 masing-masing | `lr_unmask` ×2, `web_reg_async_attributes` ×1, `web_stop_async` ×1 (sebelum F7: 90) |
+| `BPXXX_STTM_BGN_ST` | 5 | `lr_unmask` ×3, `web_reg_async_attributes` ×1, `web_stop_async` ×1 (sebelum F7: 133) |
+| `Recording` | 112 | `compareDuration` dipakai 45× tapi tidak didefinisikan di folder itu (masalah script, bukan transpiler), `web_reg_async_attributes` ×5, `web_stop_async` ×5, `lr_unmask` ×2 (sebelum F7: 186) |
 
 ## Known limitations
 
 - **Script KOPRA nyata belum pernah dijalankan ke server target.** Semua uji run memakai mock lokal.
-- **Fungsi yang dipakai script KOPRA tapi belum ada** (dipanggil sebagai *unsupported*: warning, lalu dilewati): `web_reg_save_param_json`, `web_remove_auto_header`, `web_revert_auto_header`, `web_concurrent_start/end`, `lr_unmask`, `lr_param_sprintf`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_convert_from_formatted`. Dampak terbesar: tanpa `web_reg_save_param_json`, nilai correlation JSON tidak terisi.
+- **Fungsi yang dipakai script KOPRA tapi belum ada** (dipanggil sebagai *unsupported*: warning, lalu dilewati): `lr_unmask` (algoritme mask milik LoadRunner), `web_reg_async_attributes`/`web_stop_async` (polling async), `lr_save_int`, `lr_paramarr_*`. Dampak: password yang dibungkus `lr_unmask` (untuk `web_set_user`) tidak ter-unmask.
+- **`web_concurrent_start/end` hanya penanda:** request di antaranya dijalankan **berurutan**, bukan paralel, jadi waktu per blok lebih lama daripada di VuGen dan pola timing berbeda.
+- **JSONPath (`web_reg_save_param_json`)** hanya subset: `$`, `.nama`, `..nama`, `[n]`, `[*]`, `['nama']`. Filter `?()`, slice, indeks negatif, dan `.*` memberi error registrasi. `Scope=ALL` diperlakukan sebagai BODY. Objek/array disimpan sebagai JSON ringkas (`JSON.stringify`), bukan teks asli response.
+- **`web_convert_from_formatted`** hanya `Extensions=Base64` (encode UTF-8); extension lain: warning dan parameter tidak diisi.
+- **`lr_exit`:** mode `LR_EXIT_VUSER` (0) menghentikan iterasi tersisa lalu menjalankan `vuser_end` (sesuai dokumentasi LoadRunner, belum dibandingkan dengan VuGen asli). Transaksi terbuka saat `lr_exit`: `LR_FAIL` → Fail, selain itu Pass/Fail otomatis per transaksi.
+- **`web_revert_auto_header`** sama dengan mencabut auto header yang ditambahkan script (runtime ini tidak membuat header implisit seperti VuGen).
 - **Parameter:** hanya `.dat` (baris pertama = header, pemisah koma tanpa quote, urut per iterasi, kembali ke awal bila habis). `.prm` tidak dibaca, jadi `Random`/`Unique`/`Time`/`Userid`/`OutOfRangePolicy` tidak ada. Satu VU saja.
 - **Compile mengabaikan** `pre_cci.c`, `combined_*.c`, dan semua file di `data/` (artefak VuGen).
 - **Subset C:** tidak ada `goto`, `struct`/`typedef`, array multi-dimensi, initializer list, operator pointer (`&`, `*`), dan `strcat`. Pembagian `int / int` memakai semantik JS (hasil pecahan). `char` array/pointer diperlakukan sebagai string JS.
@@ -71,7 +77,7 @@ Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` (S7). Semua 9 folder di `D
 ## Backlog fitur (salinan `plan-stabilisasi.md` §9 — JANGAN dikerjakan di plan stabilisasi)
 
 Fungsi/fitur yang dipakai script KOPRA tapi belum ada — kerjakan nanti dengan plan terpisah:
-- `lr_exit` (36×), `web_reg_save_param_json` (50×), `web_remove_auto_header` (26×), `web_concurrent_start/end` (337×, cukup no-op), `lr_unmask`, `lr_param_sprintf`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_convert_from_formatted`, `web_revert_auto_header`, `web_rest` dengan header kompleks.
+- (sudah dikerjakan di F7: `lr_exit`, `web_reg_save_param_json`, `web_remove/revert_auto_header`, `web_concurrent_start/end`, `lr_param_sprintf`, `web_convert_from_formatted`) Sisa: `lr_unmask`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_rest` dengan header kompleks.
 - Mesin parameter `.prm` lengkap (Type Table/Time/Userid, `SelectNextRow`, `GenerateNewVal`, `OutOfRangePolicy`).
 - Tab Transactions, ringkasan transaksi, `npm run check:script`, README, multipart upload, HTTP/2.
 - Semua item `plan.md` §2/§10 (recording, multi-VU/k6, Step Toolbox).

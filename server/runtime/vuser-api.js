@@ -1028,6 +1028,20 @@ export function web_convert_from_formatted(...args) {
   return 0;
 }
 
+/**
+ * web_concurrent_start / web_concurrent_end — penanda blok request paralel di VuGen.
+ * Di sini no-op: request di antaranya tetap dijalankan BERURUTAN (tidak ada eksekusi paralel).
+ */
+export function web_concurrent_start(...args) {
+  needCtx().log("debug", `web_concurrent_start(${args.length} argumen): no-op, request tetap berurutan`);
+  return 0;
+}
+
+export function web_concurrent_end(...args) {
+  needCtx().log("debug", `web_concurrent_end(${args.length} argumen): no-op`);
+  return 0;
+}
+
 /** Timer functions — `lr_end_timer` mengembalikan DETIK (double) seperti LoadRunner */
 const timerStore = new Map();
 let nextTimerHandle = 1;

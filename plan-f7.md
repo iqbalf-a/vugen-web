@@ -58,8 +58,8 @@ Ini **tahap fitur** — menambah fungsi runtime diizinkan, tetapi **hanya** fung
 
 ### F7d — `web_concurrent_start/end` (no-op berurutan)
 
-- [ ] Keduanya menerima argumen apa pun, log `debug`, kembalikan 0. Request di antaranya tetap dijalankan **berurutan** seperti biasa (tidak ada eksekusi paralel — tulis di known limitations).
-- [ ] Test: request di dalam blok tercatat sebagai step normal.
+- [x] Keduanya menerima argumen apa pun, log `debug`, kembalikan 0. Request di antaranya tetap dijalankan **berurutan** seperti biasa (tidak ada eksekusi paralel — tulis di known limitations).
+- [x] Test: request di dalam blok tercatat sebagai step normal.
 
 ## 3. Di luar F7 (tetap backlog)
 

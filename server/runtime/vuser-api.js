@@ -65,7 +65,7 @@ function needCtx() {
 /** Set parameter (lr_save_string) */
 export function lr_save_string(value, name) {
   const { params, log } = needCtx();
-  params.set(name, String(value ?? ""));
+  params.set(name, String(value ?? ""), "lr_save_string");
   log("info", `lr_save_string: ${name} = "${params.get(name)}"`);
   return 0;
 }
@@ -93,7 +93,7 @@ export function lr_error_message(fmt, ...args) {
 export function lr_param_sprintf(paramName, format, ...args) {
   const { params, log } = needCtx();
   const value = formatPrintf(format, args);
-  params.set(String(paramName), value);
+  params.set(String(paramName), value, "lr_param_sprintf");
   log("info", `lr_param_sprintf: ${paramName} = "${value}"`);
   return 0;
 }
@@ -741,6 +741,34 @@ function substituteParams(str) {
   });
 }
 
+/** Panjang maksimum nilai variabel C yang dikirim ke UI */
+const VAR_VALUE_MAX = 300;
+
+/** Nilai variabel C -> teks untuk tabel (angka apa adanya, string dipotong, larik/objek sebagai JSON ringkas) */
+function formatCValue(value) {
+  let text;
+  if (value === null || value === undefined) text = "NULL";
+  else if (typeof value === "boolean") text = value ? "1" : "0";
+  else if (typeof value === "object") text = JSON.stringify(value);
+  else text = String(value);
+  return text.length > VAR_VALUE_MAX ? `${text.slice(0, VAR_VALUE_MAX)}…` : text;
+}
+
+/** Variabel C yang terlihat di baris step saat ini: [{ name, type, value }] (kosong bila tidak ada getter) */
+function captureVars(c) {
+  if (typeof c.currentVars !== "function") return [];
+  try {
+    return c.currentVars().map(([name, value, type]) => ({ name, type, value: formatCValue(value) }));
+  } catch {
+    return []; // variabel belum diinisialisasi (TDZ) atau getter rusak: jangan menggagalkan step
+  }
+}
+
+/** Perubahan parameter VuGen sejak step sebelumnya (kosong bila params bukan TrackedParams, mis. di unit test) */
+function drainParamChanges(c) {
+  return typeof c.params?.drain === "function" ? c.params.drain() : [];
+}
+
 /** Batas bodyPreview request (karakter) */
 const BODY_PREVIEW_MAX = 2048;
 
@@ -822,6 +850,8 @@ function emitFailedRequestStep({ type, name, snapshotName, method, url, headers,
     timing: { startMs: Math.max(0, Date.now() - (c.runStartMs || 0)), durationMs: 0 },
     checks: [],
     error: problem,
+    params: drainParamChanges(c),
+    vars: captureVars(c),
   });
 }
 
@@ -863,6 +893,8 @@ function extractCorrelation(rule, bodyText) {
   return { value: null };
 }
 
+const JSON_SOURCE = "web_reg_save_param_json (JSONPath)";
+
 /** Nilai JSON -> teks parameter (objek/array disimpan sebagai JSON ringkas) */
 function jsonValueToParam(value) {
   return value !== null && typeof value === "object" ? JSON.stringify(value) : String(value);
@@ -896,8 +928,8 @@ function applyJsonRule(rule, resp, bodyText, contentType, problems) {
     if (matches.length === 0) return notFound(`QueryString ${rule.query} tidak ditemukan`);
     const previous = Number(params.get(`${rule.name}_count`)) || 0;
     for (let i = 1; i <= previous; i++) params.delete(`${rule.name}_${i}`);
-    matches.forEach((value, index) => params.set(`${rule.name}_${index + 1}`, jsonValueToParam(value)));
-    params.set(`${rule.name}_count`, String(matches.length));
+    matches.forEach((value, index) => params.set(`${rule.name}_${index + 1}`, jsonValueToParam(value), JSON_SOURCE));
+    params.set(`${rule.name}_count`, String(matches.length), JSON_SOURCE);
     log("info", `JSON correlation: ${rule.name}_count = ${matches.length}`);
     return;
   }
@@ -906,7 +938,7 @@ function applyJsonRule(rule, resp, bodyText, contentType, problems) {
     return notFound(`QueryString ${rule.query} tidak ditemukan${rule.ordinal > 1 ? ` (Ordinal=${rule.ordinal}, ada ${matches.length} match)` : ""}`);
   }
   const value = jsonValueToParam(matches[rule.ordinal - 1]);
-  params.set(rule.name, value);
+  params.set(rule.name, value, JSON_SOURCE);
   log("info", `JSON correlation: ${rule.name} = "${value}"`);
 }
 
@@ -934,7 +966,7 @@ async function handleResponse(stepName, resp, type, snapshotName) {
     if (error) {
       problems.push(`Correlation "${rule.name}": ${error}`);
     } else if (value !== null) {
-      params.set(rule.saveParam, value);
+      params.set(rule.saveParam, value, rule.regexp ? "web_reg_save_param (regexp)" : "web_reg_save_param (boundary)");
       log("info", `Correlation: ${rule.saveParam} = "${value}"`);
     } else {
       log("warn", `Correlation "${rule.name}" (save as ${rule.saveParam}) not found`);
@@ -992,6 +1024,8 @@ async function handleResponse(stepName, resp, type, snapshotName) {
     },
     checks,
     error,
+    params: drainParamChanges(c),
+    vars: captureVars(c),
   });
   log("info", `${type} "${resolvedStepName}": ${resp.status} ${resp.statusText} (${resp.size} bytes)`);
 
@@ -1023,7 +1057,7 @@ export function web_convert_from_formatted(...args) {
   }
 
   const value = Buffer.from(substituteParams(opts.FormattedData), "utf8").toString("base64");
-  params.set(target, value);
+  params.set(target, value, "web_convert_from_formatted");
   log("info", `web_convert_from_formatted: ${target} = "${value}"`);
   return 0;
 }
@@ -1108,7 +1142,7 @@ export async function web_js_run(...args) {
   const context = vm.createContext({
     LR: {
       getParam: (name) => params.get(name) ?? "",
-      setParam: (name, value) => params.set(name, String(value ?? "")),
+      setParam: (name, value) => params.set(name, String(value ?? ""), "web_js_run (LR.setParam)"),
     },
   });
 
@@ -1136,10 +1170,11 @@ export function __unsupported(raw, file, line) {
   return Promise.resolve(0);
 }
 
-export function __at(file, line) {
+export function __at(file, line, vars) {
   const c = needCtx();
   c.currentFile = file;
   c.currentLine = line;
+  c.currentVars = typeof vars === "function" ? vars : null; // getter variabel C yang terlihat di baris ini (hanya baris penghasil step)
 }
 
 /** Header sekali pakai dibuang saat user baru; auto header (web_add_auto_header) tetap */

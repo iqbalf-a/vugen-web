@@ -12,6 +12,7 @@
 import { subscribe, getState } from "../store.js";
 import { apiGet } from "../api.js";
 import { escapeHtml } from "../utils/html.js";
+import { groupLabel, snapshotInfo } from "../utils/steps.js";
 
 /** @type {HTMLElement|null} */
 let root = null;
@@ -123,11 +124,11 @@ function renderContent(text, category, meta = {}) {
   if (category === "html") {
     return '<div data-html-frame></div>';
   } else if (category === "json") {
-    return `<pre class="p-4 bg-gray-800 rounded text-green-300 text-sm overflow-auto max-h-full">${escapeHtml(prettyJson(text))}</pre>`;
+    return `<pre class="snap-code p-2 text-green-300 text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">${escapeHtml(prettyJson(text))}</pre>`;
   } else if (category === "xml") {
-    return `<pre class="p-4 bg-gray-800 rounded text-yellow-300 text-sm overflow-auto max-h-full">${escapeHtml(prettyXml(text))}</pre>`;
+    return `<pre class="snap-code p-2 text-yellow-300 text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">${escapeHtml(prettyXml(text))}</pre>`;
   } else if (category === "text") {
-    return `<pre class="p-4 bg-gray-800 rounded text-gray-300 text-sm overflow-auto max-h-full">${escapeHtml(text)}</pre>`;
+    return `<pre class="snap-code p-2 text-gray-300 text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">${escapeHtml(text)}</pre>`;
   } else {
     return `
       <div class="p-4 text-center text-gray-500">
@@ -147,57 +148,100 @@ function switchTab(tab) {
   renderSnapshot();
 }
 
+/** Teks untuk tombol Copy per render; disimpan di sini (bukan di atribut HTML) */
+const copyTexts = new Map();
+
+/** Tombol Copy kecil; `text` disalin saat diklik */
+function copyButton(text, label = "Copy") {
+  const id = String(copyTexts.size + 1);
+  copyTexts.set(id, text);
+  return `<button type="button" data-copy="${id}" class="copy-btn shrink-0 rounded border border-gray-600 px-1.5 py-0.5 text-[10px] text-gray-300 hover:border-yellow-400 hover:text-yellow-400">${escapeHtml(label)}</button>`;
+}
+
+/**
+ * Satu bagian panel dengan judul, keterangan, dan tombol Copy (gaya sama di tab Request, Response, dan Raw).
+ * @param {string} title judul (teks biasa)
+ * @param {string} detail keterangan di sebelah judul (teks biasa)
+ * @param {string|null} copyText isi yang disalin; null = tanpa tombol
+ * @param {string} innerHtml isi (sudah di-escape pemanggil)
+ */
+function section(title, detail, copyText, innerHtml) {
+  return `
+    <section class="snap-section">
+      <div class="mb-1 flex items-center gap-2">
+        <h3 class="snap-section-title text-[11px] font-semibold uppercase tracking-wide text-gray-400">${escapeHtml(title)}</h3>
+        <span class="min-w-0 truncate text-[11px] text-gray-500">${escapeHtml(detail)}</span>
+        <span class="ml-auto">${copyText ? copyButton(copyText) : ""}</span>
+      </div>
+      <div class="rounded bg-gray-800 overflow-hidden">${innerHtml}</div>
+    </section>
+  `;
+}
+
+/** Teks body seperti yang ditampilkan (JSON/XML dirapikan) — juga yang disalin */
+function displayBody(text, category) {
+  if (category === "json") return prettyJson(text);
+  if (category === "xml") return prettyXml(text);
+  return text;
+}
+
+/** Section Headers: judul, jumlah header, tombol Copy */
+function headersSection(headers) {
+  const count = headers && typeof headers === "object" ? Object.keys(headers).length : 0;
+  const text = count > 0 ? formatHeaders(headers) : "";
+  const inner = count > 0
+    ? `<pre class="snap-code p-2 text-gray-300 text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere] max-h-48">${escapeHtml(text)}</pre>`
+    : '<div class="p-2 text-[11px] text-gray-500">(tidak ada header)</div>';
+  return section("Headers", `${count} header`, count > 0 ? text : null, inner);
+}
+
+/** Section Body: judul "Body (json)" dst., ukuran, tombol Copy (tidak untuk biner) */
+function bodySection(text, category, htmlInner, sizeText) {
+  if (text === "" && category !== "binary") return section("Body", "(kosong)", null, '<div class="p-2 text-[11px] text-gray-500">Tidak ada body</div>');
+  return section(`Body (${category})`, sizeText, category === "binary" ? null : displayBody(text, category), htmlInner);
+}
+
 /** Render tab content for Request */
 function renderRequestTab(snapReq) {
-  const reqMethod = snapReq.method || '-';
-  
-  // Pretty-print request body based on content-type (same as response tab)
   const reqContentType = snapReq.headers?.['content-type'] || snapReq.headers?.['Content-Type'] || '';
-  const reqCategory = getContentCategory(reqContentType);
+  const reqCategory = getContentCategory(reqContentType) === 'html' ? 'text' : getContentCategory(reqContentType);
   const reqBodyText = snapReq.bodyPreview || '';
-  const reqBodyHtml = reqBodyText ? renderContent(reqBodyText, reqCategory === 'html' ? 'text' : reqCategory, { contentType: reqContentType, size: reqBodyText.length, truncated: false }) : '<div class="p-4 text-gray-500 text-center">No request body</div>';
-  const reqSize = reqBodyText ? `${(new Blob([reqBodyText]).size / 1024).toFixed(1)} KB` : '0 KB';
-  
+  const reqSize = `${(new Blob([reqBodyText]).size / 1024).toFixed(1)} KB${reqBodyText.length >= 2048 ? ' (dipotong 2 KB)' : ''}`;
+  const bodyHtml = reqBodyText ? renderContent(reqBodyText, reqCategory, { contentType: reqContentType, size: reqBodyText.length, truncated: false }) : '';
+
+  const requestLine = `
+    <div class="flex items-center gap-2 p-2">
+      <span class="rounded bg-blue-600 px-2 py-0.5 text-[11px] text-white">${escapeHtml(snapReq.method || '-')}</span>
+      <span class="break-all font-mono text-[11px] text-gray-300">${escapeHtml(snapReq.url || '-')}</span>
+    </div>`;
+
   return `
-    <div class="space-y-4">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="px-2 py-0.5 bg-blue-600 text-white text-xs rounded">${escapeHtml(reqMethod)}</span>
-        <span class="font-mono text-xs text-gray-300 break-all">${escapeHtml(snapReq.url || '-')}</span>
-        <span class="text-xs text-gray-500">${escapeHtml(reqCategory)} • ${escapeHtml(reqSize)}</span>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-400 mb-1">Headers</label>
-        <pre class="p-3 bg-gray-800 rounded text-gray-300 text-xs overflow-auto max-h-48">${escapeHtml(formatHeaders(snapReq.headers))}</pre>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-400 mb-1">Body (${escapeHtml(reqCategory)})</label>
-        <div class="bg-gray-800 rounded overflow-hidden">${reqBodyHtml}</div>
-      </div>
+    <div class="space-y-3">
+      ${section("Request", "", snapReq.url || null, requestLine)}
+      ${headersSection(snapReq.headers)}
+      ${bodySection(reqBodyText, reqCategory, bodyHtml, reqSize)}
     </div>
   `;
 }
 
 /** Render tab content for Response */
-function renderResponseTab(resp, contentHtml, isHtml) {
+function renderResponseTab(resp, contentHtml, category, text) {
   const respStatus = resp.status || '-';
   const respStatusText = resp.statusText || '-';
   const respSize = resp.size ? `${(resp.size / 1024).toFixed(1)} KB` : '-';
-  
+
+  const statusLine = `
+    <div class="flex items-center gap-2 p-2">
+      <span class="rounded px-2 py-0.5 text-[11px] text-white ${respStatus >= 400 ? 'bg-red-600' : 'bg-green-600'}">${escapeHtml(respStatus)} ${escapeHtml(respStatusText)}</span>
+      <span class="text-[11px] text-gray-500">${escapeHtml(resp.contentType || '-')} • ${escapeHtml(respSize)}</span>
+      ${category === 'html' ? `<label class="ml-auto flex cursor-pointer items-center gap-1 text-[11px] text-gray-400"><input type="checkbox" data-load-resources class="accent-blue-500" ${loadResources ? 'checked' : ''}> Load resources</label>` : ''}
+    </div>`;
+
   return `
-    <div class="space-y-4">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="px-2 py-0.5 ${respStatus >= 400 ? 'bg-red-600' : 'bg-green-600'} text-white text-xs rounded">${escapeHtml(respStatus)} ${escapeHtml(respStatusText)}</span>
-        <span class="text-xs text-gray-500">${escapeHtml(resp.contentType || '-')} • ${escapeHtml(respSize)}</span>
-        ${isHtml ? `<label class="ml-auto flex items-center gap-1 text-xs text-gray-400 cursor-pointer"><input type="checkbox" data-load-resources class="accent-blue-500" ${loadResources ? 'checked' : ''}> Load resources</label>` : ''}
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-400 mb-1">Headers</label>
-        <pre class="p-3 bg-gray-800 rounded text-gray-300 text-xs overflow-auto max-h-48">${escapeHtml(formatHeaders(resp.headers))}</pre>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-400 mb-1">Body</label>
-        <div class="bg-gray-800 rounded overflow-hidden">${contentHtml}</div>
-      </div>
+    <div class="space-y-3">
+      ${section("Response", "", null, statusLine)}
+      ${headersSection(resp.headers)}
+      ${bodySection(text, category, contentHtml, respSize)}
     </div>
   `;
 }
@@ -247,16 +291,12 @@ function renderRawTab(snapReq, bodyText) {
     rawResponse += '\n' + respBody + '\n';
   }
   
+  const rawPre = (value, color) => `<pre class="snap-code p-2 font-mono text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere] max-h-64 ${color}">${escapeHtml(value)}</pre>`;
+
   return `
-    <div class="space-y-4">
-      <div>
-        <label class="block text-xs font-medium text-gray-400 mb-1">Raw Request</label>
-        <pre class="p-3 bg-gray-800 rounded text-green-300 text-xs overflow-auto max-h-64 font-mono">${escapeHtml(rawRequest)}</pre>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-400 mb-1">Raw Response</label>
-        <pre class="p-3 bg-gray-800 rounded text-yellow-300 text-xs overflow-auto max-h-64 font-mono">${escapeHtml(rawResponse)}</pre>
-      </div>
+    <div class="space-y-3">
+      ${section("Raw Request", "", rawRequest, rawPre(rawRequest, "text-green-300"))}
+      ${section("Raw Response", "", rawResponse, rawPre(rawResponse, "text-yellow-300"))}
     </div>
   `;
 }
@@ -264,6 +304,7 @@ function renderRawTab(snapReq, bodyText) {
 /** Render snapshot panel */
 async function renderSnapshot() {
   if (!root) return;
+  copyTexts.clear();
   
   if (!currentStep || !currentRun) {
     root.innerHTML = getEmptyStateHtml();
@@ -301,7 +342,7 @@ async function renderSnapshot() {
   if (activeTab === 'request') {
     contentInnerHtml = renderRequestTab(req);
   } else if (activeTab === 'response') {
-    contentInnerHtml = renderResponseTab(resp, contentHtml, category === 'html');
+    contentInnerHtml = renderResponseTab(resp, contentHtml, category, text);
   } else {
     contentInnerHtml = renderRawTab(req, text);
   }
@@ -311,14 +352,24 @@ async function renderSnapshot() {
   const respContentType = resp.contentType || '-';
   const respSize = resp.size ? `${(resp.size / 1024).toFixed(1)} KB` : '-';
 
+  // Identitas snapshot: nomor (= #seq di daftar step), endpoint, dan petunjuk duplikat
+  const snap = snapshotInfo(currentStep, currentRun.steps ?? [currentStep], getState().project?.runLogic);
+  const snapMeta = [
+    currentStep.name,
+    currentStep.snapshot ? `Snapshot=${currentStep.snapshot}` : null,
+    groupLabel(snap.group),
+    `${currentStep.file}:${currentStep.line}`,
+  ].filter(Boolean).join(" · ");
+
   root.innerHTML = `
     <div class="flex flex-col h-full bg-gray-900">
       <!-- Header with tabs -->
       <div class="p-3 border-b border-gray-700 flex flex-col gap-2">
-        <div class="flex items-center justify-between">
-          <span class="font-medium text-gray-300">Snapshot: ${escapeHtml(currentStep.name || 'Step ' + currentStep.seq)}</span>
-          <span class="text-xs text-gray-500">${escapeHtml(respStatus)} ${escapeHtml(respStatusText)} • ${escapeHtml(respContentType)} • ${escapeHtml(respSize)}</span>
+        <div class="flex items-center justify-between gap-2">
+          <span class="snapshot-title min-w-0 truncate font-medium text-gray-300"><span class="snapshot-number text-yellow-400">Snapshot #${escapeHtml(snap.number)}</span> ${escapeHtml(snap.endpoint)}${snap.duplicate ? ` <span class="snapshot-duplicate text-xs text-gray-400">(ke-${escapeHtml(snap.duplicate.index)} dari ${escapeHtml(snap.duplicate.total)} pemanggilan endpoint ini)</span>` : ""}</span>
+          <span class="shrink-0 text-xs text-gray-500">${escapeHtml(respStatus)} ${escapeHtml(respStatusText)} • ${escapeHtml(respContentType)} • ${escapeHtml(respSize)}</span>
         </div>
+        <div class="snapshot-meta truncate text-[11px] text-gray-500" title="${escapeHtml(snapMeta)}">${escapeHtml(snapMeta)}</div>
         <div class="flex gap-1 border-b border-gray-700">
           <button data-tab="request" class="tab-btn px-3 py-1 text-xs font-medium rounded-t transition-colors ${activeTab === 'request' ? 'bg-gray-800 text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-gray-200'}">Request</button>
           <button data-tab="response" class="tab-btn px-3 py-1 text-xs font-medium rounded-t transition-colors ${activeTab === 'response' ? 'bg-gray-800 text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-gray-200'}">Response</button>
@@ -341,10 +392,37 @@ async function renderSnapshot() {
     renderSnapshot();
   });
 
+  // Tombol Copy
+  root.querySelectorAll('[data-copy]').forEach((button) => {
+    button.addEventListener('click', () => void copyToClipboard(copyTexts.get(button.dataset.copy) ?? '', button));
+  });
+
   // Attach tab listeners
   root.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
+}
+
+/** Salin teks ke clipboard (fallback textarea bila Clipboard API tidak tersedia); beri umpan balik di tombol */
+async function copyToClipboard(text, button) {
+  let ok = true;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.append(area);
+    area.select();
+    ok = document.execCommand('copy');
+    area.remove();
+  }
+  const original = button.textContent;
+  button.textContent = ok ? 'Tersalin ✓' : 'Gagal';
+  setTimeout(() => {
+    if (button.isConnected) button.textContent = original;
+  }, 1200);
 }
 
 /** Empty state HTML */

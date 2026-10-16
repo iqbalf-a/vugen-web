@@ -26,6 +26,8 @@ beforeAll(async () => {
 
   // header beda kapitalisasi dari nama file; multi-kolom sebaris; CRLF; baris kosong di akhir
   await fs.writeFile(path.join(scriptDir, "hosts.dat"), "Host,pathSuffix\r\n127.0.0.1:18085,one\r\nlocalhost:18085,two\r\n\r\n", "utf8");
+  // .dat sisa: tidak dirujuk script mana pun (seperti subTrans.dat di BP000_VugenWeb)
+  await fs.writeFile(path.join(scriptDir, "subTrans.dat"), "subTrans\r\n25\r\n", "utf8");
   await fs.writeFile(path.join(scriptDir, "demo.prm"), '[parameter:Host]\r\nType="Table"\r\n', "utf8");
   await fs.writeFile(path.join(scriptDir, "vuser_init.c"), "vuser_init()\r\n{\r\n    return 0;\r\n}\r\n", "utf8");
   await fs.writeFile(path.join(scriptDir, "vuser_end.c"), "vuser_end()\r\n{\r\n    return 0;\r\n}\r\n", "utf8");
@@ -60,6 +62,18 @@ describe("parameter .dat dipakai runner", () => {
   }, 30000);
 });
 
+describe(".dat yang tidak dipakai script", () => {
+  it("tidak menjadi parameter run (tidak di params maupun perubahan step) dan dicatat di log", async () => {
+    const run = await startRun({ scriptDir, options: { iterations: 1 } });
+    const result = await run.done;
+
+    expect(result.params.subTrans).toBeUndefined();
+    expect(result.steps.flatMap((step) => step.params).some((change) => change.name === "subTrans")).toBe(false);
+    expect(result.params.Host).toBeDefined(); // yang dipakai tetap dimuat
+    expect(result.log.some((entry) => /tidak dipakai script/.test(entry.msg) && /subTrans \(subTrans\.dat\)/.test(entry.msg))).toBe(true);
+  }, 30000);
+});
+
 describe("GET /api/project: parameters", () => {
   it("array biasa { name, file, rows } tanpa nilai; tidak ada parameterFiles", async () => {
     const server = createServer(apiRouter);
@@ -69,9 +83,11 @@ describe("GET /api/project: parameters", () => {
       const project = await (await fetch(url)).json();
 
       expect(project.parameterFiles).toBeUndefined();
+      // API tetap mendaftar semua kolom .dat (termasuk yang tidak dipakai run); nilai tidak dikirim
       expect(project.parameters).toEqual([
         { name: "Host", file: "hosts.dat", rows: 2 },
         { name: "pathSuffix", file: "hosts.dat", rows: 2 },
+        { name: "subTrans", file: "subTrans.dat", rows: 1 },
       ]);
       expect(JSON.stringify(project)).not.toContain("localhost:18085"); // nilai tidak bocor ke browser
     } finally {

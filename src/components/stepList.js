@@ -13,7 +13,7 @@
 
 import { getStore, subscribe } from "../store.js";
 import { escapeHtml } from "../utils/html.js";
-import { availableGroups, groupLabel, stepGroupOf } from "../utils/steps.js";
+import { availableGroups, endpointLabel, formatMs, groupLabel, stepGroupOf } from "../utils/steps.js";
 
 /** @type {HTMLElement|null} */
 let root = null;
@@ -21,8 +21,8 @@ let root = null;
 let groupSelect = null;
 /** @type {HTMLElement|null} */
 let stepListEl = null;
-/** @type {Set<string>} nama transaksi yang dibuka (state tampilan lokal) */
-const expandedTransactions = new Set();
+/** @type {Set<string>} nama transaksi yang ditutup user (default semua terbuka; state tampilan lokal) */
+const collapsedTransactions = new Set();
 /** @type {Function|null} */
 let unsubscribe = null;
 /** @type {((step: Object) => void)|null} */
@@ -100,45 +100,43 @@ function renderSteps(state) {
 
   const selectedSeq = state.selectedStep?.seq;
 
+  // Format ringkas (sidebar sempit): "loadpage ▼  1 API  1/1 OK  29ms", lalu tiap API: "GET /path  5.2ms".
+  // Nama API = endpoint dari URL request (bukan nama step di script); nama step, status, file:baris ada di tooltip.
   stepListEl.innerHTML = Array.from(txMap.entries()).map(([txName, txSteps]) => {
-    const isExpanded = expandedTransactions.has(txName);
-    const duration = Math.round(txSteps.reduce((sum, s) => sum + (s.timing?.durationMs || 0), 0) * 100) / 100;
+    const isExpanded = !collapsedTransactions.has(txName);
+    const duration = txSteps.reduce((sum, s) => sum + (s.timing?.durationMs || 0), 0);
     const okCount = txSteps.filter(isOk).length;
     const txResult = (run.transactions ?? []).find((tx) => tx.name === txName && tx.iteration === txSteps[0].iteration);
-    const txFailed = txResult?.status === "Fail";
+    const txFailed = txResult?.status === "Fail" || okCount < txSteps.length;
+    const txTitle = `${txName}${txResult ? ` — ${txResult.status}` : ""}`;
 
     return `
-      <div class="tx-section border-b border-gray-700">
-        <div class="tx-header px-3 py-2 bg-gray-800 hover:bg-gray-750 cursor-pointer flex items-center gap-2"
-             data-tx="${escapeHtml(txName)}"
-             style="user-select: none;">
-          <span class="tx-toggle font-mono text-xs text-gray-400 w-5" aria-expanded="${isExpanded}">
-            ${isExpanded ? "▼" : "▶"}
-          </span>
-          <span class="font-medium ${txFailed ? "text-red-400" : "text-gray-200"} truncate flex-1">${escapeHtml(txName)}</span>
-          ${txFailed ? '<span class="tx-status font-mono text-xs text-red-400">✗ Fail</span>' : txResult ? '<span class="tx-status font-mono text-xs text-green-400">Pass</span>' : ""}
-          <span class="font-mono text-xs text-gray-500">${txSteps.length} API</span>
-          <span class="font-mono text-xs ${okCount === txSteps.length ? "text-green-400" : "text-red-400"}">${okCount}/${txSteps.length} OK</span>
-          <span class="font-mono text-xs text-gray-500">${escapeHtml(duration)}ms</span>
+      <div class="tx-section mb-1">
+        <div class="tx-header flex cursor-pointer select-none items-center gap-2 rounded-[3px] px-2 py-1 hover:bg-[#1b212b]"
+             data-tx="${escapeHtml(txName)}" title="${escapeHtml(txTitle)}">
+          <span class="min-w-0 truncate font-semibold ${txFailed ? "text-red-400" : "text-[#e6edf3]"}">${escapeHtml(txName)}</span>
+          <span class="tx-toggle shrink-0 text-[10px] text-[#7d8896]" aria-expanded="${isExpanded}">${isExpanded ? "▼" : "▶"}</span>
+          <span class="ml-auto shrink-0 text-[#7d8896]">${txSteps.length} API</span>
+          <span class="shrink-0 ${txFailed ? "text-red-400" : "text-green-400"}">${okCount}/${txSteps.length} OK</span>
+          <span class="tx-duration shrink-0 text-[#7d8896]">${escapeHtml(formatMs(duration))}</span>
         </div>
         <div class="tx-body ${isExpanded ? "" : "hidden"}" data-tx-body="${escapeHtml(txName)}">
           ${txSteps.map((step) => {
             const { icon, color } = stepStyle(step);
-            const selected = step.seq === selectedSeq ? "bg-gray-700" : "";
+            const selected = step.seq === selectedSeq ? "bg-[#1b212b] text-[#e6edf3]" : "text-[#aab4c0]";
+            const endpoint = endpointLabel(step);
+            const detail = `${step.name} · #${step.seq} ${step.type} · ${step.response?.status || "-"} · ${formatMs(step.timing?.durationMs)} · ${step.file}:${step.line}`;
             return `
-              <div class="step-item px-3 py-2 border-b border-gray-700 hover:bg-gray-800 cursor-pointer ${selected} ${color} pl-6"
+              <div class="step-item cursor-pointer rounded-[3px] py-0.5 pl-5 pr-2 hover:bg-[#1b212b] ${selected}"
                    data-seq="${escapeHtml(step.seq)}"
-                   title="${escapeHtml(step.file)}:${escapeHtml(step.line)}">
-                <div class="flex items-center gap-2">
-                  <span class="font-mono text-xs">${icon}</span>
-                  <span class="font-mono text-xs text-gray-400">#${escapeHtml(step.seq)}</span>
-                  <span class="flex-1 truncate">${escapeHtml(step.name)}</span>
-                  <span class="font-mono text-xs">${escapeHtml(step.type)}</span>
-                  <span class="font-mono text-xs text-gray-500">${escapeHtml(step.response?.status || "-")}</span>
-                  <span class="font-mono text-xs text-gray-500">${escapeHtml(step.timing?.durationMs || 0)}ms</span>
+                   title="${escapeHtml(detail)}">
+                <div class="flex min-w-0 items-center gap-1.5">
+                  <span class="shrink-0 text-[10px] ${color}">${icon}</span>
+                  <span class="step-number shrink-0 text-[10px] text-[#5b6572]">#${escapeHtml(step.seq)}</span>
+                  <span class="step-endpoint min-w-0 flex-1 truncate">${escapeHtml(endpoint)}</span>
+                  <span class="step-duration shrink-0 text-[#7d8896]">${escapeHtml(formatMs(step.timing?.durationMs))}</span>
                 </div>
-                <div class="text-xs text-gray-500 mt-1 truncate">${escapeHtml(step.file)}:${escapeHtml(step.line)}</div>
-                ${step.error ? `<div class="step-error text-xs text-red-400 mt-1 break-all">${escapeHtml(step.error)}</div>` : ""}
+                ${step.error ? `<div class="step-error break-all pl-4 text-[10.5px] text-red-400">${escapeHtml(step.error)}</div>` : ""}
               </div>
             `;
           }).join("")}
@@ -147,12 +145,12 @@ function renderSteps(state) {
     `;
   }).join("");
 
-  // Toggle transaksi
+  // Toggle transaksi (default terbuka)
   stepListEl.querySelectorAll(".tx-header").forEach((el) => {
     el.addEventListener("click", () => {
       const txName = el.dataset.tx;
-      if (expandedTransactions.has(txName)) expandedTransactions.delete(txName);
-      else expandedTransactions.add(txName);
+      if (collapsedTransactions.has(txName)) collapsedTransactions.delete(txName);
+      else collapsedTransactions.add(txName);
       lastRenderKey = ""; // paksa render ulang
       render();
     });
@@ -176,10 +174,19 @@ function selectStep(seq) {
   onSelectStep?.(step);
 }
 
+/** seq step terpilih pada render terakhir; berubah -> buka transaksinya & scroll ke barisnya */
+let lastSelectedSeq = null;
+
 /** Render hanya bila data yang relevan berubah (store juga berubah tiap event log) */
 function render() {
   const state = getStore().get();
   const run = state.currentRun;
+
+  const selectionChanged = (state.selectedStep?.seq ?? null) !== lastSelectedSeq;
+  lastSelectedSeq = state.selectedStep?.seq ?? null;
+  // Step dipilih dari editor: pastikan transaksinya terbuka agar barisnya terlihat
+  if (selectionChanged && state.selectedStep) collapsedTransactions.delete(state.selectedStep.transaction || "Tanpa Transaksi");
+
   const key = [
     run?.runId ?? "",
     run?.steps?.length ?? 0,
@@ -187,13 +194,17 @@ function render() {
     run?.options?.iterations ?? 0,
     state.selectedIteration,
     state.selectedStep?.seq ?? "",
-    [...expandedTransactions].join("|"),
+    [...collapsedTransactions].join("|"),
   ].join("#");
   if (key === lastRenderKey) return;
   lastRenderKey = key;
 
   updateGroupSelector(state);
   renderSteps(state);
+
+  if (selectionChanged && state.selectedStep) {
+    stepListEl?.querySelector(`.step-item[data-seq="${state.selectedStep.seq}"]`)?.scrollIntoView({ block: "nearest" });
+  }
 }
 
 /**
@@ -221,7 +232,7 @@ export function createStepList(container, { onSelect } = {}) {
 
   groupSelect.addEventListener("change", () => {
     const value = groupSelect.value;
-    expandedTransactions.clear();
+    collapsedTransactions.clear();
     getStore().set({ selectedIteration: value === "init" || value === "end" ? value : Number(value), selectedStep: null });
   });
 

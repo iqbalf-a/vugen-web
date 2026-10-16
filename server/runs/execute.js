@@ -65,6 +65,12 @@ export async function startRun({ scriptDir, options = {} }) {
 
   const compileResult = await compileScript({ scriptDir: dir, cacheDir, files: project.files });
 
+  // File .dat bisa berisi parameter yang tidak dipakai script ini (sisa/tidak dideklarasikan di .prm):
+  // hanya yang dirujuk script (`{nama}`) yang dimuat sebagai parameter.
+  const referenced = new Set(compileResult.referencedParams);
+  const usedParameters = project.parameters.filter((parameter) => referenced.has(parameter.name));
+  const unusedParameters = project.parameters.filter((parameter) => !referenced.has(parameter.name));
+
   const runId = generateRunId();
   const runOptions = normalizeOptions(options);
   const runResult = createRunResult({ runId, options: runOptions });
@@ -114,6 +120,12 @@ export async function startRun({ scriptDir, options = {} }) {
     retireRun(runId, KEEP_AFTER_DONE_MS);
   }
 
+  if (unusedParameters.length > 0) {
+    const msg = `Parameter dari .dat tidak dipakai script (tidak dirujuk {nama}), dilewati: ${unusedParameters.map((p) => `${p.name} (${p.file})`).join(", ")}`;
+    addLog(runResult, { level: "info", msg });
+    emit("log", { level: "info", msg });
+  }
+
   child.on("message", (msg) => {
     if (!msg || msg.type !== "event") return;
     const { event } = msg;
@@ -128,7 +140,7 @@ export async function startRun({ scriptDir, options = {} }) {
             cacheDir,
             options: runOptions,
             runId,
-            parameters: project.parameters,
+            parameters: usedParameters,
             runLogic: project.runLogic,
           },
         });

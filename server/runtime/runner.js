@@ -11,12 +11,13 @@
 import { pathToFileURL } from "node:url";
 
 import { HttpClient } from "./http-client.js";
+import { TrackedParams } from "./tracked-params.js";
 import * as vuserApi from "./vuser-api.js";
 
 // Bind vuser-api ke runner context
 const vu = {
   http: null,
-  params: new Map(),
+  params: new TrackedParams(() => ({ file: vu.currentFile, line: vu.currentLine })), // setiap perubahan dicatat (untuk panel Parameter)
   transactions: new Map(),        // transaksi terbuka: nama -> { startMs, failed }
   transactionResults: new Map(),  // hasil transaksi yang sudah selesai: nama -> Pass|Fail
   currentFile: "",
@@ -26,6 +27,7 @@ const vu = {
   seq: 0,            // counter step, runner yang memberi nomor
   stepFailures: 0,   // jumlah step gagal sejauh ini (untuk lr_exit LR_AUTO)
   exitRequest: null, // permintaan lr_exit(VUSER_AFTER_*): { mode, status }
+  currentVars: null, // getter variabel C pada baris saat ini
   runStartMs: 0,     // epoch ms awal run (untuk timing.startMs)
   cacheDir: "",
   runId: "",
@@ -33,9 +35,10 @@ const vu = {
     sendEvent("log", { level, msg, file: vu.currentFile, line: vu.currentLine, iteration: vu.currentIteration });
   },
   sendEvent,
-  __at: (file, line) => {
+  __at: (file, line, vars) => {
     vu.currentFile = file;
     vu.currentLine = line;
+    vu.currentVars = typeof vars === "function" ? vars : null;
   },
   __unsupported: (raw, file, line) => {
     vu.log("warn", `Unsupported: ${raw} at ${file}:${line}`);
@@ -59,13 +62,13 @@ function sendEvent(type, data, callback) {
 
 /**
  * Siapkan file parameter (.dat): urut per iterasi, nilai baris pertama langsung tersedia.
- * `parameters` berupa array [{ name, values }] dari loader (satu entri per kolom header .dat).
+ * `parameters` berupa array [{ name, file, values }] dari loader (satu entri per kolom header .dat).
  */
 function initParameterFiles(parameters) {
   vu.parameterFiles = new Map();
-  for (const { name, values } of parameters ?? []) {
-    vu.parameterFiles.set(name, { values, currentIndex: 0 });
-    if (values.length > 0) vu.params.set(name, values[0]);
+  for (const { name, file, values } of parameters ?? []) {
+    vu.parameterFiles.set(name, { values, currentIndex: 0, file });
+    if (values.length > 0) vu.params.set(name, values[0], `.dat: ${file}`);
   }
 }
 
@@ -73,7 +76,7 @@ function initParameterFiles(parameters) {
 function advanceParameterFiles() {
   for (const [name, file] of vu.parameterFiles) {
     file.currentIndex = file.currentIndex < file.values.length - 1 ? file.currentIndex + 1 : 0;
-    vu.params.set(name, file.values[file.currentIndex]);
+    vu.params.set(name, file.values[file.currentIndex], `.dat: ${file.file}`);
   }
 }
 

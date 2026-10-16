@@ -16,6 +16,7 @@ import { createEditor } from "./components/editor.js";
 import { renderFileTree } from "./components/fileTree.js";
 import { createToolbar } from "./components/runToolbar.js";
 import { createStepList } from "./components/stepList.js";
+import { callEndLine } from "./utils/callRange.js";
 import { stepGroupOf } from "./utils/steps.js";
 import { createSnapshotPanel } from "./components/snapshotPanel.js";
 import { createParameterPanel } from "./components/parameterPanel.js";
@@ -95,7 +96,8 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-// Kursor editor di baris sebuah step -> pilih step itu (grup terpilih). Tanpa lompat balik ke editor.
+// Kursor/klik di mana pun pada area sebuah API di editor (dari `web_custom_request(` sampai `LAST);`)
+// memilih step-nya dan menampilkan snapshot-nya, seperti di VuGen. Tanpa lompat balik ke editor.
 editor.on("cursorActivity", () => {
   const state = store.get();
   const steps = state.currentRun?.steps;
@@ -104,8 +106,19 @@ editor.on("cursorActivity", () => {
 
   const line = editor.getCursor().line + 1; // 1-based
   const runLogic = state.project?.runLogic;
-  const step = steps.find((candidate) => candidate.file === file && candidate.line === line && stepGroupOf(candidate, runLogic) === state.selectedIteration);
-  if (step && step.seq !== state.selectedStep?.seq) store.set({ selectedStep: step });
+
+  // Kandidat: step di file ini & grup terpilih yang barisnya paling dekat di atas (atau sama dengan) kursor
+  let candidate = null;
+  for (const step of steps) {
+    if (step.file !== file || step.line > line || stepGroupOf(step, runLogic) !== state.selectedIteration) continue;
+    if (!candidate || step.line > candidate.line) candidate = step;
+  }
+  if (!candidate || line > callEndLine(editor.getValue(), candidate.line)) return; // kursor di luar area API mana pun
+
+  if (candidate.seq !== state.selectedStep?.seq) {
+    store.set({ selectedStep: candidate });
+    switchPanel("snapshot");
+  }
 });
 
 /** Klik step di daftar -> buka file-nya di editor dan lompat ke barisnya */

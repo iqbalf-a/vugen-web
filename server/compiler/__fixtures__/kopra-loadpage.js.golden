@@ -7,8 +7,8 @@ export function __bind(vu) {
   __vu = vu;
 }
 
-function __at(file, line) {
-  __vu.__at(file, line);
+function __at(file, line, vars) {
+  __vu.__at(file, line, vars);
 }
 
 function __unsupported(raw, file, line) {
@@ -56,7 +56,7 @@ export async function __fn_Loadpage(parentTrans) {
   await __vu.web_add_auto_header("Accept-Language", "en-US,en;q=0.9");
   __at("kopra-loadpage.c", 23);
   (startTime = await __vu.lr_start_timer());
-  __at("kopra-loadpage.c", 24);
+  __at("kopra-loadpage.c", 24, () => [["startTime", startTime, "merc_timer_handle_t"], ["retryLimit", retryLimit, "int"], ["retryCount", retryCount, "int"], ["lastError", lastError, "char[128]"], ["parentTrans", parentTrans, "char*"], ["seq1", seq1, "double"], ["seq2", seq2, "double"], ["tempSeq", tempSeq, "double"], ["totalSeq", totalSeq, "double"], ["transSeqName", transSeqName, "char[256]"], ["label", label, "char*"], ["i", i, "int"], ["attempts", attempts, "int"]]);
   await __vu.web_url(await __vu.lr_eval_string("DEMO_{subTrans}_01_ui"), "URL=https://{host}/demo/ui", "TargetFrame=", "Resource=0", "Referer=", "Snapshot=t1.inf", "Mode=HTML", "LAST");
   __at("kopra-loadpage.c", 32);
   (tempSeq = await __vu.lr_end_timer(startTime));

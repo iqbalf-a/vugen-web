@@ -1,109 +1,178 @@
-# Prompt untuk sesi Sonnet (plan-stabilisasi.md revisi 2)
+# Tugas Sonnet — U1: Rapikan UI/UX (proporsi, spasi, search panel)
 
-Satu sesi baru per tahap. Tempel **prompt umum** lalu **prompt tahap**.
-S0 sudah selesai (commit `f2dfb97`). Mulai dari S1.
+> Cara pakai: di sesi Sonnet cukup tulis **"Baca dan kerjakan prompt-sonnet.md"**.
+> Prompt tahap S1–S7 lama sudah selesai dan ada di riwayat git (`git log -- prompt-sonnet.md`).
 
----
-
-## Prompt umum (tempel di awal setiap sesi)
-
-```
-Konteks: repo vugen-web (Vite + vanilla JS) untuk menjalankan script LoadRunner VuGen (C) lewat transpile ke JS.
-Rencana kerja: plan-stabilisasi.md (revisi 2). Spesifikasi produk: plan.md.
-
-Aturan:
-- Fokus MEMPERBAIKI BUG dan MERAPIKAN kode yang sudah ada. JANGAN menambah fitur baru (fungsi VuGen baru, endpoint baru, panel/tab/opsi UI baru, dependency baru). Lihat definisi di bagian 0 butir 2 plan. Jika perbaikan terasa butuh fitur baru: berhenti, catat di §9 Backlog, tanya saya.
-- Baca bagian 0, 1, 2 plan-stabilisasi.md, lalu bagian tahap yang saya minta. Kerjakan HANYA tahap itu.
-- Cek git log dan todo.md dulu; jika tahap sebelumnya belum ber-commit, berhenti dan lapor.
-- Folder D:\Mandiri\... read-only total. Jangan salin IP, user, token, atau isi .dat ke repo. Fixture uji dibuat sintetis.
-- Jangan menebak perilaku/format VuGen. Jika ragu, lihat contoh read-only di D:\Mandiri\KOPRA\R10.1\script atau tanya saya.
-- Setelah menulis kode berisi entitas HTML (&amp; &lt; dst.), cek dengan grep bahwa entitasnya tidak berubah jadi karakter mentah.
-- Sebelum commit: npx vitest run, npx eslint ., dan (mulai S2) node server/test/run-cli.js samples/f5 1 harus lulus.
-- Satu commit per tahap, pesan "S<n>: ...", update todo.md di commit yang sama.
-- Selesai: laporkan tiap butir AC (lulus/gagal + bukti output), file yang diubah/dihapus, dan hal yang perlu keputusan saya. Lalu BERHENTI.
-```
+Hasil audit UI dengan Chrome headless di **1500×900** dan **1280×720**. Skenario sintetis: 2 iterasi, 2 transaksi (salah satunya bernama panjang), 4 step (JSON, HTML, dan satu step 500), `web_reg_save_param_json`, serta panel Search Ctrl+F/Ctrl+H. Console browser bersih, tidak ada horizontal scroll di level halaman. Masalahnya ada di **proporsi, spasi, konsistensi, dan panel search**.
 
 ---
 
-## S1 — Keamanan UI
+## 0. Aturan
 
-```
-Kerjakan S1 di plan-stabilisasi.md (temuan K1, K2, F1).
-Catatan:
-- Ini prioritas tertinggi: HTML dari server target saat ini bisa mengeksekusi kode di aplikasi.
-- Satu escapeHtml di src/utils/html.js; hapus 6 salinan. Audit SEMUA innerHTML di src/ — nilai dari run/server/file wajib di-escape, termasuk di atribut.
-- Snapshot HTML wajib di <iframe sandbox=""> dengan srcdoc yang di-set lewat DOM API, bukan string di innerHTML. Jangan tambahkan allow-scripts.
-- Toggle "Load resources" yang sudah ada dihubungkan saja; jangan tambah opsi lain.
-- Hapus requestPanel.js dan responsePanel.js setelah memastikan dengan grep tidak ada yang meng-import.
-- Berikan saya langkah verifikasi manual di browser untuk AC (mis. mock yang mengembalikan HTML berbahaya).
-```
+1. **Cek dulu `git status`.** Saat audit ada perubahan UI/runtime yang belum di-commit, antara lain `parameterPanel.js`, `snapshotPanel.js`, `stepList.js`, `steps.js`, `tracked-params.js`, `referenced-params.js`, `callRange.js`, dan `params.js`. Perubahan itu berasal dari sesi lain, plus perubahan kecil `stepList.js` dari Opus.
+   - Bila perubahan itu masih ada dan **bukan** buatanmu: BERHENTI, lalu tanya user apakah perlu di-commit dulu.
+   - Jangan menimpa atau membuangnya.
+2. Ini perbaikan **tampilan**:
+   - Tidak boleh ada endpoint, dependency, atau fitur baru seperti splitter yang bisa di-drag, tema terang, atau panel baru.
+   - Perilaku fungsional tidak berubah, kecuali butir bertanda **[bug]**.
+3. Hasil keamanan S1 wajib tetap:
+   - Semua nilai di `innerHTML` lewat `escapeHtml` (`src/utils/html.js`).
+   - Snapshot HTML tetap di `<iframe sandbox="">` lewat DOM API.
+4. Pakai token warna yang sudah ada:
+   - Latar `#0f141a` / `#141922` / `#1b212b`, garis `#232a33` / `#2a3644`.
+   - Teks `#e6edf3` / `#aab4c0` / `#7d8896` / `#5b6572`, aksen `#d2a24c`.
+   - Hindari campuran `gray-*` Tailwind dan hex untuk peran yang sama. Ganti `gray-*` di komponen yang kamu sentuh ke token hex di atas.
+5. **Skala spasi: 4 / 8 / 12 / 16 px** (`1 / 2 / 3 / 4` di Tailwind). **Skala teks:**
+   - 10px: label/eyebrow uppercase
+   - 11px: meta/angka (mono)
+   - 12.5px: item list dan isi panel
+   - 13–14px: judul panel
+6. Folder `D:\Mandiri\...` read-only. Jangan kirim request ke server target asli. Uji pakai mock lokal.
+7. Sebelum commit:
+   - `npx vitest run`, `npx eslint .`, dan `node server/test/run-cli.js samples/f5 1` harus lulus.
+   - Ambil screenshot sebelum/sesudah di **1280×720** dan **1500×900**. Cara di §3.
+8. Commit per kelompok:
+   - `U1a: layout & proporsi`
+   - `U1b: step list`
+   - `U1c: snapshot/parameter/log`
+   - `U1d: search panel`
+   - `U1e: bug kecil`
+   - Setiap commit juga update `todo.md`.
+9. Selesai:
+   - Laporkan tiap butir (✅/❌ + screenshot path) dan hal yang butuh keputusan user.
+   - Lalu BERHENTI.
 
-## S2 — Jalur step & penyimpanan run
+---
 
-```
-Kerjakan S2 di plan-stabilisasi.md (temuan T1–T5, T8 sisi server).
-Catatan:
-- Tulis test server/test/run.f5.test.js lebih dulu (harus merah), baru perbaiki sampai hijau.
-- Ikuti desain di S2 apa adanya: runner memberi seq dan menulis body; IPC hanya metadata; event objek langsung (bukan log level "step" berisi string JSON).
-- Hapus seluruh mekanisme snapshots/ (daftar lengkap ada di plan). snapshotPanel.js harus ikut diubah agar mengambil body via /api/run/:id/step/:seq/body — ini perubahan minimal agar UI tidak rusak, bukan redesign.
-- Satu modul server/runs/execute.js dipakai run.js dan run-cli.js; jangan sisakan dua salinan switch event.
-- Event done ke SSE baru dikirim setelah saveRun selesai.
-```
+## 1. Temuan & perbaikan
 
-## S3 — Lifecycle child, SSE, routing
+### U1a — Layout global & proporsi (`index.html`, `src/main.js`)
 
-```
-Kerjakan S3 di plan-stabilisasi.md (temuan T6, T7).
-Catatan:
-- Registri child di server/runs/registry.js, dipakai vite-plugin.js dan execute.js; pastikan tidak ada import sirkular.
-- Ini Windows: gunakan fileURLToPath/pathToFileURL, jangan merangkai "file://".
-- Routing satu lapis di routes/index.js; hapus handleRunRoutes dan endpoint /run/:id/debug.
-- Test stop: assert event 'exit' child benar-benar terjadi < 2 s.
-- Beri saya perintah PowerShell untuk cek proses runner yatim setelah restart Vite.
-```
+- [ ] **Kolom tidak proporsional.** Grid sekarang `260px | 1fr | 380px`.
+  - Panel kanan terlalu sempit: judul snapshot terpotong (`Snapshot #1 POST /api...`), dan subjudul juga terpotong.
+  - Editor mengambil hampir semua lebar, padahal baris script jarang sepanjang itu.
+  - Usulan: `grid-cols-[minmax(240px,18%)_minmax(0,1fr)_minmax(400px,34%)]` (sesuaikan bila perlu). Target di 1280 lebar: kiri ±240, kanan ±435. Di 1500: kiri ±270, kanan ±510.
+- [ ] **Kolom kiri dibagi 50/50** antara File Script dan Step Run. Setelah run, Step Run adalah konten utama, tapi di 720px tinggi hanya muat ±5 baris.
+  - Usulan: File Script `max-h-[38%]` dengan scroll sendiri, Step Run `flex-1`.
+  - Header seksi ("FILE SCRIPT", "STEP RUN") seragam: tinggi 32px, padding `px-3`, border bawah satu garis.
+- [ ] **Heading kategori file tree pecah dua baris** ("ACTION / UTAMA", "PARAMETER / FILES", "CONFIG & / OTHERS") dengan garis pemisah di samping.
+  - Buat `whitespace-nowrap`, garis `flex-1`, jarak heading ke item 4px, dan antar kategori 12px.
+  - Teks kosong "Belum ada folder yang dibuka." masih font sans. Samakan dengan teks kosong lain (12px, `#5b6572`).
+- [ ] **Bar opsi run boros dan jaraknya tidak rata.** Grid `grid-cols-6` menyebar 6 kontrol ke seluruh lebar dengan celah besar tak seragam, dan "▲ Sembunyikan opsi" ada di baris terpisah. Header + opsi memakan ±150px dari 720.
+  - Jadikan satu baris `flex flex-wrap items-center gap-x-5 gap-y-2`, rata kiri.
+  - Tiap kontrol berupa pasangan label + input dengan jarak 8px. Label 10px uppercase `#7d8896`, rata tengah vertikal dengan input setinggi 24px.
+  - Tombol Sembunyikan/Tampilkan opsi taruh di ujung kanan baris yang sama (`ml-auto`).
+  - Target tinggi bar opsi ≤ 40px.
+- [ ] **Status run** ("Run selesai: failed") berupa teks mono 11px di pojok kanan dan mudah terlewat.
+  - Jadikan badge: titik warna + teks, latar `#1b212b`, border mengikuti status (hijau passed, merah failed, kuning running/stopped).
+  - Tidak ada teks status baru. Pakai teks yang sudah ada.
+- [ ] **Scrollbar corner putih.** Kotak putih terlihat di pojok kanan bawah editor dan panel kanan di 1280×720.
+  - Tambahkan `::-webkit-scrollbar-corner { background: transparent }` dan `scrollbar-color` untuk Firefox di `src/style.css`.
+  - Pastikan scrollbar CodeMirror (`.cm-scroller`) ikut tema gelap.
 
-## S4 — Transpiler
+### U1b — Step list (`src/components/stepList.js`)
 
-```
-Kerjakan S4 di plan-stabilisasi.md (temuan T9–T14). Tahap paling rawan — TDD.
-Urutan:
-1. Lihat pola nyata (read-only): D:\Mandiri\KOPRA\R10.1\script\BP211_Adjustment_UDC_ST\Loadpage.c, BP601_Maker.c, globals.h. Jangan salin; buat fixture sintetis kopra-loadpage.c dan kopra-globals.h yang meniru POLA-nya.
-2. Tulis golden + test import() hasil transpile (harus merah).
-3. Parser: header control-flow jadi ekspresi, VariableDeclaration multi-deklarator (lokal & global), abaikan include header LoadRunner.
-4. Transpiler: hapus jalur teks mentah/regex, global modul, hapus hardcode startTime, perbaiki return undefined, makro status jadi angka, strcpy/sprintf ke assignment.
-5. T12: buat server/runtime/api-names.js sebagai satu-satunya daftar fungsi didukung + test sinkron dengan export vuser-api.js. JANGAN menambah fungsi runtime baru di tahap ini.
-6. Golden F2 lama tidak boleh berubah kecuali karena node baru; jelaskan setiap perubahan golden.
-Setelah hijau, jalankan smoke test dengan VUGEN_REAL_SCRIPTS="D:/Mandiri/KOPRA/R10.1/script" dan laporkan jumlah lulus/gagal + pesan error (tanpa menyalin isi script).
-```
+- [ ] **Nama transaksi terpotong parah** (`login_t…`) karena "2 API", "1/2 OK", dan durasi memakan tempat. Nama transaksi harus diprioritaskan:
+  - Baris header: `▼ nama-transaksi` (nama `min-w-0 truncate`, `flex-1`), lalu di kanan **hanya** `1/2 OK` dan durasi.
+  - Hapus "2 API" karena sudah tersirat di `1/2`.
+  - Toggle ▼/▶ taruh **di kiri** nama, ukuran tetap 12px, supaya kolom rata.
+  - Angka pakai `tabular-nums`. Durasi rata kanan dengan lebar tetap (mis. `w-14 text-right`) supaya sejajar antar baris.
+- [ ] **Format durasi tidak seragam** ("4.6ms", "58ms", "6.7ms" bercampur).
+  - Tetap pakai `formatMs` di `src/utils/steps.js`, tapi sejajarkan dengan kolom rata kanan seperti di atas.
+- [ ] **Label step `POST /api/public/c…` terpotong di bagian paling informatif.** Ujung path biasanya pembeda antar API.
+  - Tampilkan method sebagai badge kecil berlebar tetap (GET/POST, 10px).
+  - Path dipotong **dari depan** (`…/content/inquiry`). Cukup potong di JS menjadi 2 segmen terakhir bila lebih dari 28 karakter, dan path lengkap tetap di `title`.
+  - Nomor `#1` 10px `#5b6572`.
+- [ ] **Spasi baris tidak konsisten.**
+  - Header transaksi `py-1.5`, item step `py-1`, indentasi step 20px dari tepi kiri nama transaksi, dan jarak antar transaksi 8px.
+  - Baris error ("HTTP 500") sejajar dengan teks label step (indent sama), 11px.
+  - Item terpilih: latar `#1b212b` plus border kiri 2px aksen `#d2a24c`. Hover: latar `#161c24`.
+- [ ] **Selector iterasi** memakai label "Iterasi" + select "Iterasi 1 ✗". Kata "Iterasi" muncul dua kali, padding `p-3` besar, dan select tinggi.
+  - Jadikan satu baris: label kecil + select setinggi 28px. Teks opsi tetap dari `groupLabel` (vuser_init / Iterasi N / vuser_end) beserta tanda ✗.
+  - Jarak ke list 8px.
 
-## S5 — Runtime
+### U1c — Snapshot, Parameter, Log (`snapshotPanel.js`, `parameterPanel.js`, `logPanel.js`, `main.js`)
 
-```
-Kerjakan S5 di plan-stabilisasi.md (temuan R1–R8).
-Catatan:
-- Hanya memperbaiki fungsi yang SUDAH ADA di vuser-api.js / http-client.js / runner.js. Tidak ada fungsi VuGen baru (lr_exit, web_reg_save_param_json, dll. tetap di backlog).
-- web_js_run pakai node:vm dengan timeout; SOURCES dieksekusi dulu, lalu Code utama di context yang sama.
-- R6 (kapan step/action dianggap gagal) mengubah perilaku run: implementasikan sesuai plan, dan jika ada kasus yang tidak jelas, tanya saya.
-- Unit test per perbaikan terhadap mock; sprintf diuji dengan tabel kasus.
-```
+- [ ] **Dua gaya tab berbeda.** Tab panel (Snapshot/Parameter/Log) dan tab snapshot (Request/Response/Raw) memakai gaya yang tidak sama, ditambah sub-tab Parameter ("Parameter VuGen / Variabel C") yang berbentuk kartu.
+  - Seragamkan ketiganya: teks 12px, `px-3 h-8`, aktif = teks `#e6edf3` + garis bawah 2px `#d2a24c`, nonaktif = `#7d8896`.
+  - Hitungan (2, 0) jadi badge kecil inline di kanan label, bukan di baris kedua.
+- [ ] **Header snapshot terlalu padat.** Judul, status, tipe, dan ukuran ada dalam satu baris sehingga judul terpotong.
+  - Baris 1: `#1` + badge method + path (truncate, `title` lengkap).
+  - Baris 2 (11px, `#7d8896`): nama step · Snapshot=tN.inf · Iterasi · file:baris.
+  - Status/tipe/ukuran **cukup sekali**. Sekarang tampil dua kali, di header dan di kartu "RESPONSE". Pertahankan di kartu RESPONSE saja.
+- [ ] **[bug] "200 -" / "500 -" / "HTTP/1.1 200 -":** tanda `-` muncul karena `statusText` kosong (umum di HTTP/1.1 modern). Tampilkan hanya kode bila `statusText` kosong, baik di header, kartu, maupun tab Raw.
+- [ ] **Jarak antar seksi panel kanan** (RESPONSE / HEADERS / BODY) tidak seragam.
+  - Seksi `space-y-4`, judul seksi ke isinya 6px.
+  - Tombol Copy sejajar vertikal dengan judul seksi dan berukuran sama di semua seksi.
+- [ ] **URL di tab Request terputus di tengah kata** ("inqui / ry"). Pakai `overflow-wrap:anywhere` (bukan `break-all`) supaya pemutusan terjadi di `/` bila memungkinkan.
+- [ ] **Log sulit dibaca.** `break-all` memotong kata di tengah ("load / page", "r / egistered"), kolom timestamp dan file memakan lebar, dan tiap baris punya border sendiri.
+  - Pakai `overflow-wrap:anywhere`.
+  - Layout grid `[auto_auto_1fr]`: waktu (11px `#5b6572`), lokasi file:baris (11px `#7d8896`), pesan (12px).
+  - Ikon level menempel di pesan. Hapus border per baris, ganti hover `#161c24` dan `py-0.5`.
+  - Baris warn: teks kuning. Baris error: merah. Info: default.
+- [ ] **Header panel Log** ("Log" + Auto-scroll) dan Parameter ("pada Snapshot #4 · Action.c…") tingginya beda. Samakan tinggi toolbar panel 36px, `px-3`, dan teks konteks 11px truncate.
 
-## S6 — Loader parameter + frontend
+### U1d — Panel search CodeMirror (`src/components/editor.js`, `src/style.css`)
 
-```
-Kerjakan S6 di plan-stabilisasi.md (temuan L1–L3, F2, T8 sisi UI).
-Catatan:
-- Bukan mesin .prm baru: hapus parsing .prm yang salah, perbaiki pembacaan .dat (header = nama kolom, multi-kolom, case-sensitive).
-- Script saya mengandalkan ip.dat / subTrans.dat tanpa lr_save_string — perilaku itu harus tetap jalan.
-- Frontend: sesuaikan main.js dengan bentuk event dari S2, satukan state iterasi di store. Jangan tambah panel/tab baru.
-- Jika memungkinkan jalankan app dan verifikasi dengan Playwright (skill webapp-testing); jika tidak, beri saya langkah manual.
-```
+Temuan:
+- Panel search/replace (Ctrl+F / Ctrl+H) tampil dengan gaya bawaan CodeMirror: input kecil berborder putih, tombol abu-abu terang berlabel bahasa Inggris huruf kecil ("next", "previous", "all", "replace", "replace all").
+- Checkbox tidak sejajar dengan labelnya ("match case", "regexp", "by word").
+- Tombol tutup "×" melayang jauh di pojok kanan atas.
+- Panel menempel tanpa padding dan baris replace tidak sejajar dengan baris search.
 
-## S7 — Rapikan akhir
+Perbaikan lewat `EditorView.theme` (sudah ada `THEME` di `editor.js`) dan/atau CSS, **tanpa dependency baru**:
+- [ ] `.cm-panels-bottom`: latar `#141922`, border atas `#232a33`.
+  - `.cm-search`: `display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; padding:8px 12px; font-size:12px`.
+  - `<br>` bawaan disembunyikan, diganti `flex-basis:100%`, supaya baris replace rata kiri sejajar baris search.
+- [ ] `.cm-textfield`: tinggi 26px, lebar 220px, latar `#0f141a`, border `#2a3644`, radius 3px, teks `#e6edf3`, focus border `#d2a24c` tanpa outline putih.
+- [ ] `.cm-button`: tinggi 26px, `padding:0 10px`, latar `#1b212b`, border `#2a3644`, teks `#e6edf3`, radius 3px, tanpa gradient bawaan (`background-image:none`), hover border `#3a4553`.
+- [ ] Label checkbox: `display:inline-flex; align-items:center; gap:4px; color:#aab4c0`, checkbox `accent-color:#d2a24c`.
+- [ ] Tombol close (`button[name=close]`): sejajar di baris pertama paling kanan (`margin-left:auto`, bukan absolute), ukuran 20×20, warna `#7d8896`, hover `#e6edf3`.
+- [ ] Label bahasa Indonesia via `EditorState.phrases.of({...})`:
+  - "Find" → "Cari", "Replace" → "Ganti", "next" → "Berikutnya", "previous" → "Sebelumnya", "all" → "Semua"
+  - "match case" → "Huruf besar/kecil", "regexp" → "Regex", "by word" → "Kata utuh"
+  - "replace" → "Ganti", "replace all" → "Ganti semua", "close" → "Tutup"
+  - Cek kunci frasa yang benar di `@codemirror/search`. Jangan menebak.
+- [ ] Highlight hasil: `.cm-searchMatch` latar `rgba(210,162,76,.25)` + outline `rgba(210,162,76,.5)`, `.cm-searchMatch-selected` latar `rgba(210,162,76,.5)`. Harus terlihat jelas di tema one-dark, dan beda dari highlight seleksi biasa.
+- [ ] Verifikasi di 1280×720: panel search tidak menutupi baris yang sedang aktif, tidak ada horizontal scroll, dan Esc menutup panel.
 
-```
-Kerjakan S7 di plan-stabilisasi.md.
-Catatan:
-- Cari export/file yang tidak dipakai dengan grep, hapus yang benar-benar mati.
-- todo.md harus jujur: status F3–F6 dan S1–S7, known limitations, dan salinan §9 Backlog.
-- Laporan akhir: ringkasan perubahan S1–S7 dan apa yang masih belum jalan di script KOPRA (berdasarkan smoke test S4 dan warning unsupported).
-```
+### U1e — Bug kecil yang terlihat saat audit
+
+- [ ] **[bug] Klik step pertama tepat setelah run selesai kadang membuat panel Snapshot kosong.** Terjadi 1 dari 2 percobaan, di 1500×900: tab Request/Raw ikut kosong, lalu klik step lain bekerja.
+  - Dugaan: race antara render snapshot (async fetch body) dan penggantian `currentRun` oleh `run.json` setelah event `done`.
+  - Pastikan render snapshot memakai token/versi request terakhir dan dirender ulang saat `currentRun` diganti tetapi `selectedStep.seq` sama.
+- [ ] **[bug] Log warn palsu `Parameter "{"a":1}" not found, leaving as-is`** untuk body JSON `Body={"a":1}`.
+  - Substitusi `{...}` di runtime hanya boleh untuk nama parameter yang valid (`[A-Za-z_][A-Za-z0-9_]*`, cek aturan nama param VuGen di contoh script read-only bila ragu).
+  - Kurung kurawal JSON tidak boleh memicu warning.
+  - Tambah unit test.
+- [ ] Teks kosong panel Snapshot saat belum ada step terpilih: tampilkan petunjuk singkat "Pilih step di kiri untuk melihat snapshot" (12px, `#5b6572`, rata tengah).
+  - Ini bukan fitur baru. Saat ini panel kosong total.
+
+---
+
+## 2. AC
+
+- Di **1280×720** dan **1500×900**:
+  - tidak ada horizontal scroll halaman;
+  - nama transaksi ≤ 24 karakter tampil utuh di step list (1500);
+  - judul snapshot tidak terpotong untuk path ≤ 40 karakter (1500);
+  - tidak ada kotak scrollbar putih.
+- Bar opsi run ≤ 40px tinggi. Step Run mendapat ≥ 60% tinggi kolom kiri setelah run.
+- Panel search: semua kontrol satu gaya dengan aplikasi, label Indonesia, close sejajar, highlight hasil jelas.
+- Tidak ada tanda `-` setelah kode status. Tidak ada warning param palsu untuk body JSON.
+- Klik step pertama segera setelah run selalu menampilkan snapshot (ulangi 5×).
+- `npx vitest run`, `npx eslint .`, dan `run-cli samples/f5 1` lulus. Console browser bersih.
+
+## 3. Cara verifikasi visual
+
+Pakai Chrome headless via CDP (Node 22 punya `WebSocket` global; Chrome ada di `C:/Program Files/Google/Chrome/Application/chrome.exe`). Tidak perlu dependency baru.
+
+Contoh harness siap pakai dari audit ini (boleh disalin ke folder temp, **jangan di-commit**):
+- `C:\Users\ADIDAT~1.ARD\AppData\Local\Temp\claude\C--Users-adidata-ardiansyah-Documents-github-repos-vugen-web\a644d5fe-5077-4f48-bf94-fe8d1b94a162\scratchpad\audit.mjs`
+  - Argumen: `<appUrl> <scriptDir> <outDir> <width> <height> <prefix>`.
+  - Alurnya: buka folder, 2 iterasi, Run, klik step, tab Request/Raw, step HTML, step gagal, Parameter, Log, Ctrl+F, Ctrl+H.
+- Script + mock sintetis: folder `...\scratchpad\fakeweb\` (`Action.c`, `ip.dat`, `mock.mjs` di port 18099).
+
+Bila path di atas sudah tidak ada, buat ulang yang setara (mock lokal + script sintetis 2 transaksi / 4 step, termasuk satu HTML dan satu 500).
+
+Jalankan `npx vite --port 5179 --strictPort` dan `node fakeweb/mock.mjs`, lalu harness di 1280 720 dan 1500 900. Lampirkan path screenshot sebelum/sesudah di laporan.

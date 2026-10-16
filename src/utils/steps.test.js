@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { availableGroups, groupLabel, stepGroupOf } from "./steps.js";
+import { availableGroups, endpointLabel, formatMs, groupLabel, snapshotInfo, stepGroupOf } from "./steps.js";
 
 const RUN_LOGIC = { init: "vuser_init.c", end: "vuser_end.c" };
 
@@ -51,5 +51,61 @@ describe("groupLabel", () => {
     expect(groupLabel("init")).toBe("vuser_init");
     expect(groupLabel("end")).toBe("vuser_end");
     expect(groupLabel(2)).toBe("Iterasi 2");
+  });
+});
+
+describe("endpointLabel", () => {
+  it("METHOD + path dari URL request; host dan query dibuang", () => {
+    const step = { name: "RPS_25_inquirylogin", request: { method: "post", url: "https://10.0.0.1:8443/new/kopra/api/secured/inquiry/login?x=1&y=2" } };
+    expect(endpointLabel(step)).toBe("POST /new/kopra/api/secured/inquiry/login");
+  });
+
+  it("URL akar -> '/'", () => {
+    expect(endpointLabel({ name: "home", request: { method: "GET", url: "http://127.0.0.1:18081/" } })).toBe("GET /");
+  });
+
+  it("tanpa URL / URL tidak valid -> nama step; tanpa keduanya -> placeholder", () => {
+    expect(endpointLabel({ name: "RPS_26_inquiry", request: { method: "GET", url: "" } })).toBe("RPS_26_inquiry");
+    expect(endpointLabel({ name: "x", request: { method: "GET", url: "bukan url" } })).toBe("x");
+    expect(endpointLabel({})).toBe("(tanpa nama)");
+  });
+
+  it("tanpa method: hanya path", () => {
+    expect(endpointLabel({ request: { url: "http://h/a/b" } })).toBe("/a/b");
+  });
+});
+
+describe("formatMs", () => {
+  it("< 10 ms satu desimal, selebihnya bulat", () => {
+    expect(formatMs(5.24)).toBe("5.2ms");
+    expect(formatMs(0)).toBe("0ms");
+    expect(formatMs(24.4)).toBe("24ms");
+    expect(formatMs(1234.6)).toBe("1235ms");
+    expect(formatMs(undefined)).toBe("0ms");
+  });
+});
+
+describe("snapshotInfo", () => {
+  const mk = (seq, url, iteration = 1, file = "Action.c") => ({ seq, file, iteration, name: `RPS_${seq}`, request: { method: "GET", url } });
+  const steps = [
+    mk(1, "http://h/a/x"),
+    mk(2, "http://h/api/q?x=1"),
+    mk(3, "http://h/api/q?x=2"), // endpoint sama (query dibuang)
+    mk(4, "http://h/api/q", 2), // iterasi lain: bukan duplikat dari iterasi 1
+    mk(5, "http://h/api/q", 1, "vuser_end.c"),
+  ];
+
+  it("nomor snapshot = seq; endpoint dari URL", () => {
+    expect(snapshotInfo(steps[0], steps, RUN_LOGIC)).toMatchObject({ number: 1, endpoint: "GET /a/x", group: 1, duplicate: null });
+  });
+
+  it("duplikat dihitung per grup: urutan dan total pemanggilan endpoint yang sama", () => {
+    expect(snapshotInfo(steps[1], steps, RUN_LOGIC).duplicate).toEqual({ index: 1, total: 2 });
+    expect(snapshotInfo(steps[2], steps, RUN_LOGIC).duplicate).toEqual({ index: 2, total: 2 });
+  });
+
+  it("iterasi lain dan vuser_end tidak dihitung sebagai duplikat", () => {
+    expect(snapshotInfo(steps[3], steps, RUN_LOGIC)).toMatchObject({ group: 2, duplicate: null });
+    expect(snapshotInfo(steps[4], steps, RUN_LOGIC)).toMatchObject({ group: "end", duplicate: null });
   });
 });

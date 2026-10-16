@@ -52,3 +52,48 @@ export function groupLabel(group) {
   if (group === "end") return "vuser_end";
   return `Iterasi ${group}`;
 }
+
+/**
+ * Nama API untuk ditampilkan: `METHOD /path` dari endpoint request (tanpa host dan query string),
+ * bukan nama step di script (mis. RPS_25_inquirylogin). Tanpa URL yang valid -> nama step.
+ *
+ * @param {{ name?: string, request?: { method?: string, url?: string } }} step
+ * @returns {string}
+ */
+export function endpointLabel(step) {
+  const url = step.request?.url;
+  if (url) {
+    try {
+      const { pathname } = new URL(url);
+      return `${(step.request?.method || "").toUpperCase()} ${pathname}`.trim();
+    } catch {
+      // URL tidak valid (mis. masih berisi {param}): pakai nama step
+    }
+  }
+  return step.name || "(tanpa nama)";
+}
+
+/** Durasi ringkas: < 10 ms satu desimal, selebihnya bilangan bulat. Contoh: 5.2ms, 24ms */
+export function formatMs(value) {
+  const ms = Number(value) || 0;
+  return `${ms < 10 ? Math.round(ms * 10) / 10 : Math.round(ms)}ms`;
+}
+
+/**
+ * Info identitas snapshot sebuah step, untuk header panel Snapshot.
+ * - `number`: nomor snapshot = `step.seq` (unik per run; sama dengan "#N" di daftar step)
+ * - `duplicate`: bila endpoint yang sama dipanggil >1 kali di grup (iterasi / init / end) yang sama,
+ *   `{ index, total }` urutan pemanggilan itu (1-based); selain itu null
+ *
+ * @param {{ seq: number, file?: string, iteration?: number, request?: Object, name?: string }} step
+ * @param {{ file?: string, iteration?: number, request?: Object, name?: string }[]} steps semua step run
+ * @param {{ init?: string, end?: string } | null | undefined} runLogic
+ * @returns {{ number: number, endpoint: string, group: StepGroup, duplicate: { index: number, total: number } | null }}
+ */
+export function snapshotInfo(step, steps, runLogic) {
+  const endpoint = endpointLabel(step);
+  const group = stepGroupOf(step, runLogic);
+  const same = steps.filter((other) => stepGroupOf(other, runLogic) === group && endpointLabel(other) === endpoint);
+  const index = same.findIndex((other) => other.seq === step.seq) + 1;
+  return { number: step.seq, endpoint, group, duplicate: same.length > 1 && index > 0 ? { index, total: same.length } : null };
+}

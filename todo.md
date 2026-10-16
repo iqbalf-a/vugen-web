@@ -71,7 +71,8 @@ Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` setelah F7d. Semua 9 folde
 - **HTTP:** `web_submit_data` multipart dikirim sebagai urlencoded; tanpa HTTP/2; urutan header tidak identik dengan VuGen.
 - **Perilaku error:** step gagal (exception, HTTP ≥ 400, `web_reg_find` tidak terpenuhi) menghentikan iterasi itu; iterasi berikutnya dan `vuser_end` tetap jalan; transaksi yang terputus dicatat `Fail`. `vuser_init` gagal melewati iterasi. Kasus lain yang tidak diverifikasi dengan VuGen asli perlu dicek bila hasilnya berbeda.
 - **`run.json`** tidak menyimpan status per iterasi; tanda ✗ di selector iterasi dihitung dari step error / transaksi Fail.
-- **UI:** panel Parameter menampilkan nilai akhir run (bukan per step). Tidak ada tab Transactions, README, atau `check:script`.
+- **Panel Parameter:** tabel Name/Value yang bisa diurutkan menurut nama, dua versi — *Parameter VuGen* (`.dat`, `lr_save_string`, `web_reg_save_param*` boundary/regexp/JSONPath, `lr_param_sprintf`, `web_convert_from_formatted`, `LR.setParam`) dan *Variabel C* (lokal, parameter fungsi, dan global yang terlihat di baris step). Nilai adalah nilai PADA step terpilih. Keterbatasan: perubahan parameter di antara dua step hanya tercatat nilai terakhirnya; variabel C hanya dicatat di pernyataan yang memanggil `web_url`/`web_custom_request`/`web_submit_data`/`web_submit_form`/`web_rest` (bukan di setiap baris); array/struct ditampilkan sebagai JSON ringkas (maks 300 karakter); perubahan parameter sesudah step terakhir hanya terlihat di keadaan akhir run.
+- **UI:** tidak ada tab Transactions, README, atau `check:script`.
 - **Test:** timeout test dinaikkan ke 20 s karena import dingin sesekali melewati 5 s saat banyak proses paralel.
 
 ## Backlog fitur (salinan `plan-stabilisasi.md` §9 — JANGAN dikerjakan di plan stabilisasi)

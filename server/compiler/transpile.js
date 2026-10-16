@@ -28,7 +28,7 @@
  * @typedef {import("./parser.js").AstNode} AstNode
  * @typedef {{ file: string, line: number, message: string }} TranspileWarning
  * @typedef {{ file: string, ast: import("./parser.js").Program }} ParsedProgram
- * @typedef {{ names: Set<string>, scopes: Set<string>[], warnings: TranspileWarning[] }} Context
+ * @typedef {{ names: Set<string>, scopes: Map<string, string>[], warnings: TranspileWarning[] }} Context
  */
 
 import { promises as fs } from "node:fs";
@@ -37,6 +37,7 @@ import path from "node:path";
 import { toPosix } from "../project/paths.js";
 import { SUPPORTED_FUNCTION_SET } from "../runtime/api-names.js";
 import { parse } from "./parser.js";
+import { findReferencedParams } from "./referenced-params.js";
 
 /**
  * Makro VuGen/LoadRunner. Status & opsi exit bernilai angka (sama dengan C);
@@ -115,8 +116,63 @@ function isDeclared(context, name) {
 }
 
 /** @param {Context} context @param {string} name */
-function declare(context, name) {
-  context.scopes.at(-1).add(name);
+function declare(context, name, type = "") {
+  context.scopes.at(-1).set(name, type);
+}
+
+/** Fungsi yang menghasilkan step: pernyataan yang memanggilnya menyertakan variabel C yang terlihat (untuk panel Parameter). */
+const STEP_FUNCTIONS = new Set(["web_url", "web_custom_request", "web_submit_data", "web_submit_form", "web_rest"]);
+
+/** Apakah subtree AST ini memuat pemanggilan fungsi penghasil step? */
+function containsStepCall(node) {
+  if (Array.isArray(node)) return node.some(containsStepCall);
+  if (!node || typeof node !== "object") return false;
+  if (node.type === "CallExpression" && node.callee?.type === "Identifier" && STEP_FUNCTIONS.has(node.callee.name)) return true;
+  return Object.values(node).some((value) => value && typeof value === "object" && containsStepCall(value));
+}
+
+/** Bagian statement yang dievaluasi di baris itu sendiri (tanpa body statement bersarang, yang punya __at sendiri). */
+function ownParts(node) {
+  switch (node.type) {
+    case "ExpressionStatement":
+      return [node.expression];
+    case "ReturnStatement":
+      return [node.argument];
+    case "VariableDeclaration":
+      return node.declarations.map((declarator) => declarator.init);
+    case "IfStatement":
+    case "WhileStatement":
+    case "DoWhileStatement":
+      return [node.test];
+    case "ForStatement":
+      return [node.init, node.test, node.update];
+    case "SwitchStatement":
+      return [node.discriminant];
+    default:
+      return [];
+  }
+}
+
+/** Label tipe C untuk tampilan: "int", "char*", "char[256]" */
+function typeLabel(dataType, declarator) {
+  const base = String(dataType || "").replace(/\s+/g, " ").trim();
+  if (declarator.array) return `${base}${declarator.pointer ? "*" : ""}[${declarator.arraySize?.type === "NumberLiteral" ? declarator.arraySize.value : ""}]`;
+  return `${base}${declarator.pointer ? "*" : ""}`;
+}
+
+/**
+ * Pemanggilan `__at(file, line)`. Untuk pernyataan yang memanggil fungsi penghasil step ditambah getter
+ * `() => [[nama, nilai, tipe], ...]` berisi variabel C yang terlihat DI BARIS ITU (global + lokal + parameter);
+ * runtime memanggilnya saat step dikirim sehingga nilainya adalah nilai pada saat request dijalankan.
+ */
+function atStatement(node, context) {
+  if (!ownParts(node).some(containsStepCall)) return `__at(${quote(node.file)}, ${node.line});`;
+
+  /** @type {Map<string, string>} */
+  const visible = new Map();
+  for (const scope of context.scopes) for (const [name, type] of scope) visible.set(name, type);
+  const entries = [...visible].map(([name, type]) => `[${quote(name)}, ${jsName(name)}, ${quote(type)}]`);
+  return `__at(${quote(node.file)}, ${node.line}, () => [${entries.join(", ")}]);`;
 }
 
 /** @param {Context} context @param {AstNode} node @param {string} message */
@@ -278,7 +334,7 @@ function declaratorsToJs(node, context) {
   return node.declarations
     .map((declarator) => {
       const init = declarator.init ? expressionToJs(declarator.init, context) : defaultValue(node.dataType, declarator);
-      declare(context, declarator.name);
+      declare(context, declarator.name, typeLabel(node.dataType, declarator));
       return `${jsName(declarator.name)} = ${init}`;
     })
     .join(", ");
@@ -291,7 +347,7 @@ function declaratorsToJs(node, context) {
  * @param {Context} context
  */
 function bodyLines(body, context) {
-  context.scopes.push(new Set());
+  context.scopes.push(new Map());
   const lines = body.type === "BlockStatement" ? body.body.flatMap((child) => statementToJs(child, context)) : statementToJs(body, context);
   context.scopes.pop();
   return indent(lines);
@@ -309,7 +365,7 @@ function bodyLines(body, context) {
  * @returns {string[]}
  */
 function statementToJs(node, context) {
-  const at = `__at(${quote(node.file)}, ${node.line});`;
+  const at = atStatement(node, context);
 
   switch (node.type) {
     case "Directive":
@@ -318,7 +374,7 @@ function statementToJs(node, context) {
       return [];
 
     case "BlockStatement": {
-      context.scopes.push(new Set());
+      context.scopes.push(new Map());
       const lines = node.body.flatMap((child) => statementToJs(child, context));
       context.scopes.pop();
       return ["{", ...indent(lines), "}"];
@@ -341,7 +397,7 @@ function statementToJs(node, context) {
     }
 
     case "ForStatement": {
-      context.scopes.push(new Set()); // variabel di init for hanya hidup di dalam loop
+      context.scopes.push(new Map()); // variabel di init for hanya hidup di dalam loop
       const init = !node.init ? "" : node.init.type === "VariableDeclaration" ? `let ${declaratorsToJs(node.init, context)}` : expressionToJs(node.init, context);
       const test = node.test ? expressionToJs(node.test, context) : "";
       const update = node.update ? expressionToJs(node.update, context) : "";
@@ -358,7 +414,7 @@ function statementToJs(node, context) {
 
     case "SwitchStatement": {
       const lines = [at, `switch (${expressionToJs(node.discriminant, context)}) {`];
-      context.scopes.push(new Set());
+      context.scopes.push(new Map());
       for (const clause of node.cases) {
         lines.push(...indent([clause.test ? `case ${expressionToJs(clause.test, context)}:` : "default:"]));
         lines.push(...indent(indent(clause.consequent.flatMap((child) => statementToJs(child, context)))));
@@ -401,7 +457,7 @@ export function transpilePrograms(programs) {
   /** @type {AstNode[]} */
   const globalDeclarations = [];
   /** Scope paling luar: variabel global dari semua file. */
-  const globalScope = new Set();
+  const globalScope = new Map();
 
   const seenFunctions = new Map();
 
@@ -465,8 +521,8 @@ export function transpilePrograms(programs) {
     "  __vu = vu;",
     "}",
     "",
-    "function __at(file, line) {",
-    "  __vu.__at(file, line);",
+    "function __at(file, line, vars) {",
+    "  __vu.__at(file, line, vars);",
     "}",
     "",
     "function __unsupported(raw, file, line) {",
@@ -488,7 +544,7 @@ export function transpilePrograms(programs) {
       const params = (node.params || []).map((param) => jsName(param.name));
       lines.push(`export async function ${functionIdentifier(node.name)}(${params.join(", ")}) {`);
 
-      const context = { names, scopes: [globalScope, new Set((node.params || []).map((param) => param.name))], warnings };
+      const context = { names, scopes: [globalScope, new Map((node.params || []).map((param) => [param.name, String(param.type || "").replace(/\s+\*/g, "*").trim()]))], warnings };
       const body = node.body.flatMap((statement) => statementToJs(statement, context));
       if (body.length === 0) lines.push(`${INDENT}// (kosong)`);
       else lines.push(...indent(body));
@@ -559,7 +615,7 @@ function includeTarget(directiveValue) {
  * JS hasil transpile ke `<cacheDir>/build/script.js`.
  *
  * @param {{ scriptDir: string, cacheDir: string, files: Array<{ path: string, ext: string }> }} input
- * @returns {Promise<{ modulePath: string, files: string[], warnings: TranspileWarning[], entries: string[], functions: string[] }>}
+ * @returns {Promise<{ modulePath: string, files: string[], warnings: TranspileWarning[], referencedParams: string[], entries: string[], functions: string[] }>}
  */
 export async function compileScript({ scriptDir, cacheDir, files }) {
   /** @type {TranspileWarning[]} */
@@ -567,6 +623,8 @@ export async function compileScript({ scriptDir, cacheDir, files }) {
   /** @type {ParsedProgram[]} */
   const programs = [];
   const visited = new Set();
+  /** Nama parameter yang dirujuk source script (`{nama}`) */
+  const referenced = new Set();
 
   const queue = files.filter((file) => file.ext === ".c" && !isGeneratedFile(file.path)).map((file) => file.path);
 
@@ -589,6 +647,7 @@ export async function compileScript({ scriptDir, cacheDir, files }) {
       continue;
     }
 
+    findReferencedParams(source, referenced);
     const ast = parse(source, { file: display });
     programs.push({ file: display, ast });
 
@@ -619,6 +678,7 @@ export async function compileScript({ scriptDir, cacheDir, files }) {
     modulePath,
     files: programs.map((program) => program.file),
     warnings: [...warnings, ...result.warnings],
+    referencedParams: [...referenced],
     entries: result.entries,
     functions: result.functions,
   };

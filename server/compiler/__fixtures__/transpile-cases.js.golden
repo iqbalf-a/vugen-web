@@ -7,8 +7,8 @@ export function __bind(vu) {
   __vu = vu;
 }
 
-function __at(file, line) {
-  __vu.__at(file, line);
+function __at(file, line, vars) {
+  __vu.__at(file, line, vars);
 }
 
 function __unsupported(raw, file, line) {

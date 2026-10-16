@@ -29,6 +29,8 @@
  * @property {Object} response - { status, statusText, headers, contentType, size, bodyFile, truncated, redirects }
  * @property {Object} timing - { startMs, durationMs }
  * @property {Object[]} checks - [{ type, text, passed }]
+ * @property {Object[]} [params] - perubahan parameter VuGen sejak step sebelumnya: [{ name, value, source, file, line } | { name, removed: true }]
+ * @property {Object[]} [vars] - variabel C yang terlihat di baris step: [{ name, type, value }]
  * @property {string} [error]
  */
 
@@ -228,6 +230,8 @@ export function addStep(runResult, stepData) {
     timing: stepData.timing || { startMs: 0, durationMs: 0 },
     checks: stepData.checks || [],
     error: stepData.error || null,
+    params: stepData.params || [],
+    vars: stepData.vars || [],
   };
   runResult.steps.push(step);
   return step;

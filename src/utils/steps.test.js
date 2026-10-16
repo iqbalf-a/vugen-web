@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { availableGroups, endpointLabel, endpointParts, formatMs, groupLabel, shortPath, snapshotInfo, stepGroupOf } from "./steps.js";
+import { availableGroups, endpointLabel, endpointParts, formatMs, groupLabel, shortPath, snapshotInfo, statusLabel, stepGroupOf } from "./steps.js";
 
 const RUN_LOGIC = { init: "vuser_init.c", end: "vuser_end.c" };
 
@@ -133,5 +133,18 @@ describe("shortPath", () => {
   it("batas dapat diatur; path dengan <= 2 segmen tidak dipotong", () => {
     expect(shortPath("/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbb")).toBe("/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbb");
     expect(shortPath("/a/b/c/d", 4)).toBe("…/c/d");
+  });
+});
+
+describe("statusLabel", () => {
+  it("hanya kode bila statusText kosong (tanpa tanda '-')", () => {
+    expect(statusLabel(200, "")).toBe("200");
+    expect(statusLabel(500, undefined)).toBe("500");
+  });
+
+  it("kode + teks bila ada; tanpa kode -> '-'", () => {
+    expect(statusLabel(404, "Not Found")).toBe("404 Not Found");
+    expect(statusLabel(0, "")).toBe("-");
+    expect(statusLabel(undefined)).toBe("-");
   });
 });

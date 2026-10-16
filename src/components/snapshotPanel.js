@@ -12,7 +12,7 @@
 import { subscribe, getState } from "../store.js";
 import { apiGet } from "../api.js";
 import { escapeHtml } from "../utils/html.js";
-import { groupLabel, snapshotInfo } from "../utils/steps.js";
+import { endpointParts, groupLabel, snapshotInfo, statusLabel } from "../utils/steps.js";
 
 /** @type {HTMLElement|null} */
 let root = null;
@@ -155,7 +155,7 @@ const copyTexts = new Map();
 function copyButton(text, label = "Copy") {
   const id = String(copyTexts.size + 1);
   copyTexts.set(id, text);
-  return `<button type="button" data-copy="${id}" class="copy-btn shrink-0 rounded border border-gray-600 px-1.5 py-0.5 text-[10px] text-gray-300 hover:border-yellow-400 hover:text-yellow-400">${escapeHtml(label)}</button>`;
+  return `<button type="button" data-copy="${id}" class="copy-btn h-5 shrink-0 rounded-[3px] border border-[#2a3644] px-2 text-[10px] leading-none text-[#aab4c0] hover:border-[#d2a24c] hover:text-[#d2a24c]">${escapeHtml(label)}</button>`;
 }
 
 /**
@@ -168,12 +168,12 @@ function copyButton(text, label = "Copy") {
 function section(title, detail, copyText, innerHtml) {
   return `
     <section class="snap-section">
-      <div class="mb-1 flex items-center gap-2">
-        <h3 class="snap-section-title text-[11px] font-semibold uppercase tracking-wide text-gray-400">${escapeHtml(title)}</h3>
-        <span class="min-w-0 truncate text-[11px] text-gray-500">${escapeHtml(detail)}</span>
+      <div class="mb-1.5 flex h-5 items-center gap-2">
+        <h3 class="snap-section-title text-[11px] font-semibold uppercase tracking-wide text-[#aab4c0]">${escapeHtml(title)}</h3>
+        <span class="min-w-0 truncate text-[11px] text-[#7d8896]">${escapeHtml(detail)}</span>
         <span class="ml-auto">${copyText ? copyButton(copyText) : ""}</span>
       </div>
-      <div class="rounded bg-gray-800 overflow-hidden">${innerHtml}</div>
+      <div class="overflow-hidden rounded-[3px] bg-[#1b212b]">${innerHtml}</div>
     </section>
   `;
 }
@@ -212,11 +212,11 @@ function renderRequestTab(snapReq) {
   const requestLine = `
     <div class="flex items-center gap-2 p-2">
       <span class="rounded bg-blue-600 px-2 py-0.5 text-[11px] text-white">${escapeHtml(snapReq.method || '-')}</span>
-      <span class="break-all font-mono text-[11px] text-gray-300">${escapeHtml(snapReq.url || '-')}</span>
+      <span class="font-mono text-[11px] text-[#aab4c0] [overflow-wrap:anywhere]">${escapeHtml(snapReq.url || '-')}</span>
     </div>`;
 
   return `
-    <div class="space-y-3">
+    <div class="space-y-4">
       ${section("Request", "", snapReq.url || null, requestLine)}
       ${headersSection(snapReq.headers)}
       ${bodySection(reqBodyText, reqCategory, bodyHtml, reqSize)}
@@ -227,18 +227,17 @@ function renderRequestTab(snapReq) {
 /** Render tab content for Response */
 function renderResponseTab(resp, contentHtml, category, text) {
   const respStatus = resp.status || '-';
-  const respStatusText = resp.statusText || '-';
   const respSize = resp.size ? `${(resp.size / 1024).toFixed(1)} KB` : '-';
 
   const statusLine = `
     <div class="flex items-center gap-2 p-2">
-      <span class="rounded px-2 py-0.5 text-[11px] text-white ${respStatus >= 400 ? 'bg-red-600' : 'bg-green-600'}">${escapeHtml(respStatus)} ${escapeHtml(respStatusText)}</span>
-      <span class="text-[11px] text-gray-500">${escapeHtml(resp.contentType || '-')} • ${escapeHtml(respSize)}</span>
+      <span class="rounded px-2 py-0.5 text-[11px] text-white ${respStatus >= 400 ? 'bg-red-600' : 'bg-green-600'}">${escapeHtml(statusLabel(resp.status, resp.statusText))}</span>
+      <span class="text-[11px] text-[#7d8896]">${escapeHtml(resp.contentType || '-')} • ${escapeHtml(respSize)}</span>
       ${category === 'html' ? `<label class="ml-auto flex cursor-pointer items-center gap-1 text-[11px] text-gray-400"><input type="checkbox" data-load-resources class="accent-blue-500" ${loadResources ? 'checked' : ''}> Load resources</label>` : ''}
     </div>`;
 
   return `
-    <div class="space-y-3">
+    <div class="space-y-4">
       ${section("Response", "", null, statusLine)}
       ${headersSection(resp.headers)}
       ${bodySection(text, category, contentHtml, respSize)}
@@ -256,8 +255,6 @@ function renderRawTab(snapReq, bodyText) {
   const reqBody = snapReq.bodyPreview || '';
   
   // Build raw HTTP response
-  const respStatus = resp.status || '-';
-  const respStatusText = resp.statusText || '-';
   const respHeaders = formatHeaders(resp.headers);
   const respBody = bodyText || '';
   
@@ -283,7 +280,7 @@ function renderRawTab(snapReq, bodyText) {
   }
   
   // Build raw response
-  let rawResponse = `HTTP/1.1 ${respStatus} ${respStatusText}\n`;
+  let rawResponse = `HTTP/1.1 ${statusLabel(resp.status, resp.statusText)}\n`;
   if (respHeaders && respHeaders !== '-') {
     rawResponse += respHeaders + '\n';
   }
@@ -294,7 +291,7 @@ function renderRawTab(snapReq, bodyText) {
   const rawPre = (value, color) => `<pre class="snap-code p-2 font-mono text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere] max-h-64 ${color}">${escapeHtml(value)}</pre>`;
 
   return `
-    <div class="space-y-3">
+    <div class="space-y-4">
       ${section("Raw Request", "", rawRequest, rawPre(rawRequest, "text-green-300"))}
       ${section("Raw Response", "", rawResponse, rawPre(rawResponse, "text-yellow-300"))}
     </div>
@@ -347,13 +344,9 @@ async function renderSnapshot() {
     contentInnerHtml = renderRawTab(req, text);
   }
 
-  const respStatus = resp.status || '-';
-  const respStatusText = resp.statusText || '-';
-  const respContentType = resp.contentType || '-';
-  const respSize = resp.size ? `${(resp.size / 1024).toFixed(1)} KB` : '-';
-
   // Identitas snapshot: nomor (= #seq di daftar step), endpoint, dan petunjuk duplikat
   const snap = snapshotInfo(currentStep, currentRun.steps ?? [currentStep], getState().project?.runLogic);
+  const { method: snapMethod, path: snapPath } = endpointParts(currentStep);
   const snapMeta = [
     currentStep.name,
     currentStep.snapshot ? `Snapshot=${currentStep.snapshot}` : null,
@@ -362,23 +355,25 @@ async function renderSnapshot() {
   ].filter(Boolean).join(" · ");
 
   root.innerHTML = `
-    <div class="flex flex-col h-full bg-gray-900">
-      <!-- Header with tabs -->
-      <div class="p-3 border-b border-gray-700 flex flex-col gap-2">
-        <div class="flex items-center justify-between gap-2">
-          <span class="snapshot-title min-w-0 truncate font-medium text-gray-300"><span class="snapshot-number text-yellow-400">Snapshot #${escapeHtml(snap.number)}</span> ${escapeHtml(snap.endpoint)}${snap.duplicate ? ` <span class="snapshot-duplicate text-xs text-gray-400">(ke-${escapeHtml(snap.duplicate.index)} dari ${escapeHtml(snap.duplicate.total)} pemanggilan endpoint ini)</span>` : ""}</span>
-          <span class="shrink-0 text-xs text-gray-500">${escapeHtml(respStatus)} ${escapeHtml(respStatusText)} • ${escapeHtml(respContentType)} • ${escapeHtml(respSize)}</span>
+    <div class="flex h-full flex-col bg-[#141922]">
+      <!-- Header: baris 1 = #nomor + method + path; baris 2 = nama step, Snapshot=, iterasi, file:baris; lalu tab -->
+      <div class="shrink-0 border-b border-[#232a33]">
+        <div class="snapshot-title flex min-w-0 items-center gap-2 px-3 pt-2.5">
+          <span class="snapshot-number shrink-0 font-semibold text-[#d2a24c]">#${escapeHtml(snap.number)}</span>
+          ${snapMethod ? `<span class="shrink-0 rounded-[3px] bg-[#1b212b] px-1.5 py-0.5 font-mono text-[10px] text-[#aab4c0]">${escapeHtml(snapMethod)}</span>` : ""}
+          <span class="snapshot-path min-w-0 flex-1 truncate text-[13px] font-medium text-[#e6edf3]" title="${escapeHtml(snapPath)}">${escapeHtml(snapPath)}</span>
+          ${snap.duplicate ? `<span class="snapshot-duplicate shrink-0 rounded-[3px] border border-[#2a3644] px-1.5 py-0.5 font-mono text-[10px] text-[#aab4c0]" title="ke-${escapeHtml(snap.duplicate.index)} dari ${escapeHtml(snap.duplicate.total)} pemanggilan endpoint ini">${escapeHtml(snap.duplicate.index)}/${escapeHtml(snap.duplicate.total)}</span>` : ""}
         </div>
-        <div class="snapshot-meta truncate text-[11px] text-gray-500" title="${escapeHtml(snapMeta)}">${escapeHtml(snapMeta)}</div>
-        <div class="flex gap-1 border-b border-gray-700">
-          <button data-tab="request" class="tab-btn px-3 py-1 text-xs font-medium rounded-t transition-colors ${activeTab === 'request' ? 'bg-gray-800 text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-gray-200'}">Request</button>
-          <button data-tab="response" class="tab-btn px-3 py-1 text-xs font-medium rounded-t transition-colors ${activeTab === 'response' ? 'bg-gray-800 text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-gray-200'}">Response</button>
-          <button data-tab="raw" class="tab-btn px-3 py-1 text-xs font-medium rounded-t transition-colors ${activeTab === 'raw' ? 'bg-gray-800 text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-gray-200'}">Raw</button>
+        <div class="snapshot-meta truncate px-3 pb-1 pt-1 text-[11px] text-[#7d8896]" title="${escapeHtml(snapMeta)}">${escapeHtml(snapMeta)}</div>
+        <div class="flex px-1" role="tablist">
+          <button type="button" role="tab" data-tab="request" aria-selected="${activeTab === 'request'}" class="tab-btn ui-tab">Request</button>
+          <button type="button" role="tab" data-tab="response" aria-selected="${activeTab === 'response'}" class="tab-btn ui-tab">Response</button>
+          <button type="button" role="tab" data-tab="raw" aria-selected="${activeTab === 'raw'}" class="tab-btn ui-tab">Raw</button>
         </div>
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-auto p-3">
+      <div class="min-h-0 flex-1 overflow-auto p-3">
         ${contentInnerHtml}
       </div>
     </div>

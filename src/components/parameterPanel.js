@@ -47,7 +47,7 @@ function tableHtml(rows) {
   const arrow = sortDirection === "asc" ? "▲" : "▼";
   return `
     <table class="param-table w-full table-fixed border-collapse text-[11px]">
-      <thead class="sticky top-0 bg-gray-800 text-left text-gray-400">
+      <thead class="sticky top-0 bg-[#1b212b] text-left text-[#7d8896]">
         <tr>
           <th class="param-sort w-2/5 cursor-pointer select-none px-3 py-1.5 font-semibold hover:text-yellow-400" data-sort="name" title="Urutkan menurut nama">Name ${arrow}</th>
           <th class="px-3 py-1.5 font-semibold">Value</th>
@@ -57,9 +57,9 @@ function tableHtml(rows) {
         ${sorted
           .map(
             (row) => `
-        <tr class="param-row border-t border-gray-800 align-top hover:bg-gray-800">
-          <td class="param-name break-all px-3 py-1 font-mono text-gray-300" title="${escapeHtml(row.hint)}">${escapeHtml(row.name)}</td>
-          <td class="param-value break-all px-3 py-1 font-mono text-green-300">${escapeHtml(row.value)}</td>
+        <tr class="param-row border-t border-[#232a33] align-top hover:bg-[#161c24]">
+          <td class="param-name px-3 py-1 font-mono text-[#aab4c0] [overflow-wrap:anywhere]" title="${escapeHtml(row.hint)}">${escapeHtml(row.name)}</td>
+          <td class="param-value px-3 py-1 font-mono text-green-300 [overflow-wrap:anywhere]">${escapeHtml(row.value)}</td>
         </tr>`,
           )
           .join("")}
@@ -69,7 +69,7 @@ function tableHtml(rows) {
 }
 
 function emptyHtml(message) {
-  return `<div class="p-4 text-center text-gray-500">${escapeHtml(message)}</div>`;
+  return `<div class="p-4 text-center text-[12px] text-[#5b6572]">${escapeHtml(message)}</div>`;
 }
 
 /** Render panel */
@@ -89,7 +89,7 @@ function render() {
 
   const scope = step ? `pada Snapshot #${step.seq} · ${step.file}:${step.line}` : run ? "keadaan terakhir run" : "";
   const tab = (id, label, count) =>
-    `<button type="button" data-mode="${id}" class="param-mode rounded px-2.5 py-1 text-xs ${mode === id ? "bg-gray-700 text-yellow-400" : "text-gray-400 hover:text-gray-200"}">${escapeHtml(label)} <span class="text-gray-500">${escapeHtml(count)}</span></button>`;
+    `<button type="button" role="tab" data-mode="${id}" aria-selected="${mode === id}" class="param-mode ui-tab">${escapeHtml(label)}<span class="ui-count">${escapeHtml(count)}</span></button>`;
 
   let body;
   if (!run) body = emptyHtml("Belum ada run");
@@ -98,10 +98,10 @@ function render() {
   else body = tableHtml(rows);
 
   contentEl.innerHTML = `
-    <div class="flex items-center gap-1 border-b border-gray-700 px-3 py-2">
+    <div class="panel-toolbar !px-1" role="tablist">
       ${tab("vugen", "Parameter VuGen", vugen.length)}
       ${tab("c", "Variabel C", step ? cVars.length : "–")}
-      <span class="param-scope ml-auto min-w-0 truncate text-[11px] text-gray-500" title="${escapeHtml(scope)}">${escapeHtml(scope)}</span>
+      <span class="param-scope ml-auto min-w-0 truncate pr-2 text-[11px] text-[#7d8896]" title="${escapeHtml(scope)}">${escapeHtml(scope)}</span>
     </div>
     <div class="param-body flex-1 overflow-auto">${body}</div>
   `;
@@ -123,7 +123,7 @@ function render() {
 export function createParameterPanel(container) {
   root = container;
   lastRenderKey = "";
-  root.innerHTML = `<div id="content" class="flex h-full flex-col bg-gray-900"></div>`;
+  root.innerHTML = `<div id="content" class="flex h-full flex-col bg-[#141922]"></div>`;
   contentEl = root.querySelector("#content");
 
   unsubscribe = subscribe(render);

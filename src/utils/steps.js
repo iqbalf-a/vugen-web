@@ -122,3 +122,15 @@ export function snapshotInfo(step, steps, runLogic) {
   const index = same.findIndex((other) => other.seq === step.seq) + 1;
   return { number: step.seq, endpoint, group, duplicate: same.length > 1 && index > 0 ? { index, total: same.length } : null };
 }
+
+/**
+ * Label status HTTP: "200", atau "404 Not Found" bila statusText ada.
+ * statusText kosong (umum di HTTP/1.1 modern) tidak diberi tanda "-".
+ *
+ * @param {number|string|undefined} status
+ * @param {string} [statusText]
+ */
+export function statusLabel(status, statusText) {
+  const code = status || "-";
+  return statusText ? `${code} ${statusText}` : String(code);
+}

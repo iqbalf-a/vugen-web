@@ -11,28 +11,26 @@ let root = null;
 let contentEl = null;
 /** @type {Function|null} */
 let unsubscribe = null;
+/** @type {HTMLElement|null} */
+let countEl = null;
 /** @type {boolean} */
 let autoScroll = true;
 
-/** Get level color */
+/** Warna per level: warn kuning, error merah, selain itu teks biasa */
 function getLevelColor(level) {
   switch (level) {
-    case "error": return "text-red-400";
-    case "warn": return "text-yellow-400";
-    case "transaction": return "text-blue-400";
-    case "step": return "text-green-400";
-    default: return "text-gray-300";
+    case "error": return "text-[#f08a8a]";
+    case "warn": return "text-[#e3c664]";
+    default: return "text-[#aab4c0]";
   }
 }
 
-/** Get level icon */
+/** Ikon level (menempel di awal pesan) */
 function getLevelIcon(level) {
   switch (level) {
     case "error": return "✗";
     case "warn": return "⚠";
-    case "transaction": return "⟳";
-    case "step": return "▶";
-    default: return "ℹ";
+    default: return "·";
   }
 }
 
@@ -50,23 +48,24 @@ function render() {
   const logs = run?.log || [];
 
   if (logs.length === 0) {
-    contentEl.innerHTML = '<div class="p-4 text-gray-500 text-center">Belum ada log</div>';
+    contentEl.innerHTML = '<div class="p-4 text-center text-[12px] text-[#5b6572]">Belum ada log</div>';
     return;
   }
 
   // Keep only last 500 entries for performance
   const displayLogs = logs.slice(-500);
+  if (countEl) countEl.textContent = String(logs.length);
 
-  contentEl.innerHTML = displayLogs.map(entry => `
-    <div class="px-3 py-1 border-b border-gray-800 hover:bg-gray-800 ${getLevelColor(entry.level)}">
-      <div class="flex items-start gap-2 text-xs">
-        <span class="font-mono text-gray-500 shrink-0">${formatTime(entry.ts)}</span>
-        <span class="font-mono shrink-0">${getLevelIcon(entry.level)}</span>
-        <span class="font-mono text-gray-400 shrink-0">${escapeHtml(entry.file || "")}:${escapeHtml(entry.line || "")}</span>
-        <span class="flex-1 break-all">${escapeHtml(entry.msg)}</span>
-      </div>
-    </div>
-  `).join("");
+  // Grid tiga kolom: waktu | lokasi | pesan (pesan dibungkus di batas kata/karakter, tanpa memotong kata di tengah)
+  contentEl.innerHTML = displayLogs.map((entry) => {
+    const location = entry.file ? `${entry.file}:${entry.line ?? ""}` : "";
+    return `
+    <div class="log-row grid grid-cols-[84px_104px_minmax(0,1fr)] items-baseline gap-x-3 px-3 py-0.5 hover:bg-[#161c24] ${getLevelColor(entry.level)}">
+      <span class="font-mono text-[11px] tabular-nums text-[#5b6572]">${formatTime(entry.ts)}</span>
+      <span class="truncate font-mono text-[11px] text-[#7d8896]" title="${escapeHtml(location)}">${escapeHtml(location)}</span>
+      <span class="text-[12px] leading-snug [overflow-wrap:anywhere]"><span class="mr-1 inline-block w-3 text-center">${getLevelIcon(entry.level)}</span>${escapeHtml(entry.msg)}</span>
+    </div>`;
+  }).join("");
 
   // Auto scroll to bottom
   if (autoScroll) {
@@ -81,18 +80,20 @@ function onStateChange() {
 export function createLogPanel(container) {
   root = container;
   root.innerHTML = `
-    <div class="flex flex-col h-full bg-gray-900">
-      <div class="p-3 border-b border-gray-700 flex items-center justify-between">
-        <span class="font-medium text-gray-300">Log</span>
-        <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
-          <input type="checkbox" id="autoScroll" checked class="accent-blue-500">
+    <div class="flex h-full flex-col bg-[#141922]">
+      <div class="panel-toolbar">
+        <span class="text-[12px] font-medium text-[#e6edf3]">Log</span>
+        <span id="logCount" class="ui-count">0</span>
+        <label class="ml-auto flex cursor-pointer items-center gap-2 text-[11px] text-[#7d8896]">
+          <input type="checkbox" id="autoScroll" checked class="accent-[#d2a24c]">
           Auto-scroll
         </label>
       </div>
-      <div id="content" class="flex-1 overflow-y-auto font-mono text-sm"></div>
+      <div id="content" class="min-h-0 flex-1 overflow-y-auto py-1"></div>
     </div>
   `;
   contentEl = root.querySelector("#content");
+  countEl = root.querySelector("#logCount");
   const autoScrollCheckbox = root.querySelector("#autoScroll");
   autoScrollCheckbox.addEventListener("change", (e) => {
     autoScroll = e.target.checked;
@@ -107,6 +108,7 @@ export function createLogPanel(container) {
       unsubscribe = null;
       root = null;
       contentEl = null;
+      countEl = null;
     },
   };
 }

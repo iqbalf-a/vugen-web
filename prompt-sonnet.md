@@ -93,24 +93,24 @@ Hasil audit UI dengan Chrome headless di **1500×900** dan **1280×720**. Skenar
 
 ### U1c — Snapshot, Parameter, Log (`snapshotPanel.js`, `parameterPanel.js`, `logPanel.js`, `main.js`)
 
-- [ ] **Dua gaya tab berbeda.** Tab panel (Snapshot/Parameter/Log) dan tab snapshot (Request/Response/Raw) memakai gaya yang tidak sama, ditambah sub-tab Parameter ("Parameter VuGen / Variabel C") yang berbentuk kartu.
+- [x] **Dua gaya tab berbeda.** Tab panel (Snapshot/Parameter/Log) dan tab snapshot (Request/Response/Raw) memakai gaya yang tidak sama, ditambah sub-tab Parameter ("Parameter VuGen / Variabel C") yang berbentuk kartu.
   - Seragamkan ketiganya: teks 12px, `px-3 h-8`, aktif = teks `#e6edf3` + garis bawah 2px `#d2a24c`, nonaktif = `#7d8896`.
   - Hitungan (2, 0) jadi badge kecil inline di kanan label, bukan di baris kedua.
-- [ ] **Header snapshot terlalu padat.** Judul, status, tipe, dan ukuran ada dalam satu baris sehingga judul terpotong.
+- [x] **Header snapshot terlalu padat.** Judul, status, tipe, dan ukuran ada dalam satu baris sehingga judul terpotong.
   - Baris 1: `#1` + badge method + path (truncate, `title` lengkap).
   - Baris 2 (11px, `#7d8896`): nama step · Snapshot=tN.inf · Iterasi · file:baris.
   - Status/tipe/ukuran **cukup sekali**. Sekarang tampil dua kali, di header dan di kartu "RESPONSE". Pertahankan di kartu RESPONSE saja.
-- [ ] **[bug] "200 -" / "500 -" / "HTTP/1.1 200 -":** tanda `-` muncul karena `statusText` kosong (umum di HTTP/1.1 modern). Tampilkan hanya kode bila `statusText` kosong, baik di header, kartu, maupun tab Raw.
-- [ ] **Jarak antar seksi panel kanan** (RESPONSE / HEADERS / BODY) tidak seragam.
+- [x] **[bug] "200 -" / "500 -" / "HTTP/1.1 200 -":** tanda `-` muncul karena `statusText` kosong (umum di HTTP/1.1 modern). Tampilkan hanya kode bila `statusText` kosong, baik di header, kartu, maupun tab Raw.
+- [x] **Jarak antar seksi panel kanan** (RESPONSE / HEADERS / BODY) tidak seragam.
   - Seksi `space-y-4`, judul seksi ke isinya 6px.
   - Tombol Copy sejajar vertikal dengan judul seksi dan berukuran sama di semua seksi.
-- [ ] **URL di tab Request terputus di tengah kata** ("inqui / ry"). Pakai `overflow-wrap:anywhere` (bukan `break-all`) supaya pemutusan terjadi di `/` bila memungkinkan.
-- [ ] **Log sulit dibaca.** `break-all` memotong kata di tengah ("load / page", "r / egistered"), kolom timestamp dan file memakan lebar, dan tiap baris punya border sendiri.
+- [x] **URL di tab Request terputus di tengah kata** ("inqui / ry"). Pakai `overflow-wrap:anywhere` (bukan `break-all`) supaya pemutusan terjadi di `/` bila memungkinkan.
+- [x] **Log sulit dibaca.** `break-all` memotong kata di tengah ("load / page", "r / egistered"), kolom timestamp dan file memakan lebar, dan tiap baris punya border sendiri.
   - Pakai `overflow-wrap:anywhere`.
   - Layout grid `[auto_auto_1fr]`: waktu (11px `#5b6572`), lokasi file:baris (11px `#7d8896`), pesan (12px).
   - Ikon level menempel di pesan. Hapus border per baris, ganti hover `#161c24` dan `py-0.5`.
   - Baris warn: teks kuning. Baris error: merah. Info: default.
-- [ ] **Header panel Log** ("Log" + Auto-scroll) dan Parameter ("pada Snapshot #4 · Action.c…") tingginya beda. Samakan tinggi toolbar panel 36px, `px-3`, dan teks konteks 11px truncate.
+- [x] **Header panel Log** ("Log" + Auto-scroll) dan Parameter ("pada Snapshot #4 · Action.c…") tingginya beda. Samakan tinggi toolbar panel 36px, `px-3`, dan teks konteks 11px truncate.
 
 ### U1d — Panel search CodeMirror (`src/components/editor.js`, `src/style.css`)
 

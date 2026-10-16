@@ -1,0 +1,651 @@
+{
+  "file": "transpile-cases.c",
+  "ast": {
+    "type": "Program",
+    "file": "transpile-cases.c",
+    "body": [
+      {
+        "type": "FunctionDeclaration",
+        "name": "Action",
+        "body": [
+          {
+            "type": "VariableDeclaration",
+            "dataType": "int",
+            "declarations": [
+              {
+                "name": "count",
+                "array": false,
+                "arraySize": null,
+                "pointer": false,
+                "init": {
+                  "type": "CastExpression",
+                  "targetType": "int",
+                  "argument": {
+                    "type": "NumberLiteral",
+                    "value": 3.7,
+                    "file": "transpile-cases.c",
+                    "line": 4
+                  },
+                  "file": "transpile-cases.c",
+                  "line": 4
+                },
+                "line": 4
+              }
+            ],
+            "file": "transpile-cases.c",
+            "line": 4
+          },
+          {
+            "type": "VariableDeclaration",
+            "dataType": "char",
+            "declarations": [
+              {
+                "name": "p",
+                "array": false,
+                "arraySize": null,
+                "pointer": true,
+                "init": {
+                  "type": "CastExpression",
+                  "targetType": "char *",
+                  "argument": {
+                    "type": "StringLiteral",
+                    "value": "teks",
+                    "kind": "string",
+                    "file": "transpile-cases.c",
+                    "line": 5
+                  },
+                  "file": "transpile-cases.c",
+                  "line": 5
+                },
+                "line": 5
+              }
+            ],
+            "file": "transpile-cases.c",
+            "line": 5
+          },
+          {
+            "type": "VariableDeclaration",
+            "dataType": "int",
+            "declarations": [
+              {
+                "name": "var",
+                "array": false,
+                "arraySize": null,
+                "pointer": false,
+                "init": {
+                  "type": "NumberLiteral",
+                  "value": 1,
+                  "file": "transpile-cases.c",
+                  "line": 6
+                },
+                "line": 6
+              },
+              {
+                "name": "function",
+                "array": false,
+                "arraySize": null,
+                "pointer": false,
+                "init": {
+                  "type": "NumberLiteral",
+                  "value": 2,
+                  "file": "transpile-cases.c",
+                  "line": 6
+                },
+                "line": 6
+              }
+            ],
+            "file": "transpile-cases.c",
+            "line": 6
+          },
+          {
+            "type": "VariableDeclaration",
+            "dataType": "char",
+            "declarations": [
+              {
+                "name": "buf",
+                "array": true,
+                "arraySize": {
+                  "type": "NumberLiteral",
+                  "value": 16,
+                  "file": "transpile-cases.c",
+                  "line": 7
+                },
+                "pointer": false,
+                "init": null,
+                "line": 7
+              }
+            ],
+            "file": "transpile-cases.c",
+            "line": 7
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "strcpy",
+                "file": "transpile-cases.c",
+                "line": 9
+              },
+              "arguments": [
+                {
+                  "type": "Identifier",
+                  "name": "buf",
+                  "file": "transpile-cases.c",
+                  "line": 9
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "abc",
+                  "kind": "string",
+                  "file": "transpile-cases.c",
+                  "line": 9
+                }
+              ],
+              "file": "transpile-cases.c",
+              "line": 9
+            },
+            "file": "transpile-cases.c",
+            "line": 9
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "sprintf",
+                "file": "transpile-cases.c",
+                "line": 10
+              },
+              "arguments": [
+                {
+                  "type": "Identifier",
+                  "name": "buf",
+                  "file": "transpile-cases.c",
+                  "line": 10
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "%d-%s",
+                  "kind": "string",
+                  "file": "transpile-cases.c",
+                  "line": 10
+                },
+                {
+                  "type": "Identifier",
+                  "name": "count",
+                  "file": "transpile-cases.c",
+                  "line": 10
+                },
+                {
+                  "type": "Identifier",
+                  "name": "p",
+                  "file": "transpile-cases.c",
+                  "line": 10
+                }
+              ],
+              "file": "transpile-cases.c",
+              "line": 10
+            },
+            "file": "transpile-cases.c",
+            "line": 10
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "strcat",
+                "file": "transpile-cases.c",
+                "line": 11
+              },
+              "arguments": [
+                {
+                  "type": "Identifier",
+                  "name": "buf",
+                  "file": "transpile-cases.c",
+                  "line": 11
+                },
+                {
+                  "type": "StringLiteral",
+                  "value": "x",
+                  "kind": "string",
+                  "file": "transpile-cases.c",
+                  "line": 11
+                }
+              ],
+              "file": "transpile-cases.c",
+              "line": 11
+            },
+            "file": "transpile-cases.c",
+            "line": 11
+          },
+          {
+            "type": "BlockStatement",
+            "body": [
+              {
+                "type": "VariableDeclaration",
+                "dataType": "int",
+                "declarations": [
+                  {
+                    "name": "inner",
+                    "array": false,
+                    "arraySize": null,
+                    "pointer": false,
+                    "init": {
+                      "type": "BinaryExpression",
+                      "operator": "+",
+                      "left": {
+                        "type": "Identifier",
+                        "name": "var",
+                        "file": "transpile-cases.c",
+                        "line": 14
+                      },
+                      "right": {
+                        "type": "Identifier",
+                        "name": "function",
+                        "file": "transpile-cases.c",
+                        "line": 14
+                      },
+                      "file": "transpile-cases.c",
+                      "line": 14
+                    },
+                    "line": 14
+                  }
+                ],
+                "file": "transpile-cases.c",
+                "line": 14
+              },
+              {
+                "type": "ExpressionStatement",
+                "expression": {
+                  "type": "CallExpression",
+                  "callee": {
+                    "type": "Identifier",
+                    "name": "lr_output_message",
+                    "file": "transpile-cases.c",
+                    "line": 15
+                  },
+                  "arguments": [
+                    {
+                      "type": "StringLiteral",
+                      "value": "%d",
+                      "kind": "string",
+                      "file": "transpile-cases.c",
+                      "line": 15
+                    },
+                    {
+                      "type": "Identifier",
+                      "name": "inner",
+                      "file": "transpile-cases.c",
+                      "line": 15
+                    }
+                  ],
+                  "file": "transpile-cases.c",
+                  "line": 15
+                },
+                "file": "transpile-cases.c",
+                "line": 15
+              }
+            ],
+            "file": "transpile-cases.c",
+            "line": 13
+          },
+          {
+            "type": "BlockStatement",
+            "body": [
+              {
+                "type": "VariableDeclaration",
+                "dataType": "int",
+                "declarations": [
+                  {
+                    "name": "inner",
+                    "array": false,
+                    "arraySize": null,
+                    "pointer": false,
+                    "init": {
+                      "type": "NumberLiteral",
+                      "value": 5,
+                      "file": "transpile-cases.c",
+                      "line": 18
+                    },
+                    "line": 18
+                  }
+                ],
+                "file": "transpile-cases.c",
+                "line": 18
+              },
+              {
+                "type": "ExpressionStatement",
+                "expression": {
+                  "type": "CallExpression",
+                  "callee": {
+                    "type": "Identifier",
+                    "name": "lr_output_message",
+                    "file": "transpile-cases.c",
+                    "line": 19
+                  },
+                  "arguments": [
+                    {
+                      "type": "StringLiteral",
+                      "value": "%d",
+                      "kind": "string",
+                      "file": "transpile-cases.c",
+                      "line": 19
+                    },
+                    {
+                      "type": "Identifier",
+                      "name": "inner",
+                      "file": "transpile-cases.c",
+                      "line": 19
+                    }
+                  ],
+                  "file": "transpile-cases.c",
+                  "line": 19
+                },
+                "file": "transpile-cases.c",
+                "line": 19
+              }
+            ],
+            "file": "transpile-cases.c",
+            "line": 17
+          },
+          {
+            "type": "DoWhileStatement",
+            "body": {
+              "type": "BlockStatement",
+              "body": [
+                {
+                  "type": "ExpressionStatement",
+                  "expression": {
+                    "type": "UpdateExpression",
+                    "operator": "--",
+                    "argument": {
+                      "type": "Identifier",
+                      "name": "count",
+                      "file": "transpile-cases.c",
+                      "line": 23
+                    },
+                    "prefix": false,
+                    "file": "transpile-cases.c",
+                    "line": 23
+                  },
+                  "file": "transpile-cases.c",
+                  "line": 23
+                }
+              ],
+              "file": "transpile-cases.c",
+              "line": 22
+            },
+            "header": {
+              "line": 24
+            },
+            "test": {
+              "type": "BinaryExpression",
+              "operator": ">",
+              "left": {
+                "type": "Identifier",
+                "name": "count",
+                "file": "transpile-cases.c",
+                "line": 24
+              },
+              "right": {
+                "type": "NumberLiteral",
+                "value": 0,
+                "file": "transpile-cases.c",
+                "line": 24
+              },
+              "file": "transpile-cases.c",
+              "line": 24
+            },
+            "file": "transpile-cases.c",
+            "line": 22
+          },
+          {
+            "type": "SwitchStatement",
+            "header": {
+              "line": 26
+            },
+            "discriminant": {
+              "type": "Identifier",
+              "name": "count",
+              "file": "transpile-cases.c",
+              "line": 26
+            },
+            "cases": [
+              {
+                "type": "SwitchCase",
+                "test": {
+                  "type": "NumberLiteral",
+                  "value": 0,
+                  "file": "transpile-cases.c",
+                  "line": 27
+                },
+                "consequent": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "CallExpression",
+                      "callee": {
+                        "type": "Identifier",
+                        "name": "lr_output_message",
+                        "file": "transpile-cases.c",
+                        "line": 28
+                      },
+                      "arguments": [
+                        {
+                          "type": "StringLiteral",
+                          "value": "nol",
+                          "kind": "string",
+                          "file": "transpile-cases.c",
+                          "line": 28
+                        }
+                      ],
+                      "file": "transpile-cases.c",
+                      "line": 28
+                    },
+                    "file": "transpile-cases.c",
+                    "line": 28
+                  },
+                  {
+                    "type": "BreakStatement",
+                    "file": "transpile-cases.c",
+                    "line": 29
+                  }
+                ],
+                "file": "transpile-cases.c",
+                "line": 27
+              },
+              {
+                "type": "SwitchCase",
+                "test": null,
+                "consequent": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "CallExpression",
+                      "callee": {
+                        "type": "Identifier",
+                        "name": "lr_output_message",
+                        "file": "transpile-cases.c",
+                        "line": 31
+                      },
+                      "arguments": [
+                        {
+                          "type": "StringLiteral",
+                          "value": "lain",
+                          "kind": "string",
+                          "file": "transpile-cases.c",
+                          "line": 31
+                        }
+                      ],
+                      "file": "transpile-cases.c",
+                      "line": 31
+                    },
+                    "file": "transpile-cases.c",
+                    "line": 31
+                  }
+                ],
+                "file": "transpile-cases.c",
+                "line": 30
+              }
+            ],
+            "file": "transpile-cases.c",
+            "line": 26
+          },
+          {
+            "type": "IfStatement",
+            "header": {
+              "line": 34
+            },
+            "test": {
+              "type": "BinaryExpression",
+              "operator": "==",
+              "left": {
+                "type": "Identifier",
+                "name": "count",
+                "file": "transpile-cases.c",
+                "line": 34
+              },
+              "right": {
+                "type": "NumberLiteral",
+                "value": 0,
+                "file": "transpile-cases.c",
+                "line": 34
+              },
+              "file": "transpile-cases.c",
+              "line": 34
+            },
+            "consequent": {
+              "type": "ExpressionStatement",
+              "expression": {
+                "type": "CallExpression",
+                "callee": {
+                  "type": "Identifier",
+                  "name": "lr_think_time",
+                  "file": "transpile-cases.c",
+                  "line": 34
+                },
+                "arguments": [
+                  {
+                    "type": "NumberLiteral",
+                    "value": 1,
+                    "file": "transpile-cases.c",
+                    "line": 34
+                  }
+                ],
+                "file": "transpile-cases.c",
+                "line": 34
+              },
+              "file": "transpile-cases.c",
+              "line": 34
+            },
+            "alternate": {
+              "type": "ExpressionStatement",
+              "expression": {
+                "type": "CallExpression",
+                "callee": {
+                  "type": "Identifier",
+                  "name": "lr_think_time",
+                  "file": "transpile-cases.c",
+                  "line": 34
+                },
+                "arguments": [
+                  {
+                    "type": "NumberLiteral",
+                    "value": 2,
+                    "file": "transpile-cases.c",
+                    "line": 34
+                  }
+                ],
+                "file": "transpile-cases.c",
+                "line": 34
+              },
+              "file": "transpile-cases.c",
+              "line": 34
+            },
+            "file": "transpile-cases.c",
+            "line": 34
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "unknown_function",
+                "file": "transpile-cases.c",
+                "line": 35
+              },
+              "arguments": [
+                {
+                  "type": "NumberLiteral",
+                  "value": 1,
+                  "file": "transpile-cases.c",
+                  "line": 35
+                }
+              ],
+              "file": "transpile-cases.c",
+              "line": 35
+            },
+            "file": "transpile-cases.c",
+            "line": 35
+          },
+          {
+            "type": "ExpressionStatement",
+            "expression": {
+              "type": "CallExpression",
+              "callee": {
+                "type": "Identifier",
+                "name": "lr_output_message",
+                "file": "transpile-cases.c",
+                "line": 36
+              },
+              "arguments": [
+                {
+                  "type": "Identifier",
+                  "name": "buf",
+                  "file": "transpile-cases.c",
+                  "line": 36
+                }
+              ],
+              "file": "transpile-cases.c",
+              "line": 36
+            },
+            "file": "transpile-cases.c",
+            "line": 36
+          },
+          {
+            "type": "ReturnStatement",
+            "argument": {
+              "type": "BinaryExpression",
+              "operator": "+",
+              "left": {
+                "type": "Identifier",
+                "name": "count",
+                "file": "transpile-cases.c",
+                "line": 37
+              },
+              "right": {
+                "type": "NumberLiteral",
+                "value": 1,
+                "file": "transpile-cases.c",
+                "line": 37
+              },
+              "file": "transpile-cases.c",
+              "line": 37
+            },
+            "file": "transpile-cases.c",
+            "line": 37
+          }
+        ],
+        "file": "transpile-cases.c",
+        "line": 2
+      }
+    ],
+    "warnings": []
+  }
+}

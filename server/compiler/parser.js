@@ -8,9 +8,11 @@
  * Setiap node menyimpan `file` dan `line` aslinya sehingga pesan error/step
  * bisa dipetakan balik ke baris C (plan §7.2).
  *
- * Control-flow (`if`/`for`/`while`/`do`) untuk sementara menyimpan headernya
- * sebagai teks mentah (`header.raw`); body-nya tetap diparse rekursif sehingga
- * setiap pemanggilan fungsi di dalam body punya baris yang benar.
+ * Control-flow (`if`/`for`/`while`/`do`/`switch`): header diparse menjadi ekspresi
+ * (`test`, `init`, `update`, `discriminant`); teks aslinya tetap di `header.raw`
+ * untuk pesan. Header yang gagal diparse -> node `Unsupported` + warning.
+ * Deklarasi variabel (multi-deklarator, array, pointer) -> `VariableDeclaration`;
+ * prototipe fungsi -> `FunctionPrototype` (diabaikan transpiler).
  *
  * @typedef {import("./tokenizer.js").Token} Token
  *
@@ -85,6 +87,27 @@ const TYPE_KEYWORDS = new Set([
   "auto",
 ]);
 
+/** Kata yang membentuk tipe pada deklarasi variabel / cast. */
+const DECL_SPECIFIERS = new Set([
+  "int",
+  "char",
+  "short",
+  "long",
+  "float",
+  "double",
+  "signed",
+  "unsigned",
+  "const",
+  "static",
+  "register",
+  "extern",
+  "volatile",
+  "merc_timer_handle_t",
+  "size_t",
+]);
+/** Kualifier yang tidak ikut menjadi `dataType`. */
+const DECL_QUALIFIERS = new Set(["const", "static", "register", "extern", "volatile"]);
+
 /** Precedence operator biner (makin besar makin kuat). */
 const BINARY_PRECEDENCE = {
   "||": 1,
@@ -109,7 +132,7 @@ const BINARY_PRECEDENCE = {
 
 const ASSIGNMENT_OPERATORS = new Set(["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "|=", "^="]);
 const UNARY_OPERATORS = new Set(["-", "+", "!", "~", "&", "*"]);
-const UNSUPPORTED_STATEMENT_STARTERS = new Set(["switch", "goto", "case", "default", "try", "throw"]);
+const UNSUPPORTED_STATEMENT_STARTERS = new Set(["goto", "case", "default", "try", "throw"]);
 
 function toNumber(text) {
   if (/^0[xX]/.test(text)) return Number.parseInt(text, 16);
@@ -367,6 +390,7 @@ class Parser {
     if (token.value === "for") return this.parseFor();
     if (token.value === "while") return this.parseWhile();
     if (token.value === "do") return this.parseDoWhile();
+    if (token.value === "switch") return this.parseSwitch();
     if (token.value === "return") return this.parseReturn();
     if (token.value === "break" || token.value === "continue") {
       this.next();
@@ -374,6 +398,10 @@ class Parser {
       return { type: token.value === "break" ? "BreakStatement" : "ContinueStatement", raw: `${token.value};`, file: this.file, line: token.line };
     }
     if (UNSUPPORTED_STATEMENT_STARTERS.has(token.value)) return this.parseUnsupportedStatement();
+    if (this.isDeclarationStart()) {
+      const declaration = this.parseDeclaration();
+      return declaration ?? this.parseUnsupportedStatement();
+    }
     if (token.type === "identifier" && TYPE_KEYWORDS.has(token.value)) return this.parseUnsupportedStatement();
     if (token.type === "identifier" && this.peek(1).value === ":") {
       this.next();
@@ -429,41 +457,249 @@ class Parser {
     return { raw: this.source.slice(open.start, end), line: open.line };
   }
 
+  /**
+   * Parse kondisi `( ekspresi )` header if/while/do-while/switch.
+   * Gagal parse -> kembali ke awal, konsumsi `( ... )` secara mentah, beri warning,
+   * dan `ok: false` supaya pemanggil menghasilkan node `Unsupported` (plan S4).
+   */
+  parseCondition() {
+    const open = this.peek();
+    const startPos = this.pos;
+    if (open.value !== "(") {
+      this.warn(open, "Tanda ( tidak ditemukan.");
+      return { ok: false, test: null, header: { raw: "", line: open.line } };
+    }
+
+    const warningCount = this.warnings.length;
+    this.next();
+    const test = this.parseExpression();
+    if (test && this.checkValue(")")) {
+      this.next();
+      return { ok: true, test, header: { raw: this.source.slice(open.start, this.endOffset()), line: open.line } };
+    }
+
+    this.pos = startPos;
+    this.warnings.length = warningCount;
+    const header = this.readParenRaw();
+    this.warn(open, `Kondisi tidak bisa diparse, statement dilewati: ${header.raw}`);
+    return { ok: false, test: null, header };
+  }
+
+  /** Node `Unsupported` untuk statement kontrol alur yang headernya gagal diparse. */
+  unsupportedFrom(token) {
+    return { type: "Unsupported", raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
+  }
+
   parseIf() {
     const token = this.next();
-    const header = this.readParenRaw();
+    const cond = this.parseCondition();
     const consequent = this.parseStatement();
     let alternate = null;
     if (this.eatValue("else")) alternate = this.parseStatement();
-    return { type: "IfStatement", header, consequent, alternate, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
+    if (!cond.ok) return this.unsupportedFrom(token);
+    return {
+      type: "IfStatement",
+      header: cond.header,
+      test: cond.test,
+      consequent,
+      alternate,
+      raw: this.source.slice(token.start, this.endOffset()),
+      file: this.file,
+      line: token.line,
+    };
   }
 
   parseFor() {
     const token = this.next();
-    const header = this.readParenRaw();
+    const open = this.peek();
+    const startPos = this.pos;
+    let init = null;
+    let test = null;
+    let update = null;
+    const warningCount = this.warnings.length;
+    let ok = open.value === "(";
+
+    if (ok) {
+      this.next();
+      if (!this.checkValue(";")) {
+        init = this.isDeclarationStart() ? this.parseDeclaration({ inFor: true }) : this.parseExpression();
+        if (!init) ok = false;
+      }
+      ok = ok && this.eatValue(";");
+      if (ok && !this.checkValue(";")) {
+        test = this.parseExpression();
+        if (!test) ok = false;
+      }
+      ok = ok && this.eatValue(";");
+      if (ok && !this.checkValue(")")) {
+        update = this.parseExpression();
+        if (!update) ok = false;
+      }
+      ok = ok && this.eatValue(")");
+    }
+
+    let header;
+    if (ok) {
+      header = { raw: this.source.slice(open.start, this.endOffset()), line: open.line };
+    } else {
+      this.pos = startPos;
+      this.warnings.length = warningCount;
+      header = this.readParenRaw();
+      this.warn(open, `Header for tidak bisa diparse, statement dilewati: ${header.raw}`);
+    }
+
     const body = this.parseStatement();
-    return { type: "ForStatement", header, body, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
+    if (!ok) return this.unsupportedFrom(token);
+    return { type: "ForStatement", header, init, test, update, body, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
   }
 
   parseWhile() {
     const token = this.next();
-    const header = this.readParenRaw();
+    const cond = this.parseCondition();
     const body = this.parseStatement();
-    return { type: "WhileStatement", header, body, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
+    if (!cond.ok) return this.unsupportedFrom(token);
+    return { type: "WhileStatement", header: cond.header, test: cond.test, body, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
   }
 
   parseDoWhile() {
     const token = this.next();
     const body = this.parseStatement();
-    let header = { raw: "", line: token.line };
+    let cond = { ok: false, test: null, header: { raw: "", line: token.line } };
     if (this.peek().value === "while") {
       this.next();
-      header = this.readParenRaw();
+      cond = this.parseCondition();
     } else {
       this.warn(this.peek(), "`while` tidak ditemukan pada do-while.");
     }
     this.eatValue(";");
-    return { type: "DoWhileStatement", body, header, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
+    if (!cond.ok) return this.unsupportedFrom(token);
+    return { type: "DoWhileStatement", body, header: cond.header, test: cond.test, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
+  }
+
+  parseSwitch() {
+    const token = this.next();
+    const startPos = this.pos;
+    const cond = this.parseCondition();
+    if (!cond.ok || !this.checkValue("{")) {
+      // Kembali ke awal `switch` dan lewati seluruh statement apa adanya.
+      this.pos = startPos - 1;
+      return this.parseUnsupportedStatement();
+    }
+
+    this.next(); // {
+    /** @type {AstNode[]} */
+    const cases = [];
+    let current = null;
+
+    while (!this.atEnd() && !this.checkValue("}")) {
+      const head = this.peek();
+      if (head.value === "case" || head.value === "default") {
+        this.next();
+        const test = head.value === "case" ? this.parseConditional() : null;
+        this.eatValue(":");
+        current = { type: "SwitchCase", test, consequent: [], file: this.file, line: head.line };
+        cases.push(current);
+        continue;
+      }
+      const before = this.pos;
+      const statement = this.parseStatement();
+      if (this.pos === before) this.next();
+      if (current) current.consequent.push(statement);
+      else this.warn(head, "Statement sebelum `case` pertama pada switch diabaikan.");
+    }
+
+    if (!this.eatValue("}")) this.warn(this.peek(), "Tanda } tidak ditemukan.");
+    return { type: "SwitchStatement", header: cond.header, discriminant: cond.test, cases, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
+  }
+
+  // --- deklarasi variabel -------------------------------------------------
+
+  /** Apakah statement saat ini deklarasi variabel / prototipe fungsi? */
+  isDeclarationStart() {
+    const first = this.peek();
+    if (first.type !== "identifier") return false;
+    if (DECL_SPECIFIERS.has(first.value)) return true;
+    // Nama tipe turunan yang tidak dikenal: `NamaTipe nama ;|=|,|[`
+    const second = this.peek(1);
+    return (
+      !KEYWORDS.has(first.value) &&
+      second.type === "identifier" &&
+      !KEYWORDS.has(second.value) &&
+      [";", "=", ",", "["].includes(this.peek(2).value)
+    );
+  }
+
+  /**
+   * Parse `tipe a = 1, *b, c[10];` -> VariableDeclaration, atau `tipe f(...);` -> FunctionPrototype.
+   * Mengembalikan null (posisi dikembalikan) bila bentuknya di luar subset.
+   *
+   * @param {{ inFor?: boolean }} [options] `inFor`: titik koma penutup tidak dimakan
+   */
+  parseDeclaration({ inFor = false } = {}) {
+    const startToken = this.peek();
+    const startPos = this.pos;
+    const warningCount = this.warnings.length;
+    const fail = () => {
+      this.pos = startPos;
+      this.warnings.length = warningCount; // warning dari percobaan yang dibatalkan tidak dilaporkan
+      return null;
+    };
+
+    const words = [];
+    while (this.peek().type === "identifier" && DECL_SPECIFIERS.has(this.peek().value)) words.push(this.next().value);
+    if (words.length === 0) words.push(this.next().value); // nama tipe turunan
+    const dataType = words.filter((word) => !DECL_QUALIFIERS.has(word)).join(" ") || "int";
+
+    const declarations = [];
+    for (;;) {
+      let pointer = false;
+      while (this.checkValue("*")) {
+        this.next();
+        pointer = true;
+        while (this.peek().type === "identifier" && DECL_QUALIFIERS.has(this.peek().value)) this.next();
+      }
+
+      const nameToken = this.peek();
+      if (nameToken.type !== "identifier" || KEYWORDS.has(nameToken.value)) return fail();
+      this.next();
+
+      if (this.checkValue("(") && declarations.length === 0 && !inFor) {
+        this.skipBalanced("(", ")");
+        if (!this.eatValue(";")) return fail();
+        return { type: "FunctionPrototype", name: nameToken.value, raw: this.source.slice(startToken.start, this.endOffset()), file: this.file, line: startToken.line };
+      }
+
+      let array = false;
+      let arraySize = null;
+      if (this.checkValue("[")) {
+        this.next();
+        array = true;
+        if (!this.checkValue("]")) {
+          arraySize = this.parseAssignment();
+          if (!arraySize) return fail();
+        }
+        if (!this.eatValue("]")) return fail();
+        if (this.checkValue("[")) return fail(); // array multi-dimensi di luar subset
+      }
+
+      let init = null;
+      if (this.eatValue("=")) {
+        if (this.checkValue("{")) return fail(); // initializer list di luar subset
+        init = this.parseAssignment();
+        if (!init) return fail();
+      }
+
+      declarations.push({ name: nameToken.value, array, arraySize, pointer, init, line: nameToken.line });
+      if (!this.eatValue(",")) break;
+    }
+
+    const raw = this.source.slice(startToken.start, this.endOffset());
+    if (!inFor && !this.eatValue(";")) {
+      // `;` hilang di akhir blok/file ditoleransi; selain itu bukan deklarasi sederhana.
+      if (!this.atEnd() && !this.checkValue("}")) return fail();
+      this.warn(this.peek(), "Tanda ; tidak ditemukan (statement tetap diproses).");
+    }
+    return { type: "VariableDeclaration", dataType, declarations, raw, file: this.file, line: startToken.line };
   }
 
   parseReturn() {
@@ -573,6 +809,11 @@ class Parser {
       return { type: "UpdateExpression", operator: token.value, argument, prefix: true, file: this.file, line: token.line };
     }
 
+    if (token.value === "(") {
+      const cast = this.tryParseCast();
+      if (cast) return cast;
+    }
+
     if (UNARY_OPERATORS.has(token.value)) {
       this.next();
       const argument = this.parseUnary();
@@ -581,6 +822,41 @@ class Parser {
     }
 
     return this.parsePostfix();
+  }
+
+  /**
+   * Deteksi cast `(tipe) operand`. Hanya tipe C bawaan (DECL_SPECIFIERS/void) yang dikenali,
+   * sehingga `(a) - b` tetap ekspresi biasa. Kembalikan null (posisi tidak berubah) bila bukan cast.
+   */
+  tryParseCast() {
+    const open = this.peek();
+    const startPos = this.pos;
+    let offset = 1;
+    const words = [];
+    while (this.peek(offset).type === "identifier" && (DECL_SPECIFIERS.has(this.peek(offset).value) || this.peek(offset).value === "void")) {
+      words.push(this.peek(offset).value);
+      offset += 1;
+    }
+    if (words.length === 0) return null;
+    while (this.peek(offset).value === "*") {
+      words.push("*");
+      offset += 1;
+    }
+    if (this.peek(offset).value !== ")") return null;
+
+    const after = this.peek(offset + 1);
+    const startsOperand = ["identifier", "number", "string", "char"].includes(after.type) || ["(", "-", "+", "!", "~", "&", "*"].includes(after.value);
+    if (!startsOperand) return null;
+
+    const warningCount = this.warnings.length;
+    this.pos = startPos + offset + 1;
+    const argument = this.parseUnary();
+    if (!argument) {
+      this.pos = startPos;
+      this.warnings.length = warningCount;
+      return null;
+    }
+    return { type: "CastExpression", targetType: words.filter((word) => !DECL_QUALIFIERS.has(word)).join(" "), argument, file: this.file, line: open.line };
   }
 
   parsePostfix() {

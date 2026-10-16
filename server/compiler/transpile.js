@@ -2,11 +2,18 @@
  * Transpiler C -> JS internal (plan §7.2).
  *
  * Aturan yang dipegang:
- * - Setiap statement hasil transpile diawali `__vu.__at("Action.c", 45)` supaya
+ * - Setiap statement hasil transpile diawali `__at("Action.c", 45)` supaya
  *   step/error bisa dipetakan balik ke baris C tanpa source map penuh.
- * - Pemanggilan `web_*` / `lr_*` yang didukung dibuat `await`.
- * - Statement di luar subset -> `await __vu.__unsupported("<teks asli>", ...)`;
- *   runtime mencatat warning lalu lanjut (plan §4.5), tidak pernah crash.
+ * - Pemanggilan fungsi yang didukung runtime (`runtime/api-names.js`) dibuat
+ *   `await __vu.<nama>(...)`; fungsi user -> `await __fn_<nama>(...)`.
+ * - Semua ekspresi (termasuk kondisi if/for/while dan inisialisasi variabel)
+ *   ditranspile dari AST lewat `expressionToJs`; tidak ada jalur teks mentah.
+ * - Statement/fungsi di luar subset -> warning compile + panggilan
+ *   `__unsupported*` di runtime yang hanya mencatat warning lalu lanjut
+ *   (plan §4.5), tidak pernah crash.
+ * - Variabel global (mis. dari globals.h) menjadi `let` level modul.
+ * - Makro status LoadRunner (`LR_PASS`, `LR_FAIL`, `LR_AUTO`, `LR_EXIT_*`) bernilai
+ *   angka seperti di C; makro argumen web (`LAST`, `ITEMDATA`, ...) tetap string sentinel.
  * - Substitusi `{param}` TIDAK dilakukan di sini, melainkan di runtime
  *   (plan §7.2) karena nilai param bisa berubah (correlation).
  *
@@ -21,52 +28,20 @@
  * @typedef {import("./parser.js").AstNode} AstNode
  * @typedef {{ file: string, line: number, message: string }} TranspileWarning
  * @typedef {{ file: string, ast: import("./parser.js").Program }} ParsedProgram
+ * @typedef {{ names: Set<string>, scopes: Set<string>[], warnings: TranspileWarning[] }} Context
  */
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { toPosix } from "../project/paths.js";
+import { SUPPORTED_FUNCTION_SET } from "../runtime/api-names.js";
 import { parse } from "./parser.js";
 
-/** Fungsi tahap inti yang didukung (plan §7.1). Urutan hanya untuk dokumentasi. */
-export const CORE_FUNCTIONS = Object.freeze([
-  "web_url",
-  "web_custom_request",
-  "web_rest",
-  "web_submit_data",
-  "web_submit_form",
-  "lr_start_transaction",
-  "lr_end_transaction",
-  "lr_set_transaction",
-  "lr_get_transaction_status",
-  "lr_think_time",
-  "lr_save_string",
-  "lr_eval_string",
-  "lr_output_message",
-  "lr_error_message",
-  "web_add_header",
-  "web_add_auto_header",
-  "web_reg_save_param",
-  "web_reg_save_param_ex",
-  "web_reg_save_param_regexp",
-  "web_reg_find",
-  "web_add_cookie",
-  "web_cleanup_cookies",
-  "web_set_user",
-  "strcmp",
-  "strstr",
-  "sprintf",
-  "atoi",
-  "strcpy",
-]);
-
-const CORE_FUNCTION_SET = new Set(CORE_FUNCTIONS);
-
 /**
- * Makro VuGen yang dikenal tokenizer. Nilainya diterjemahkan langsung saat
- * transpile menjadi string sentinel — persis seperti yang diterima VuGen di
- * runtime, sehingga parser argumen di `vuser-api.js` bisa membedakannya.
+ * Makro VuGen/LoadRunner. Status & opsi exit bernilai angka (sama dengan C);
+ * makro argumen web menjadi string sentinel yang dibedakan parser argumen
+ * di `vuser-api.js`.
  */
 const MACRO_VALUES = {
   LAST: '"LAST"',
@@ -75,13 +50,39 @@ const MACRO_VALUES = {
   EXTRARES: '"EXTRARES"',
   SEARCH_FILTERS: '"SEARCH_FILTERS"',
   SOURCES: '"SOURCES"',
-  LR_AUTO: '"LR_AUTO"',
-  LR_PASS: '"LR_PASS"',
-  LR_FAIL: '"LR_FAIL"',
-  LR_EXIT_ITERATION_AND_CONTINUE: '"LR_EXIT_ITERATION_AND_CONTINUE"',
-  LR_EXIT_ITERATION: '"LR_EXIT_ITERATION"',
   NULL: "null",
+  LR_PASS: "0",
+  LR_FAIL: "1",
+  LR_AUTO: "2",
+  LR_STOP: "3",
+  LR_EXIT_VUSER: "0",
+  LR_EXIT_ACTION_AND_CONTINUE: "1",
+  LR_EXIT_ITERATION_AND_CONTINUE: "2",
+  LR_EXIT_VUSER_AFTER_ITERATION: "3",
+  LR_EXIT_VUSER_AFTER_ACTION: "4",
 };
+
+/** Header sistem LoadRunner: `#include`-nya diabaikan tanpa warning. */
+const LOADRUNNER_HEADERS = new Set(["lrun.h", "web_api.h", "lrw_custom_body.h", "as_web.h"]);
+
+/**
+ * File hasil generate VuGen (bukan sumber script): `pre_cci.c` (keluaran preprocessor),
+ * `combined_*.c` (gabungan semua action), dan salinan rekaman di `data/`.
+ * Meng-compile-nya hanya menggandakan definisi fungsi.
+ */
+const GENERATED_FILE_PATTERNS = [/^pre_cci.c$/i, /^combined_.+.c$/i];
+
+/** @param {string} display path relatif POSIX */
+function isGeneratedFile(display) {
+  return display.toLowerCase().startsWith("data/") || GENERATED_FILE_PATTERNS.some((pattern) => pattern.test(path.posix.basename(display)));
+}
+
+/** Kata reserved JS yang sah sebagai identifier C; diberi akhiran `_` agar kode hasil transpile valid. */
+const JS_RESERVED = new Set([
+  "await", "async", "class", "debugger", "delete", "export", "extends", "false", "finally", "function",
+  "import", "in", "instanceof", "let", "new", "null", "of", "super", "this", "true", "try", "typeof",
+  "var", "with", "yield", "arguments", "eval", "undefined", "NaN", "Infinity",
+]);
 
 const INDENT = "  ";
 
@@ -98,12 +99,97 @@ function functionIdentifier(name) {
   return `__fn_${name}`;
 }
 
+/** Nama variabel C -> nama variabel JS (hindari kata reserved JS). */
+function jsName(name) {
+  return JS_RESERVED.has(name) ? `${name}_` : name;
+}
+
+/** @param {string[]} lines */
+function indent(lines) {
+  return lines.map((line) => `${INDENT}${line}`);
+}
+
+/** @param {Context} context @param {string} name */
+function isDeclared(context, name) {
+  return context.scopes.some((scope) => scope.has(name));
+}
+
+/** @param {Context} context @param {string} name */
+function declare(context, name) {
+  context.scopes.at(-1).add(name);
+}
+
+/** @param {Context} context @param {AstNode} node @param {string} message */
+function warn(context, node, message) {
+  context.warnings.push({ file: node.file, line: node.line, message });
+}
+
+/** Panggilan `__unsupportedCall` untuk fungsi/ekspresi di luar subset. */
+function unsupportedCall(label, node) {
+  return `await __unsupportedCall(${quote(label)}, ${quote(node.file)}, ${node.line})`;
+}
+
+/**
+ * Sisi kiri assignment / operand ++ --: identifier tidak dikenal tetap ditulis
+ * sebagai nama JS (dengan warning), bukan `undefined`, supaya sintaks tetap valid.
+ *
+ * @param {AstNode} node
+ * @param {Context} context
+ */
+function lvalueToJs(node, context) {
+  if (node.type === "Identifier") {
+    if (!isDeclared(context, node.name)) {
+      warn(context, node, `Variabel "${node.name}" tidak dideklarasikan; assignment dipertahankan apa adanya.`);
+    }
+    return jsName(node.name);
+  }
+  return expressionToJs(node, context);
+}
+
+/**
+ * Terjemahkan pemanggilan fungsi.
+ *
+ * @param {AstNode} node
+ * @param {Context} context
+ */
+function callToJs(node, context) {
+  const name = node.callee?.type === "Identifier" ? node.callee.name : null;
+  if (!name) {
+    warn(context, node, `Pemanggilan ${node.raw ?? "ekspresi"} belum didukung; dipanggil sebagai unsupported.`);
+    return unsupportedCall(node.raw ?? "ekspresi", node);
+  }
+
+  const args = node.arguments;
+
+  // Fungsi C yang mengubah buffer argumen pertama -> assignment ke variabel itu.
+  if ((name === "strcpy" || name === "sprintf") && args.length >= 2) {
+    if (args[0].type === "Identifier" && isDeclared(context, args[0].name)) {
+      const target = jsName(args[0].name);
+      const rest = args.slice(1).map((argument) => expressionToJs(argument, context));
+      if (name === "strcpy") return `(${target} = String(${rest[0]}))`;
+      return `(${target} = await __vu.sprintf(${rest.join(", ")}))`;
+    }
+    warn(context, node, `Fungsi "${name}" dengan tujuan selain variabel sederhana belum didukung; dipanggil sebagai unsupported.`);
+    return unsupportedCall(name, node);
+  }
+
+  if (SUPPORTED_FUNCTION_SET.has(name)) {
+    return `await __vu.${name}(${args.map((argument) => expressionToJs(argument, context)).join(", ")})`;
+  }
+  if (context.names.has(name)) {
+    return `await ${functionIdentifier(name)}(${args.map((argument) => expressionToJs(argument, context)).join(", ")})`;
+  }
+
+  warn(context, node, `Fungsi "${name}" belum didukung; dipanggil sebagai unsupported.`);
+  return unsupportedCall(name, node);
+}
+
 /**
  * Terjemahkan satu ekspresi. Semua pemanggilan fungsi menghasilkan `await`,
  * jadi fungsi pembungkusnya wajib `async`.
  *
  * @param {AstNode} node
- * @param {{ names: Set<string>, warnings: TranspileWarning[] }} context
+ * @param {Context} context
  * @returns {string}
  */
 function expressionToJs(node, context) {
@@ -115,239 +201,187 @@ function expressionToJs(node, context) {
       return numberToJs(node.value);
 
     case "Identifier": {
-      if (Object.hasOwn(MACRO_VALUES, node.name)) {
-        return MACRO_VALUES[node.name];
-      }
-      context.warnings.push({
-        file: node.file,
-        line: node.line,
-        message: `Variabel "${node.name}" belum didukung pada tahap ini; dipakai sebagai identifier JS.`,
-      });
-      return node.name;
+      if (Object.hasOwn(MACRO_VALUES, node.name)) return MACRO_VALUES[node.name];
+      if (isDeclared(context, node.name)) return jsName(node.name);
+      warn(context, node, `Identifier "${node.name}" tidak dikenal; dianggap undefined.`);
+      return "undefined";
     }
 
-    case "CallExpression": {
-      const name = node.callee?.type === "Identifier" ? node.callee.name : null;
-      const args = node.arguments.map((argument) => expressionToJs(argument, context)).join(", ");
+    case "CallExpression":
+      return callToJs(node, context);
 
-      if (name && CORE_FUNCTION_SET.has(name)) return `await __vu.${name}(${args})`;
-      if (name && context.names.has(name)) return `await ${functionIdentifier(name)}(${args})`;
-
-      const label = name ?? node.raw ?? "ekspresi";
-      context.warnings.push({
-        file: node.file,
-        line: node.line,
-        message: `Fungsi "${name ?? label}" belum didukung pada tahap ini; dipanggil sebagai unsupported.`,
-      });
-      return `await __unsupportedCall(${quote(label)}, ${quote(node.file)}, ${node.line})`;
+    case "CastExpression": {
+      const inner = expressionToJs(node.argument, context);
+      const target = node.targetType;
+      if (target.includes("*") || target === "void") return inner; // cast pointer: nilai apa adanya
+      if (/\b(float|double)\b/.test(target)) return `Number(${inner})`;
+      return `Math.trunc(${inner})`; // int/long/short/char/unsigned...
     }
 
     case "UnaryExpression": {
-      if (["-", "+", "!"].includes(node.operator)) {
-        return `(${node.operator === "!" ? "!" : node.operator}${expressionToJs(node.argument, context)})`;
-      }
-      break;
+      if (["-", "+", "!", "~"].includes(node.operator)) return `(${node.operator}${expressionToJs(node.argument, context)})`;
+      // `&x` / `*p`: tidak ada pointer di JS; operand dipakai apa adanya.
+      warn(context, node, `Operator unary "${node.operator}" (pointer) belum didukung; operand dipakai apa adanya.`);
+      return expressionToJs(node.argument, context);
     }
 
-    case "AssignmentExpression": {
-      const left = expressionToJs(node.left, context);
-      const right = expressionToJs(node.right, context);
-      return `(${left} ${node.operator} ${right})`;
-    }
+    case "AssignmentExpression":
+      return `(${lvalueToJs(node.left, context)} ${node.operator} ${expressionToJs(node.right, context)})`;
 
     case "UpdateExpression": {
-      const arg = expressionToJs(node.argument, context);
-      const op = node.operator;
-      if (node.prefix) return `(${op}${arg})`;
-      return `(${arg}${op})`;
+      const arg = lvalueToJs(node.argument, context);
+      return node.prefix ? `(${node.operator}${arg})` : `(${arg}${node.operator})`;
     }
 
-    case "BinaryExpression": {
-      const left = expressionToJs(node.left, context);
-      const right = expressionToJs(node.right, context);
-      return `(${left} ${node.operator} ${right})`;
-    }
+    case "BinaryExpression":
+      return `(${expressionToJs(node.left, context)} ${node.operator} ${expressionToJs(node.right, context)})`;
 
-    case "ConditionalExpression": {
-      const test = expressionToJs(node.test, context);
-      const consequent = expressionToJs(node.consequent, context);
-      const alternate = expressionToJs(node.alternate, context);
-      return `(${test} ? ${consequent} : ${alternate})`;
-    }
+    case "ConditionalExpression":
+      return `(${expressionToJs(node.test, context)} ? ${expressionToJs(node.consequent, context)} : ${expressionToJs(node.alternate, context)})`;
 
-    case "SequenceExpression": {
-      return node.expressions.map((e) => expressionToJs(e, context)).join(", ");
-    }
+    case "SequenceExpression":
+      return `(${node.expressions.map((expression) => expressionToJs(expression, context)).join(", ")})`;
 
     case "MemberExpression": {
-      const obj = expressionToJs(node.object, context);
-      const prop = node.computed ? `[${expressionToJs(node.property, context)}]` : `.${node.property.name}`;
-      return `${obj}${prop}`;
+      const object = expressionToJs(node.object, context);
+      return node.computed ? `${object}[${expressionToJs(node.property, context)}]` : `${object}.${node.property.name}`;
     }
 
     default:
       break;
   }
 
-  context.warnings.push({
-    file: node.file,
-    line: node.line,
-    message: `Ekspresi ${node.type} belum didukung pada tahap ini; dilewati.`,
-  });
-  return `await __unsupportedCall(${quote(node.raw ?? node.type)}, ${quote(node.file)}, ${node.line})`;
+  warn(context, node, `Ekspresi ${node.type} belum didukung; dilewati.`);
+  return unsupportedCall(node.raw ?? node.type, node);
+}
+
+/** Nilai awal variabel C yang tidak diinisialisasi. */
+function defaultValue(dataType, declarator) {
+  const isChar = /\bchar\b/.test(dataType);
+  if (declarator.array) {
+    if (isChar && !declarator.pointer) return '""'; // char buf[N] dipakai sebagai string
+    if (declarator.arraySize?.type === "NumberLiteral") return `new Array(${numberToJs(declarator.arraySize.value)}).fill(0)`;
+    return "[]";
+  }
+  if (declarator.pointer) return isChar ? '""' : "null";
+  return "0";
 }
 
 /**
- * Terjemahkan satu statement menjadi array baris JS (sudah termasuk indentasi).
+ * `a = 0, b = 0` (tanpa `let` dan tanpa titik koma). Nama didaftarkan ke scope
+ * SETELAH init diterjemahkan (init tidak boleh melihat variabel yang sedang dideklarasikan).
+ *
+ * @param {AstNode} node VariableDeclaration
+ * @param {Context} context
+ */
+function declaratorsToJs(node, context) {
+  return node.declarations
+    .map((declarator) => {
+      const init = declarator.init ? expressionToJs(declarator.init, context) : defaultValue(node.dataType, declarator);
+      declare(context, declarator.name);
+      return `${jsName(declarator.name)} = ${init}`;
+    })
+    .join(", ");
+}
+
+/**
+ * Body statement kontrol alur -> baris di dalam `{ }` yang ditulis pemanggil.
+ *
+ * @param {AstNode} body
+ * @param {Context} context
+ */
+function bodyLines(body, context) {
+  context.scopes.push(new Set());
+  const lines = body.type === "BlockStatement" ? body.body.flatMap((child) => statementToJs(child, context)) : statementToJs(body, context);
+  context.scopes.pop();
+  return indent(lines);
+}
+
+/**
+ * Terjemahkan satu statement menjadi array baris JS (tanpa indentasi dasar).
+ * SELALU mengembalikan array.
  *
  * Setiap statement yang menghasilkan kode diawali `__at(file, line)` (plan §7.2)
  * supaya step/log berikutnya bisa dipetakan balik ke baris C.
  *
  * @param {AstNode} node
- * @param {{ names: Set<string>, warnings: TranspileWarning[] }} context
+ * @param {Context} context
  * @returns {string[]}
  */
 function statementToJs(node, context) {
-  const pad = INDENT;
-  const at = `${pad}__at(${quote(node.file)}, ${node.line});`;
-
-  function replaceCoreFunctions(raw) {
-    let result = raw;
-      // Function names are handled by the parser in expressionToJs
-      // for (const func of CORE_FUNCTIONS) {
-      //       const regex = new RegExp(`\\b${func}\\s*\\(`, "g");
-      //       result = result.replace(regex, `__vu.${func}(`);
-      // }
-      // Also replace VuGen macro identifiers (LR_FAIL, LR_AUTO, etc.)
-    for (const [macro, value] of Object.entries(MACRO_VALUES)) {
-      const regex = new RegExp(`\\b${macro}\\b`, "g");
-      result = result.replace(regex, value);
-    }
-    return result;
-  }
+  const at = `__at(${quote(node.file)}, ${node.line});`;
 
   switch (node.type) {
     case "Directive":
     case "EmptyStatement":
+    case "FunctionPrototype":
       return [];
 
-    case "BlockStatement":
-      return node.body.flatMap((child) => statementToJs(child, context));
-
-    case "ExpressionStatement":
-      return [at, `${pad}${expressionToJs(node.expression, context)};`];
-
-    case "ReturnStatement": {
-      const lines = [at];
-      if (node.argument) lines.push(`${pad}${expressionToJs(node.argument, context)};`);
-      lines.push(`${pad}return;`);
-      return lines;
+    case "BlockStatement": {
+      context.scopes.push(new Set());
+      const lines = node.body.flatMap((child) => statementToJs(child, context));
+      context.scopes.pop();
+      return ["{", ...indent(lines), "}"];
     }
 
+    case "VariableDeclaration":
+      return [at, `let ${declaratorsToJs(node, context)};`];
+
+    case "ExpressionStatement":
+      return [at, `${expressionToJs(node.expression, context)};`];
+
+    case "ReturnStatement":
+      return [at, node.argument ? `return ${expressionToJs(node.argument, context)};` : "return;"];
+
     case "IfStatement": {
-      const lines = [at];
-      const cond = node.header?.raw ? `(${replaceCoreFunctions(node.header.raw)})` : "true";
-      lines.push(`${pad}if ${cond} {`);
-      const consequent = node.consequent.flatMap ? node.consequent.flatMap((s) => statementToJs(s, context)) : statementToJs(node.consequent, context);
-      lines.push(...consequent.map(l => `${pad}  ${l.replace(/^ {2}/, "")}`));
-      lines.push(`${pad}}`);
-      if (node.alternate) {
-        lines.push(`${pad}else {`);
-        const alternate = node.alternate.flatMap ? node.alternate.flatMap((s) => statementToJs(s, context)) : statementToJs(node.alternate, context);
-        lines.push(...alternate.map(l => `${pad}  ${l.replace(/^ {2}/, "")}`));
-        lines.push(`${pad}}`);
-      }
+      const lines = [at, `if (${expressionToJs(node.test, context)}) {`, ...bodyLines(node.consequent, context)];
+      if (node.alternate) lines.push("} else {", ...bodyLines(node.alternate, context));
+      lines.push("}");
       return lines;
     }
 
     case "ForStatement": {
-      const lines = [at];
-      let header = node.header?.raw ? node.header.raw.trim() : "; ;";
-      if (header.startsWith("(") && header.endsWith(")")) {
-        header = header.slice(1, -1).trim();
+      context.scopes.push(new Set()); // variabel di init for hanya hidup di dalam loop
+      const init = !node.init ? "" : node.init.type === "VariableDeclaration" ? `let ${declaratorsToJs(node.init, context)}` : expressionToJs(node.init, context);
+      const test = node.test ? expressionToJs(node.test, context) : "";
+      const update = node.update ? expressionToJs(node.update, context) : "";
+      const lines = [at, `for (${init}; ${test}; ${update}) {`, ...bodyLines(node.body, context), "}"];
+      context.scopes.pop();
+      return lines;
+    }
+
+    case "WhileStatement":
+      return [at, `while (${expressionToJs(node.test, context)}) {`, ...bodyLines(node.body, context), "}"];
+
+    case "DoWhileStatement":
+      return [at, "do {", ...bodyLines(node.body, context), `} while (${expressionToJs(node.test, context)});`];
+
+    case "SwitchStatement": {
+      const lines = [at, `switch (${expressionToJs(node.discriminant, context)}) {`];
+      context.scopes.push(new Set());
+      for (const clause of node.cases) {
+        lines.push(...indent([clause.test ? `case ${expressionToJs(clause.test, context)}:` : "default:"]));
+        lines.push(...indent(indent(clause.consequent.flatMap((child) => statementToJs(child, context)))));
       }
-      header = replaceCoreFunctions(header);
-      lines.push(`${pad}for (${header}) {`);
-      const body = node.body.flatMap ? node.body.flatMap((s) => statementToJs(s, context)) : statementToJs(node.body, context);
-      lines.push(...body.map(l => `${pad}  ${l.replace(/^ {2}/, "")}`));
-      lines.push(`${pad}}`);
-      return lines;
-    }
-
-    case "WhileStatement": {
-      const lines = [at];
-      const cond = node.header?.raw ? `(${replaceCoreFunctions(node.header.raw)})` : "true";
-      lines.push(`${pad}while ${cond} {`);
-      const body = node.body.flatMap ? node.body.flatMap((s) => statementToJs(s, context)) : statementToJs(node.body, context);
-      lines.push(...body.map(l => `${pad}  ${l.replace(/^ {2}/, "")}`));
-      lines.push(`${pad}}`);
-      return lines;
-    }
-
-    case "DoWhileStatement": {
-      const lines = [at];
-      const cond = node.header?.raw ? `(${replaceCoreFunctions(node.header.raw)})` : "true";
-      lines.push(`${pad}do {`);
-      const body = node.body.flatMap ? node.body.flatMap((s) => statementToJs(s, context)) : statementToJs(node.body, context);
-      lines.push(...body.map(l => `${pad}  ${l.replace(/^ {2}/, "")}`));
-      lines.push(`${pad}} while ${cond};`);
+      context.scopes.pop();
+      lines.push("}");
       return lines;
     }
 
     case "BreakStatement":
-      return [at, `${pad}break;`];
+      return [at, "break;"];
 
     case "ContinueStatement":
-      return [at, `${pad}continue;`];
-
-    case "LabeledStatement": {
-      const label = node.label;
-      const lines = [at];
-      lines.push(`${pad}${label}: {`);
-      const body = node.body.flatMap ? node.body.flatMap((s) => statementToJs(s, context)) : statementToJs(node.body, context);
-      lines.push(...body.map(l => `${pad}  ${l.replace(/^ {2}/, "")}`));
-      lines.push(`${pad}}`);
-      return lines;
-    }
+      return [at, "continue;"];
 
     default:
       break;
   }
 
-  // Handle Unsupported statements that are actually variable declarations
-  // e.g., "int i;", "int user_count = 3;", "char buf[256];"
-  if (node.type === "Unsupported" && node.raw) {
-    const rawText = node.raw.trim();
-    // Match simple variable declarations: type name [= value];
-    // Also handles array declarations: char buf[256];
-    const declMatch = /^(int|char|short|long|float|double)\s+(\w+)(?:\[\s*\d+\s*\])?(?:\s*=\s*([^;]+))?\s*;?\s*$/i.exec(rawText);
-    if (declMatch) {
-      const type = declMatch[1].toLowerCase();
-      const name = declMatch[2];
-      const init = declMatch[3];
-      let jsType = "let";
-      let defaultValue = "";
-      if (type === "char" && !init) defaultValue = '""';
-      else if (!init) defaultValue = "0";
-      if (init) {
-        // Transpile the init expression: replace known function calls with __vu. calls
-        let initJs = init;
-      // Function names are handled by the parser in expressionToJs
-      // for (const func of CORE_FUNCTIONS) {
-      //           const regex = new RegExp(`\\b${func}\\s*\\(`, "g");
-      //           initJs = initJs.replace(regex, `__vu.${func}(`);
-      // }
-        return [at, `${pad}${jsType} ${name} = ${initJs};`];
-      } else {
-        return [at, `${pad}${jsType} ${name} = ${defaultValue};`];
-      }
-    }
-
-  // Control flow (if/for/while/do), break/continue, label, statement C yang
-  // belum didukung, dan sisa tipe lain -> lewati dengan warning runtime.
+  // Label (goto), struct/typedef, dan statement C lain yang di luar subset.
   const rawValue = node.raw ?? node.type;
-  return [at, `${pad}await __unsupported(${quote(rawValue)}, ${quote(node.file)}, ${node.line});`];
-}
+  warn(context, node, `Statement ${node.type === "Unsupported" ? "" : `${node.type} `}belum didukung: ${String(rawValue).replace(/\s+/g, " ").slice(0, 80)}`);
+  return [at, `await __unsupported(${quote(rawValue)}, ${quote(node.file)}, ${node.line});`];
 }
 
 /**
@@ -364,6 +398,10 @@ export function transpilePrograms(programs) {
   const names = new Set();
   /** @type {Map<string, AstNode[]>} */
   const functionsByFile = new Map();
+  /** @type {AstNode[]} */
+  const globalDeclarations = [];
+  /** Scope paling luar: variabel global dari semua file. */
+  const globalScope = new Set();
 
   const seenFunctions = new Map();
 
@@ -373,19 +411,26 @@ export function transpilePrograms(programs) {
 
     for (const node of program.ast.body) {
       if (node.type === "FunctionDeclaration") {
-        if (seenFunctions.has(node.name)) {
+        const first = seenFunctions.get(node.name);
+        if (first) {
+          // Dua definisi menghasilkan SyntaxError di JS; definisi pertama menang.
           warnings.push({
             file: node.file,
             line: node.line,
-            message: `Fungsi "${node.name}" didefinisikan lebih dari sekali; definisi di ${node.file}:${node.line} dipakai.`,
+            message: `Fungsi "${node.name}" didefinisikan lebih dari sekali; definisi di ${first.file}:${first.line} dipakai, yang ini diabaikan.`,
           });
+          continue;
         }
         seenFunctions.set(node.name, node);
         names.add(node.name);
         declared.push(node);
         continue;
       }
-      if (node.type === "Directive" || node.type === "EmptyStatement") continue;
+      if (node.type === "Directive" || node.type === "EmptyStatement" || node.type === "FunctionPrototype") continue;
+      if (node.type === "VariableDeclaration") {
+        globalDeclarations.push(node);
+        continue;
+      }
 
       warnings.push({
         file: node.file,
@@ -397,12 +442,24 @@ export function transpilePrograms(programs) {
     functionsByFile.set(program.file, declared);
   }
 
+  // Variabel global -> `let` level modul. Duplikat nama (mis. header di-include dua kali) dilewati.
+  const globalContext = { names, scopes: [globalScope], warnings };
+  const globalLines = [];
+  for (const node of globalDeclarations) {
+    const fresh = node.declarations.filter((declarator) => {
+      if (!globalScope.has(declarator.name)) return true;
+      warnings.push({ file: node.file, line: node.line, message: `Variabel global "${declarator.name}" dideklarasikan lebih dari sekali; deklarasi pertama dipakai.` });
+      return false;
+    });
+    if (fresh.length === 0) continue;
+    globalLines.push(`let ${declaratorsToJs({ ...node, declarations: fresh }, globalContext)};`);
+  }
+
   const lines = [
     "// Hasil transpile otomatis vugen-web dari script VuGen. JANGAN diedit manual.",
     "// Modul ini ditulis ke .cache/<hash>/build/ dan dijalankan runner lewat import().",
     "",
     "let __vu = null;",
-    "let startTime = 0; // Global timer handle (from globals.h)",
     "",
     "export function __bind(vu) {",
     "  __vu = vu;",
@@ -422,13 +479,19 @@ export function transpilePrograms(programs) {
     "",
   ];
 
+  if (globalLines.length > 0) {
+    lines.push("// Variabel global (globals.h / deklarasi di luar fungsi).", ...globalLines, "");
+  }
+
   for (const program of programs) {
     for (const node of functionsByFile.get(program.file) ?? []) {
-      const params = (node.params || []).map(p => p.name).join(", ");
-      lines.push(`export async function ${functionIdentifier(node.name)}(${params}) {`);
-      const body = node.body.flatMap((statement) => statementToJs(statement, { names, warnings }));
+      const params = (node.params || []).map((param) => jsName(param.name));
+      lines.push(`export async function ${functionIdentifier(node.name)}(${params.join(", ")}) {`);
+
+      const context = { names, scopes: [globalScope, new Set((node.params || []).map((param) => param.name))], warnings };
+      const body = node.body.flatMap((statement) => statementToJs(statement, context));
       if (body.length === 0) lines.push(`${INDENT}// (kosong)`);
-      else lines.push(...body);
+      else lines.push(...indent(body));
       lines.push("}", "");
     }
   }
@@ -503,10 +566,11 @@ export async function compileScript({ scriptDir, cacheDir, files }) {
   const programs = [];
   const visited = new Set();
 
-  const queue = files.filter((file) => file.ext === ".c").map((file) => file.path);
+  const queue = files.filter((file) => file.ext === ".c" && !isGeneratedFile(file.path)).map((file) => file.path);
 
-  // Always include globals.h if it exists (contains global vars like startTime, compareDuration)
-  const globalsH = files.find((file) => file.name.toLowerCase() === "globals.h");
+  // globals.h selalu ikut (berisi variabel global & fungsi bersama script KOPRA)
+  // (salinan di data/ adalah artefak rekaman, jangan dipakai menggantikan globals.h di root)
+  const globalsH = files.find((file) => file.name.toLowerCase() === "globals.h" && !isGeneratedFile(file.path));
   if (globalsH) queue.push(globalsH.path);
 
   while (queue.length > 0) {
@@ -533,8 +597,10 @@ export async function compileScript({ scriptDir, cacheDir, files }) {
       if (node.type !== "Directive") continue;
       const target = includeTarget(node.value);
       if (!target) continue;
+      if (LOADRUNNER_HEADERS.has(path.posix.basename(target).toLowerCase())) continue; // header sistem LoadRunner
 
       const resolved = await resolveInclude(scriptDir, display, target);
+      if (resolved && isGeneratedFile(resolved)) continue;
       if (resolved) queue.push(resolved);
       else warnings.push({ file: display, line: node.line, message: `#include tidak ditemukan: ${target}` });
     }

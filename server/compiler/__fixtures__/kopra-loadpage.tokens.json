@@ -1,0 +1,1427 @@
+{
+  "file": "kopra-loadpage.c",
+  "tokens": [
+    {
+      "type": "identifier",
+      "value": "Loadpage",
+      "line": 2,
+      "col": 1
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 2,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "char",
+      "line": 2,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": "*",
+      "line": 2,
+      "col": 14
+    },
+    {
+      "type": "identifier",
+      "value": "parentTrans",
+      "line": 2,
+      "col": 16
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 2,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 3,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "double",
+      "line": 4,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "seq1",
+      "line": 4,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 4,
+      "col": 13
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 4,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 4,
+      "col": 15
+    },
+    {
+      "type": "identifier",
+      "value": "seq2",
+      "line": 4,
+      "col": 17
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 4,
+      "col": 21
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 4,
+      "col": 22
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 4,
+      "col": 23
+    },
+    {
+      "type": "identifier",
+      "value": "tempSeq",
+      "line": 4,
+      "col": 25
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 4,
+      "col": 32
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 4,
+      "col": 33
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 4,
+      "col": 34
+    },
+    {
+      "type": "identifier",
+      "value": "totalSeq",
+      "line": 4,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 4,
+      "col": 44
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 4,
+      "col": 45
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 4,
+      "col": 46
+    },
+    {
+      "type": "identifier",
+      "value": "char",
+      "line": 5,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "transSeqName",
+      "line": 5,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": "[",
+      "line": 5,
+      "col": 19
+    },
+    {
+      "type": "number",
+      "value": "256",
+      "line": 5,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": "]",
+      "line": 5,
+      "col": 23
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 5,
+      "col": 24
+    },
+    {
+      "type": "identifier",
+      "value": "char",
+      "line": 6,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "*",
+      "line": 6,
+      "col": 7
+    },
+    {
+      "type": "identifier",
+      "value": "label",
+      "line": 6,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 6,
+      "col": 14
+    },
+    {
+      "type": "string",
+      "value": "demo",
+      "line": 6,
+      "col": 16
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 6,
+      "col": 22
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 7,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 7,
+      "col": 6
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 7,
+      "col": 7
+    },
+    {
+      "type": "identifier",
+      "value": "attempts",
+      "line": 7,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 7,
+      "col": 18
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 7,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 7,
+      "col": 21
+    },
+    {
+      "type": "identifier",
+      "value": "web_set_max_html_param_len",
+      "line": 9,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 9,
+      "col": 28
+    },
+    {
+      "type": "string",
+      "value": "10000",
+      "line": 9,
+      "col": 29
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 9,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 9,
+      "col": 37
+    },
+    {
+      "type": "identifier",
+      "value": "lr_save_string",
+      "line": 11,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 11,
+      "col": 16
+    },
+    {
+      "type": "identifier",
+      "value": "parentTrans",
+      "line": 11,
+      "col": 17
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 11,
+      "col": 28
+    },
+    {
+      "type": "string",
+      "value": "parentTrans",
+      "line": 11,
+      "col": 30
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 11,
+      "col": 43
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 11,
+      "col": 44
+    },
+    {
+      "type": "identifier",
+      "value": "web_js_run",
+      "line": 12,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 12,
+      "col": 12
+    },
+    {
+      "type": "string",
+      "value": "Code= myFunc(LR.getParam('parentTrans'));",
+      "line": 12,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 12,
+      "col": 56
+    },
+    {
+      "type": "identifier",
+      "value": "SOURCES",
+      "line": 13,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 13,
+      "col": 20
+    },
+    {
+      "type": "string",
+      "value": "Code= var myFunc = function(p) { LR.setParam('subTrans', p.slice(0, 8)); }",
+      "line": 14,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 16,
+      "col": 16
+    },
+    {
+      "type": "identifier",
+      "value": "ENDITEM",
+      "line": 17,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 17,
+      "col": 20
+    },
+    {
+      "type": "identifier",
+      "value": "LAST",
+      "line": 18,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 18,
+      "col": 17
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 18,
+      "col": 18
+    },
+    {
+      "type": "identifier",
+      "value": "web_set_sockets_option",
+      "line": 20,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 20,
+      "col": 24
+    },
+    {
+      "type": "string",
+      "value": "SSL_VERSION",
+      "line": 20,
+      "col": 25
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 20,
+      "col": 38
+    },
+    {
+      "type": "string",
+      "value": "AUTO",
+      "line": 20,
+      "col": 40
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 20,
+      "col": 46
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 20,
+      "col": 47
+    },
+    {
+      "type": "identifier",
+      "value": "web_add_auto_header",
+      "line": 21,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 21,
+      "col": 21
+    },
+    {
+      "type": "string",
+      "value": "Accept-Language",
+      "line": 21,
+      "col": 22
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 21,
+      "col": 39
+    },
+    {
+      "type": "string",
+      "value": "en-US,en;q=0.9",
+      "line": 21,
+      "col": 41
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 21,
+      "col": 57
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 21,
+      "col": 58
+    },
+    {
+      "type": "identifier",
+      "value": "startTime",
+      "line": 23,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 23,
+      "col": 12
+    },
+    {
+      "type": "identifier",
+      "value": "lr_start_timer",
+      "line": 23,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 23,
+      "col": 28
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 23,
+      "col": 29
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 23,
+      "col": 30
+    },
+    {
+      "type": "identifier",
+      "value": "web_url",
+      "line": 24,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 24,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 24,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 24,
+      "col": 24
+    },
+    {
+      "type": "string",
+      "value": "DEMO_{subTrans}_01_ui",
+      "line": 24,
+      "col": 25
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 24,
+      "col": 48
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 24,
+      "col": 49
+    },
+    {
+      "type": "string",
+      "value": "URL=https://{host}/demo/ui",
+      "line": 25,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 25,
+      "col": 38
+    },
+    {
+      "type": "string",
+      "value": "TargetFrame=",
+      "line": 26,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 26,
+      "col": 24
+    },
+    {
+      "type": "string",
+      "value": "Resource=0",
+      "line": 27,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 27,
+      "col": 22
+    },
+    {
+      "type": "string",
+      "value": "Referer=",
+      "line": 28,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 28,
+      "col": 20
+    },
+    {
+      "type": "string",
+      "value": "Snapshot=t1.inf",
+      "line": 29,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 29,
+      "col": 27
+    },
+    {
+      "type": "string",
+      "value": "Mode=HTML",
+      "line": 30,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 30,
+      "col": 21
+    },
+    {
+      "type": "identifier",
+      "value": "LAST",
+      "line": 31,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 31,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 31,
+      "col": 15
+    },
+    {
+      "type": "identifier",
+      "value": "tempSeq",
+      "line": 32,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 32,
+      "col": 10
+    },
+    {
+      "type": "identifier",
+      "value": "lr_end_timer",
+      "line": 32,
+      "col": 12
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 32,
+      "col": 24
+    },
+    {
+      "type": "identifier",
+      "value": "startTime",
+      "line": 32,
+      "col": 25
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 32,
+      "col": 34
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 32,
+      "col": 35
+    },
+    {
+      "type": "identifier",
+      "value": "seq1",
+      "line": 33,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 33,
+      "col": 7
+    },
+    {
+      "type": "identifier",
+      "value": "compareDuration",
+      "line": 33,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 33,
+      "col": 24
+    },
+    {
+      "type": "identifier",
+      "value": "seq1",
+      "line": 33,
+      "col": 25
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 33,
+      "col": 29
+    },
+    {
+      "type": "identifier",
+      "value": "tempSeq",
+      "line": 33,
+      "col": 31
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 33,
+      "col": 38
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 33,
+      "col": 39
+    },
+    {
+      "type": "identifier",
+      "value": "for",
+      "line": 35,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 35,
+      "col": 6
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 35,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 35,
+      "col": 9
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 35,
+      "col": 11
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 35,
+      "col": 12
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 35,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": "<",
+      "line": 35,
+      "col": 16
+    },
+    {
+      "type": "number",
+      "value": "3",
+      "line": 35,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 35,
+      "col": 19
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 35,
+      "col": 21
+    },
+    {
+      "type": "punct",
+      "value": "++",
+      "line": 35,
+      "col": 22
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 35,
+      "col": 24
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 35,
+      "col": 26
+    },
+    {
+      "type": "identifier",
+      "value": "sprintf",
+      "line": 36,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 36,
+      "col": 10
+    },
+    {
+      "type": "identifier",
+      "value": "transSeqName",
+      "line": 36,
+      "col": 11
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 36,
+      "col": 23
+    },
+    {
+      "type": "string",
+      "value": "%s_%d",
+      "line": 36,
+      "col": 25
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 36,
+      "col": 32
+    },
+    {
+      "type": "identifier",
+      "value": "parentTrans",
+      "line": 36,
+      "col": 34
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 36,
+      "col": 45
+    },
+    {
+      "type": "identifier",
+      "value": "i",
+      "line": 36,
+      "col": 47
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 36,
+      "col": 48
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 36,
+      "col": 49
+    },
+    {
+      "type": "identifier",
+      "value": "strcpy",
+      "line": 37,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 37,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "label",
+      "line": 37,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 37,
+      "col": 15
+    },
+    {
+      "type": "identifier",
+      "value": "transSeqName",
+      "line": 37,
+      "col": 17
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 37,
+      "col": 29
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 37,
+      "col": 30
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 38,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "while",
+      "line": 40,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 40,
+      "col": 8
+    },
+    {
+      "type": "identifier",
+      "value": "attempts",
+      "line": 40,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "<",
+      "line": 40,
+      "col": 18
+    },
+    {
+      "type": "identifier",
+      "value": "retryLimit",
+      "line": 40,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": "&&",
+      "line": 40,
+      "col": 31
+    },
+    {
+      "type": "identifier",
+      "value": "strcmp",
+      "line": 40,
+      "col": 34
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 40,
+      "col": 40
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 40,
+      "col": 41
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 40,
+      "col": 55
+    },
+    {
+      "type": "string",
+      "value": "{flag}",
+      "line": 40,
+      "col": 56
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 40,
+      "col": 64
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 40,
+      "col": 65
+    },
+    {
+      "type": "string",
+      "value": "y",
+      "line": 40,
+      "col": 67
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 40,
+      "col": 70
+    },
+    {
+      "type": "punct",
+      "value": "==",
+      "line": 40,
+      "col": 72
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 40,
+      "col": 75
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 40,
+      "col": 76
+    },
+    {
+      "type": "identifier",
+      "value": "attempts",
+      "line": 41,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "++",
+      "line": 41,
+      "col": 11
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 41,
+      "col": 13
+    },
+    {
+      "type": "identifier",
+      "value": "if",
+      "line": 43,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 43,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "lr_get_transaction_status",
+      "line": 43,
+      "col": 6
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 43,
+      "col": 31
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 43,
+      "col": 32
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 43,
+      "col": 46
+    },
+    {
+      "type": "string",
+      "value": "{transName}",
+      "line": 43,
+      "col": 47
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 43,
+      "col": 60
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 43,
+      "col": 61
+    },
+    {
+      "type": "punct",
+      "value": "==",
+      "line": 43,
+      "col": 63
+    },
+    {
+      "type": "identifier",
+      "value": "LR_FAIL",
+      "line": 43,
+      "col": 66
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 43,
+      "col": 73
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 43,
+      "col": 75
+    },
+    {
+      "type": "identifier",
+      "value": "lr_error_message",
+      "line": 44,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 44,
+      "col": 19
+    },
+    {
+      "type": "string",
+      "value": "transaksi gagal: %s",
+      "line": 44,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 44,
+      "col": 41
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 44,
+      "col": 43
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 44,
+      "col": 57
+    },
+    {
+      "type": "string",
+      "value": "{transName}",
+      "line": 44,
+      "col": 58
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 44,
+      "col": 71
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 44,
+      "col": 72
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 44,
+      "col": 73
+    },
+    {
+      "type": "identifier",
+      "value": "lr_exit",
+      "line": 45,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 45,
+      "col": 10
+    },
+    {
+      "type": "identifier",
+      "value": "LR_EXIT_ITERATION_AND_CONTINUE",
+      "line": 45,
+      "col": 11
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 45,
+      "col": 41
+    },
+    {
+      "type": "identifier",
+      "value": "LR_FAIL",
+      "line": 45,
+      "col": 43
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 45,
+      "col": 50
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 45,
+      "col": 51
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 46,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "totalSeq",
+      "line": 48,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 48,
+      "col": 11
+    },
+    {
+      "type": "identifier",
+      "value": "seq1",
+      "line": 48,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": "+",
+      "line": 48,
+      "col": 18
+    },
+    {
+      "type": "identifier",
+      "value": "seq2",
+      "line": 48,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 48,
+      "col": 24
+    },
+    {
+      "type": "identifier",
+      "value": "lr_set_transaction",
+      "line": 49,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 49,
+      "col": 20
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 49,
+      "col": 21
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 49,
+      "col": 35
+    },
+    {
+      "type": "string",
+      "value": "{transSeqName}",
+      "line": 49,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 49,
+      "col": 52
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 49,
+      "col": 53
+    },
+    {
+      "type": "identifier",
+      "value": "totalSeq",
+      "line": 49,
+      "col": 55
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 49,
+      "col": 63
+    },
+    {
+      "type": "identifier",
+      "value": "lr_get_transaction_status",
+      "line": 49,
+      "col": 65
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 49,
+      "col": 90
+    },
+    {
+      "type": "identifier",
+      "value": "parentTrans",
+      "line": 49,
+      "col": 91
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 49,
+      "col": 102
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 49,
+      "col": 103
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 49,
+      "col": 104
+    },
+    {
+      "type": "identifier",
+      "value": "return",
+      "line": 50,
+      "col": 2
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 50,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 50,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 51,
+      "col": 1
+    },
+    {
+      "type": "eof",
+      "value": "",
+      "line": 52,
+      "col": 1
+    }
+  ]
+}

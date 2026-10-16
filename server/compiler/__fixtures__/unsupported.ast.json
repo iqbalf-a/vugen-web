@@ -9,12 +9,45 @@
         "name": "Action",
         "body": [
           {
-            "type": "Unsupported",
+            "type": "VariableDeclaration",
+            "dataType": "int",
+            "declarations": [
+              {
+                "name": "i",
+                "array": false,
+                "arraySize": null,
+                "pointer": false,
+                "init": {
+                  "type": "NumberLiteral",
+                  "value": 0,
+                  "file": "unsupported.c",
+                  "line": 4
+                },
+                "line": 4
+              }
+            ],
             "file": "unsupported.c",
             "line": 4
           },
           {
-            "type": "Unsupported",
+            "type": "VariableDeclaration",
+            "dataType": "char",
+            "declarations": [
+              {
+                "name": "msg",
+                "array": false,
+                "arraySize": null,
+                "pointer": true,
+                "init": {
+                  "type": "StringLiteral",
+                  "value": "halo",
+                  "kind": "string",
+                  "file": "unsupported.c",
+                  "line": 5
+                },
+                "line": 5
+              }
+            ],
             "file": "unsupported.c",
             "line": 5
           },

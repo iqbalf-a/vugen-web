@@ -1,0 +1,84 @@
+// Hasil transpile otomatis vugen-web dari script VuGen. JANGAN diedit manual.
+// Modul ini ditulis ke .cache/<hash>/build/ dan dijalankan runner lewat import().
+
+let __vu = null;
+
+export function __bind(vu) {
+  __vu = vu;
+}
+
+function __at(file, line) {
+  __vu.__at(file, line);
+}
+
+function __unsupported(raw, file, line) {
+  return __vu.__unsupported(raw, file, line);
+}
+
+function __unsupportedCall(name, file, line) {
+  return __vu.__unsupportedCall(name, file, line);
+}
+
+export async function __fn_Action() {
+  __at("transpile-cases.c", 4);
+  let count = Math.trunc(3.7);
+  __at("transpile-cases.c", 5);
+  let p = "teks";
+  __at("transpile-cases.c", 6);
+  let var_ = 1, function_ = 2;
+  __at("transpile-cases.c", 7);
+  let buf = "";
+  __at("transpile-cases.c", 9);
+  (buf = String("abc"));
+  __at("transpile-cases.c", 10);
+  (buf = await __vu.sprintf("%d-%s", count, p));
+  __at("transpile-cases.c", 11);
+  await __unsupportedCall("strcat", "transpile-cases.c", 11);
+  {
+    __at("transpile-cases.c", 14);
+    let inner = (var_ + function_);
+    __at("transpile-cases.c", 15);
+    await __vu.lr_output_message("%d", inner);
+  }
+  {
+    __at("transpile-cases.c", 18);
+    let inner = 5;
+    __at("transpile-cases.c", 19);
+    await __vu.lr_output_message("%d", inner);
+  }
+  __at("transpile-cases.c", 22);
+  do {
+    __at("transpile-cases.c", 23);
+    (count--);
+  } while ((count > 0));
+  __at("transpile-cases.c", 26);
+  switch (count) {
+    case 0:
+      __at("transpile-cases.c", 28);
+      await __vu.lr_output_message("nol");
+      __at("transpile-cases.c", 29);
+      break;
+    default:
+      __at("transpile-cases.c", 31);
+      await __vu.lr_output_message("lain");
+  }
+  __at("transpile-cases.c", 34);
+  if ((count == 0)) {
+    __at("transpile-cases.c", 34);
+    await __vu.lr_think_time(1);
+  } else {
+    __at("transpile-cases.c", 34);
+    await __vu.lr_think_time(2);
+  }
+  __at("transpile-cases.c", 35);
+  await __unsupportedCall("unknown_function", "transpile-cases.c", 35);
+  __at("transpile-cases.c", 36);
+  await __vu.lr_output_message(buf);
+  __at("transpile-cases.c", 37);
+  return (count + 1);
+}
+
+/** Nama action (basename file .c) -> fungsi hasil transpile. */
+export const __entries = {
+  "transpile-cases": __fn_Action,
+};

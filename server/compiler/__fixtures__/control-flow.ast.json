@@ -9,13 +9,73 @@
         "name": "Action",
         "body": [
           {
-            "type": "Unsupported",
+            "type": "VariableDeclaration",
+            "dataType": "int",
+            "declarations": [
+              {
+                "name": "i",
+                "array": false,
+                "arraySize": null,
+                "pointer": false,
+                "init": null,
+                "line": 4
+              }
+            ],
             "file": "control-flow.c",
             "line": 4
           },
           {
             "type": "ForStatement",
             "header": {
+              "line": 5
+            },
+            "init": {
+              "type": "AssignmentExpression",
+              "operator": "=",
+              "left": {
+                "type": "Identifier",
+                "name": "i",
+                "file": "control-flow.c",
+                "line": 5
+              },
+              "right": {
+                "type": "NumberLiteral",
+                "value": 0,
+                "file": "control-flow.c",
+                "line": 5
+              },
+              "file": "control-flow.c",
+              "line": 5
+            },
+            "test": {
+              "type": "BinaryExpression",
+              "operator": "<",
+              "left": {
+                "type": "Identifier",
+                "name": "i",
+                "file": "control-flow.c",
+                "line": 5
+              },
+              "right": {
+                "type": "NumberLiteral",
+                "value": 3,
+                "file": "control-flow.c",
+                "line": 5
+              },
+              "file": "control-flow.c",
+              "line": 5
+            },
+            "update": {
+              "type": "UpdateExpression",
+              "operator": "++",
+              "argument": {
+                "type": "Identifier",
+                "name": "i",
+                "file": "control-flow.c",
+                "line": 5
+              },
+              "prefix": false,
+              "file": "control-flow.c",
               "line": 5
             },
             "body": {
@@ -58,6 +118,58 @@
             "header": {
               "line": 9
             },
+            "test": {
+              "type": "BinaryExpression",
+              "operator": "==",
+              "left": {
+                "type": "CallExpression",
+                "callee": {
+                  "type": "Identifier",
+                  "name": "strcmp",
+                  "file": "control-flow.c",
+                  "line": 9
+                },
+                "arguments": [
+                  {
+                    "type": "CallExpression",
+                    "callee": {
+                      "type": "Identifier",
+                      "name": "lr_eval_string",
+                      "file": "control-flow.c",
+                      "line": 9
+                    },
+                    "arguments": [
+                      {
+                        "type": "StringLiteral",
+                        "value": "{flag}",
+                        "kind": "string",
+                        "file": "control-flow.c",
+                        "line": 9
+                      }
+                    ],
+                    "file": "control-flow.c",
+                    "line": 9
+                  },
+                  {
+                    "type": "StringLiteral",
+                    "value": "y",
+                    "kind": "string",
+                    "file": "control-flow.c",
+                    "line": 9
+                  }
+                ],
+                "file": "control-flow.c",
+                "line": 9
+              },
+              "right": {
+                "type": "NumberLiteral",
+                "value": 0,
+                "file": "control-flow.c",
+                "line": 9
+              },
+              "file": "control-flow.c",
+              "line": 9
+            },
             "body": {
               "type": "ExpressionStatement",
               "expression": {
@@ -88,6 +200,58 @@
           {
             "type": "IfStatement",
             "header": {
+              "line": 12
+            },
+            "test": {
+              "type": "BinaryExpression",
+              "operator": "==",
+              "left": {
+                "type": "CallExpression",
+                "callee": {
+                  "type": "Identifier",
+                  "name": "strcmp",
+                  "file": "control-flow.c",
+                  "line": 12
+                },
+                "arguments": [
+                  {
+                    "type": "CallExpression",
+                    "callee": {
+                      "type": "Identifier",
+                      "name": "lr_eval_string",
+                      "file": "control-flow.c",
+                      "line": 12
+                    },
+                    "arguments": [
+                      {
+                        "type": "StringLiteral",
+                        "value": "{status}",
+                        "kind": "string",
+                        "file": "control-flow.c",
+                        "line": 12
+                      }
+                    ],
+                    "file": "control-flow.c",
+                    "line": 12
+                  },
+                  {
+                    "type": "StringLiteral",
+                    "value": "ok",
+                    "kind": "string",
+                    "file": "control-flow.c",
+                    "line": 12
+                  }
+                ],
+                "file": "control-flow.c",
+                "line": 12
+              },
+              "right": {
+                "type": "NumberLiteral",
+                "value": 0,
+                "file": "control-flow.c",
+                "line": 12
+              },
+              "file": "control-flow.c",
               "line": 12
             },
             "consequent": {
@@ -194,11 +358,71 @@
             "header": {
               "line": 20
             },
+            "test": {
+              "type": "NumberLiteral",
+              "value": 0,
+              "file": "control-flow.c",
+              "line": 20
+            },
             "file": "control-flow.c",
             "line": 18
           },
           {
-            "type": "Unsupported",
+            "type": "SwitchStatement",
+            "header": {
+              "line": 22
+            },
+            "discriminant": {
+              "type": "NumberLiteral",
+              "value": 1,
+              "file": "control-flow.c",
+              "line": 22
+            },
+            "cases": [
+              {
+                "type": "SwitchCase",
+                "test": {
+                  "type": "NumberLiteral",
+                  "value": 1,
+                  "file": "control-flow.c",
+                  "line": 23
+                },
+                "consequent": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "CallExpression",
+                      "callee": {
+                        "type": "Identifier",
+                        "name": "lr_output_message",
+                        "file": "control-flow.c",
+                        "line": 24
+                      },
+                      "arguments": [
+                        {
+                          "type": "StringLiteral",
+                          "value": "satu",
+                          "kind": "string",
+                          "file": "control-flow.c",
+                          "line": 24
+                        }
+                      ],
+                      "file": "control-flow.c",
+                      "line": 24
+                    },
+                    "file": "control-flow.c",
+                    "line": 24
+                  },
+                  {
+                    "type": "BreakStatement",
+                    "file": "control-flow.c",
+                    "line": 25
+                  }
+                ],
+                "file": "control-flow.c",
+                "line": 23
+              }
+            ],
             "file": "control-flow.c",
             "line": 22
           },

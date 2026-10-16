@@ -17,6 +17,15 @@ import { fileURLToPath } from "node:url";
 export const compilerDir = path.dirname(fileURLToPath(import.meta.url));
 export const fixturesDir = path.join(compilerDir, "__fixtures__");
 
+/**
+ * Kumpulan file fixture yang ditranspile bersama (urutan = urutan program).
+ * Golden JS: `<nama>.js.golden`.
+ */
+export const TRANSPILE_SETS = {
+  "kopra-loadpage": ["kopra-globals.h", "kopra-loadpage.c"],
+  "transpile-cases": ["transpile-cases.c"],
+};
+
 const OMITTED_KEYS = new Set(["raw", "start", "end", "source", "params", "endLine"]);
 
 /** @returns {string[]} nama fixture tanpa ekstensi, terurut. */
@@ -31,6 +40,27 @@ export function fixtureNames() {
 /** @param {string} name */
 export function readFixture(name) {
   return fs.readFileSync(path.join(fixturesDir, `${name}.c`), "utf8");
+}
+
+/** @param {string} name nama set di TRANSPILE_SETS */
+export function jsGoldenPath(name) {
+  return path.join(fixturesDir, `${name}.js.golden`);
+}
+
+/**
+ * Parse + transpile satu set file fixture.
+ *
+ * @param {string[]} files nama file di folder fixtures
+ * @returns {Promise<ReturnType<import("./transpile.js").transpilePrograms>>}
+ */
+export async function transpileFixtureFiles(files) {
+  const { parse } = await import("./parser.js");
+  const { transpilePrograms } = await import("./transpile.js");
+  const programs = files.map((file) => ({
+    file,
+    ast: parse(fs.readFileSync(path.join(fixturesDir, file), "utf8"), { file }),
+  }));
+  return transpilePrograms(programs);
 }
 
 /**

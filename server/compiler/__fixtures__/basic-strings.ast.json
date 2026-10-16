@@ -205,7 +205,23 @@
             "line": 21
           },
           {
-            "type": "Unsupported",
+            "type": "VariableDeclaration",
+            "dataType": "int",
+            "declarations": [
+              {
+                "name": "n",
+                "array": false,
+                "arraySize": null,
+                "pointer": false,
+                "init": {
+                  "type": "NumberLiteral",
+                  "value": 31,
+                  "file": "basic-strings.c",
+                  "line": 22
+                },
+                "line": 22
+              }
+            ],
             "file": "basic-strings.c",
             "line": 22
           },

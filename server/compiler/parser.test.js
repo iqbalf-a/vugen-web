@@ -90,7 +90,7 @@ describe("parser: kontrol alur & unsupported", () => {
     }
   });
 
-  it("menyimpan header kontrol alur sebagai teks mentah dan tetap memparse body", () => {
+  it("menyimpan teks asli header (header.raw) dan tetap memparse body", () => {
     const program = parse(readFixture("control-flow"), { file: "control-flow.c" });
     const action = program.body.find((node) => node.type === "FunctionDeclaration");
 
@@ -108,10 +108,11 @@ describe("parser: kontrol alur & unsupported", () => {
     const action = program.body.find((node) => node.type === "FunctionDeclaration");
     const types = action.body.map((node) => node.type);
 
-    expect(types).toEqual(["Unsupported", "Unsupported", "Unsupported", "Unsupported", "LabeledStatement", "ReturnStatement"]);
+    // S4: `int i = 0;` dan `char *msg = "halo";` kini VariableDeclaration; struct & goto tetap Unsupported.
+    expect(types).toEqual(["VariableDeclaration", "VariableDeclaration", "Unsupported", "Unsupported", "LabeledStatement", "ReturnStatement"]);
 
     const raws = action.body.filter((node) => node.type === "Unsupported").map((node) => node.raw);
-    expect(raws).toEqual(["int i = 0;", 'char *msg = "halo";', "struct Point { int x; int y; };", "goto selesai;"]);
+    expect(raws).toEqual(["struct Point { int x; int y; };", "goto selesai;"]);
   });
 
   it("memberi warning bila blok tidak ditutup tanpa crash", () => {
@@ -124,5 +125,93 @@ describe("parser: kontrol alur & unsupported", () => {
     const program = parse("@@@ ### ??? ;;;", { file: "garbage.c" });
     expect(Array.isArray(program.body)).toBe(true);
     expect(program.body.length).toBeGreaterThan(0);
+  });
+});
+
+describe("parser: header kontrol alur jadi ekspresi (S4)", () => {
+  const parseAction = (body) => {
+    const program = parse(`Action()\n{\n${body}\n}`, { file: "t.c" });
+    return { program, stmts: program.body.find((n) => n.type === "FunctionDeclaration").body };
+  };
+
+  it("if/while/do-while punya test; header.raw tetap ada", () => {
+    const { stmts } = parseAction("if (a == 1) b = 2; while (x < 3) x++; do { x--; } while (x > 0);");
+    expect(stmts.map((n) => n.type)).toEqual(["IfStatement", "WhileStatement", "DoWhileStatement"]);
+    expect(stmts[0].test).toMatchObject({ type: "BinaryExpression", operator: "==" });
+    expect(stmts[0].header.raw).toBe("(a == 1)");
+    expect(stmts[1].test).toMatchObject({ type: "BinaryExpression", operator: "<" });
+    expect(stmts[2].test).toMatchObject({ type: "BinaryExpression", operator: ">" });
+  });
+
+  it("for: init (ekspresi atau deklarasi), test, update; boleh kosong", () => {
+    const { stmts } = parseAction("for (i = 0; i < 3; i++) x++; for (int j = 0; j < 2; j++) x++; for (;;) break;");
+    expect(stmts[0].init).toMatchObject({ type: "AssignmentExpression" });
+    expect(stmts[0].test).toMatchObject({ type: "BinaryExpression" });
+    expect(stmts[0].update).toMatchObject({ type: "UpdateExpression" });
+    expect(stmts[1].init.type).toBe("VariableDeclaration");
+    expect(stmts[2]).toMatchObject({ init: null, test: null, update: null });
+  });
+
+  it("panggilan fungsi di kondisi jadi CallExpression", () => {
+    const { stmts } = parseAction('if (lr_get_transaction_status(lr_eval_string("{t}")) == LR_FAIL) { x = 1; }');
+    expect(collectCalls(stmts[0].test).map((c) => c.name)).toEqual(["lr_get_transaction_status", "lr_eval_string"]);
+  });
+
+  it("header yang gagal diparse menjadi Unsupported + warning, tanpa crash", () => {
+    const { program, stmts } = parseAction("if (@@@) { x = 1; } y = 2;");
+    expect(stmts[0].type).toBe("Unsupported");
+    expect(stmts[1].type).toBe("ExpressionStatement");
+    expect(program.warnings.length).toBeGreaterThan(0);
+  });
+
+  it("switch/case/default diparse", () => {
+    const { stmts } = parseAction("switch (n) { case 1: a = 1; break; case 2: default: a = 3; }");
+    expect(stmts[0].type).toBe("SwitchStatement");
+    expect(stmts[0].discriminant).toMatchObject({ type: "Identifier", name: "n" });
+    expect(stmts[0].cases.map((c) => (c.test ? c.test.value : "default"))).toEqual([1, 2, "default"]);
+  });
+});
+
+describe("parser: VariableDeclaration (S4)", () => {
+  const first = (code) => {
+    const program = parse(code, { file: "t.c" });
+    return { program, node: program.body[0] };
+  };
+
+  it("multi-deklarator dengan init, array, dan pointer", () => {
+    const { node } = first("double a=0, b, c[256], *d;");
+    expect(node.type).toBe("VariableDeclaration");
+    expect(node.dataType).toBe("double");
+    expect(node.declarations.map((d) => [d.name, d.array, d.pointer, d.init?.value ?? null])).toEqual([
+      ["a", false, false, 0],
+      ["b", false, false, null],
+      ["c", true, false, null],
+      ["d", false, true, null],
+    ]);
+    expect(node.declarations[2].arraySize).toMatchObject({ type: "NumberLiteral", value: 256 });
+  });
+
+  it("tipe turunan: merc_timer_handle_t, size_t, unsigned long, const char *", () => {
+    for (const code of ["merc_timer_handle_t startTime;", "size_t n = 0;", "unsigned long x = 1;", 'static const char *name = "x";']) {
+      const { program, node } = first(code);
+      expect(node.type, code).toBe("VariableDeclaration");
+      expect(program.warnings, code).toEqual([]);
+    }
+  });
+
+  it("deklarasi di dalam fungsi dan prototipe fungsi (diabaikan)", () => {
+    const program = parse("int helper(int a, char *b);\nAction()\n{\n int x = 1, y;\n return x;\n}", { file: "t.c" });
+    expect(program.body.map((n) => n.type)).toEqual(["FunctionPrototype", "FunctionDeclaration"]);
+    expect(program.body[1].body[0].type).toBe("VariableDeclaration");
+  });
+
+  it("struct/goto tetap Unsupported", () => {
+    const program = parse("Action()\n{\n struct P { int x; };\n goto x;\n}", { file: "t.c" });
+    expect(program.body[0].body.map((n) => n.type)).toEqual(["Unsupported", "Unsupported"]);
+  });
+
+  it("cast diparse sebagai CastExpression", () => {
+    const { node } = first("int n = (int)3.7;");
+    expect(node.declarations[0].init).toMatchObject({ type: "CastExpression", targetType: "int" });
   });
 });

@@ -1,0 +1,977 @@
+{
+  "file": "transpile-cases.c",
+  "tokens": [
+    {
+      "type": "identifier",
+      "value": "Action",
+      "line": 2,
+      "col": 1
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 2,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 2,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 3,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 4,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "count",
+      "line": 4,
+      "col": 6
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 4,
+      "col": 12
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 4,
+      "col": 14
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 4,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 4,
+      "col": 18
+    },
+    {
+      "type": "number",
+      "value": "3.7",
+      "line": 4,
+      "col": 19
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 4,
+      "col": 22
+    },
+    {
+      "type": "identifier",
+      "value": "char",
+      "line": 5,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "*",
+      "line": 5,
+      "col": 7
+    },
+    {
+      "type": "identifier",
+      "value": "p",
+      "line": 5,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 5,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 5,
+      "col": 12
+    },
+    {
+      "type": "identifier",
+      "value": "char",
+      "line": 5,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": "*",
+      "line": 5,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 5,
+      "col": 19
+    },
+    {
+      "type": "string",
+      "value": "teks",
+      "line": 5,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 5,
+      "col": 26
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 6,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "var",
+      "line": 6,
+      "col": 6
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 6,
+      "col": 10
+    },
+    {
+      "type": "number",
+      "value": "1",
+      "line": 6,
+      "col": 12
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 6,
+      "col": 13
+    },
+    {
+      "type": "identifier",
+      "value": "function",
+      "line": 6,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 6,
+      "col": 24
+    },
+    {
+      "type": "number",
+      "value": "2",
+      "line": 6,
+      "col": 26
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 6,
+      "col": 27
+    },
+    {
+      "type": "identifier",
+      "value": "char",
+      "line": 7,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "buf",
+      "line": 7,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": "[",
+      "line": 7,
+      "col": 10
+    },
+    {
+      "type": "number",
+      "value": "16",
+      "line": 7,
+      "col": 11
+    },
+    {
+      "type": "punct",
+      "value": "]",
+      "line": 7,
+      "col": 13
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 7,
+      "col": 14
+    },
+    {
+      "type": "identifier",
+      "value": "strcpy",
+      "line": 9,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 9,
+      "col": 8
+    },
+    {
+      "type": "identifier",
+      "value": "buf",
+      "line": 9,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 9,
+      "col": 12
+    },
+    {
+      "type": "string",
+      "value": "abc",
+      "line": 9,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 9,
+      "col": 19
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 9,
+      "col": 20
+    },
+    {
+      "type": "identifier",
+      "value": "sprintf",
+      "line": 10,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 10,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "buf",
+      "line": 10,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 10,
+      "col": 13
+    },
+    {
+      "type": "string",
+      "value": "%d-%s",
+      "line": 10,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 10,
+      "col": 22
+    },
+    {
+      "type": "identifier",
+      "value": "count",
+      "line": 10,
+      "col": 24
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 10,
+      "col": 29
+    },
+    {
+      "type": "identifier",
+      "value": "p",
+      "line": 10,
+      "col": 31
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 10,
+      "col": 32
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 10,
+      "col": 33
+    },
+    {
+      "type": "identifier",
+      "value": "strcat",
+      "line": 11,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 11,
+      "col": 8
+    },
+    {
+      "type": "identifier",
+      "value": "buf",
+      "line": 11,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 11,
+      "col": 12
+    },
+    {
+      "type": "string",
+      "value": "x",
+      "line": 11,
+      "col": 14
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 11,
+      "col": 17
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 11,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 13,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 14,
+      "col": 3
+    },
+    {
+      "type": "identifier",
+      "value": "inner",
+      "line": 14,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 14,
+      "col": 13
+    },
+    {
+      "type": "identifier",
+      "value": "var",
+      "line": 14,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": "+",
+      "line": 14,
+      "col": 19
+    },
+    {
+      "type": "identifier",
+      "value": "function",
+      "line": 14,
+      "col": 21
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 14,
+      "col": 29
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 15,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 15,
+      "col": 20
+    },
+    {
+      "type": "string",
+      "value": "%d",
+      "line": 15,
+      "col": 21
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 15,
+      "col": 25
+    },
+    {
+      "type": "identifier",
+      "value": "inner",
+      "line": 15,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 15,
+      "col": 32
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 15,
+      "col": 33
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 16,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 17,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 18,
+      "col": 3
+    },
+    {
+      "type": "identifier",
+      "value": "inner",
+      "line": 18,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": "=",
+      "line": 18,
+      "col": 13
+    },
+    {
+      "type": "number",
+      "value": "5",
+      "line": 18,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 18,
+      "col": 16
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 19,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 19,
+      "col": 20
+    },
+    {
+      "type": "string",
+      "value": "%d",
+      "line": 19,
+      "col": 21
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 19,
+      "col": 25
+    },
+    {
+      "type": "identifier",
+      "value": "inner",
+      "line": 19,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 19,
+      "col": 32
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 19,
+      "col": 33
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 20,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "do",
+      "line": 22,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 22,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "count",
+      "line": 23,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "--",
+      "line": 23,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 23,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 24,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "while",
+      "line": 24,
+      "col": 4
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 24,
+      "col": 10
+    },
+    {
+      "type": "identifier",
+      "value": "count",
+      "line": 24,
+      "col": 11
+    },
+    {
+      "type": "punct",
+      "value": ">",
+      "line": 24,
+      "col": 17
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 24,
+      "col": 19
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 24,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 24,
+      "col": 21
+    },
+    {
+      "type": "identifier",
+      "value": "switch",
+      "line": 26,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 26,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "count",
+      "line": 26,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 26,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 26,
+      "col": 17
+    },
+    {
+      "type": "identifier",
+      "value": "case",
+      "line": 27,
+      "col": 3
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 27,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": ":",
+      "line": 27,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 28,
+      "col": 4
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 28,
+      "col": 21
+    },
+    {
+      "type": "string",
+      "value": "nol",
+      "line": 28,
+      "col": 22
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 28,
+      "col": 27
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 28,
+      "col": 28
+    },
+    {
+      "type": "identifier",
+      "value": "break",
+      "line": 29,
+      "col": 4
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 29,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "default",
+      "line": 30,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": ":",
+      "line": 30,
+      "col": 10
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 31,
+      "col": 4
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 31,
+      "col": 21
+    },
+    {
+      "type": "string",
+      "value": "lain",
+      "line": 31,
+      "col": 22
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 31,
+      "col": 28
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 31,
+      "col": 29
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 32,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "if",
+      "line": 34,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 34,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "count",
+      "line": 34,
+      "col": 6
+    },
+    {
+      "type": "punct",
+      "value": "==",
+      "line": 34,
+      "col": 12
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 34,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 34,
+      "col": 16
+    },
+    {
+      "type": "identifier",
+      "value": "lr_think_time",
+      "line": 34,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 34,
+      "col": 31
+    },
+    {
+      "type": "number",
+      "value": "1",
+      "line": 34,
+      "col": 32
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 34,
+      "col": 33
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 34,
+      "col": 34
+    },
+    {
+      "type": "identifier",
+      "value": "else",
+      "line": 34,
+      "col": 36
+    },
+    {
+      "type": "identifier",
+      "value": "lr_think_time",
+      "line": 34,
+      "col": 41
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 34,
+      "col": 54
+    },
+    {
+      "type": "number",
+      "value": "2",
+      "line": 34,
+      "col": 55
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 34,
+      "col": 56
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 34,
+      "col": 57
+    },
+    {
+      "type": "identifier",
+      "value": "unknown_function",
+      "line": 35,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 35,
+      "col": 18
+    },
+    {
+      "type": "number",
+      "value": "1",
+      "line": 35,
+      "col": 19
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 35,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 35,
+      "col": 21
+    },
+    {
+      "type": "identifier",
+      "value": "lr_output_message",
+      "line": 36,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 36,
+      "col": 19
+    },
+    {
+      "type": "identifier",
+      "value": "buf",
+      "line": 36,
+      "col": 20
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 36,
+      "col": 23
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 36,
+      "col": 24
+    },
+    {
+      "type": "identifier",
+      "value": "return",
+      "line": 37,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "count",
+      "line": 37,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": "+",
+      "line": 37,
+      "col": 15
+    },
+    {
+      "type": "number",
+      "value": "1",
+      "line": 37,
+      "col": 17
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 37,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 38,
+      "col": 1
+    },
+    {
+      "type": "eof",
+      "value": "",
+      "line": 39,
+      "col": 1
+    }
+  ]
+}

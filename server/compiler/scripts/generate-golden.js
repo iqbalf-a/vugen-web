@@ -11,7 +11,7 @@
 import fs from "node:fs";
 
 import { parse } from "../parser.js";
-import { fixtureNames, goldenPath, readFixture, simplifyNode, simplifyTokens } from "../test-utils.js";
+import { TRANSPILE_SETS, fixtureNames, goldenPath, jsGoldenPath, readFixture, simplifyNode, simplifyTokens, transpileFixtureFiles } from "../test-utils.js";
 import { tokenize } from "../tokenizer.js";
 
 function writeJson(target, data) {
@@ -31,6 +31,12 @@ for (const name of names) {
   writeJson(goldenPath(name, "ast"), { file, ast: simplifyNode(program) });
 
   process.stdout.write(`${file}: ${tokens.length} token, ${program.body.length} node, ${warnings.length + program.warnings.length} warning\n`);
+}
+
+for (const [name, files] of Object.entries(TRANSPILE_SETS)) {
+  const result = await transpileFixtureFiles(files);
+  fs.writeFileSync(jsGoldenPath(name), result.code, "utf8");
+  process.stdout.write(`${name}.js.golden: ${result.code.split("\n").length} baris, ${result.warnings.length} warning\n`);
 }
 
 process.stdout.write(`Selesai: ${names.length} fixture.\n`);

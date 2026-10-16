@@ -32,7 +32,7 @@
 | S1 | Keamanan UI: escape HTML + snapshot di iframe sandbox | **selesai** (`a6185cc`) |
 | S2 | Jalur step & penyimpanan run end-to-end | **selesai** |
 | S3 | Lifecycle child process, SSE, routing | **selesai** |
-| S4 | Transpiler: perbaiki subset C yang sudah diklaim | belum |
+| S4 | Transpiler: perbaiki subset C yang sudah diklaim | **selesai** |
 | S5 | Runtime: perbaiki fungsi yang sudah ada | belum |
 | S6 | Loader parameter `.dat` + rapikan frontend | belum |
 | S7 | Rapikan akhir + dokumentasi status jujur | belum |
@@ -133,16 +133,16 @@ Langkah:
 
 Kerjakan TDD dengan golden. Golden F2 lama tidak boleh berubah kecuali karena node baru — jelaskan tiap perubahan golden di laporan.
 
-- [ ] Parser: header control-flow juga diparse jadi ekspresi (`IfStatement.test`, `WhileStatement.test`, `DoWhileStatement.test`, `ForStatement.init/test/update`); `header.raw` tetap disimpan untuk pesan. Gagal parse → `Unsupported` + warning.
-- [ ] Parser: `VariableDeclaration` multi-deklarator (`double a=0, b, c[256];`, pointer `char *p`) di dalam fungsi dan top-level. Tipe: `int char short long float double unsigned signed const static merc_timer_handle_t size_t`.
-- [ ] `#include` header LoadRunner (`lrun.h`, `web_api.h`, `lrw_custom_body.h`, `as_web.h`) dan `#ifndef/#define/#endif` → diabaikan tanpa warning.
-- [ ] Transpiler: hapus `replaceCoreFunctions` & semua jalur teks mentah; kondisi/inisialisasi lewat `expressionToJs`. Global → `let` level modul. **Hapus** hardcode `let startTime = 0;`. Perbaiki T11 (selalu kembalikan array).
-- [ ] T12: satu sumber kebenaran daftar fungsi yang didukung — buat `server/runtime/api-names.js` yang mengekspor `SUPPORTED_FUNCTIONS` (nama export `vuser-api.js` tanpa awalan `__`), dipakai transpiler; tambah test yang memastikan setiap nama di daftar benar-benar diekspor `vuser-api.js` dan sebaliknya.
-- [ ] T13: makro status jadi angka (`LR_PASS=0, LR_FAIL=1, LR_AUTO=2, LR_STOP=3`, `LR_EXIT_VUSER=0, LR_EXIT_ACTION_AND_CONTINUE=1, LR_EXIT_ITERATION_AND_CONTINUE=2, LR_EXIT_VUSER_AFTER_ITERATION=3, LR_EXIT_VUSER_AFTER_ACTION=4`); makro argumen web (`LAST ITEMDATA ENDITEM EXTRARES SOURCES SEARCH_FILTERS`) tetap sentinel string. Runtime menerima angka maupun string lama.
-- [ ] T14: bila argumen pertama `Identifier`: `strcpy(d, s)` → `d = String(s)`, `strcat(d, s)` → `d = d + s`, `sprintf(d, f, ...)` → `d = await __vu.sprintf(f, ...)`. Lainnya → warning unsupported. (`strcat` hanya bila sudah ada di runtime; jika belum, cukup `strcpy`/`sprintf` — jangan tambah fungsi.)
-- [ ] Fixture sintetis `__fixtures__/kopra-loadpage.c` + `kopra-globals.h` meniru **pola** script KOPRA (deklarasi multi, `char buf[256]`, `startTime = lr_start_timer(); tempSeq = lr_end_timer(startTime); seq1 = compareDuration(seq1, tempSeq);`, `if (lr_get_transaction_status(lr_eval_string("{transName}")) == LR_FAIL) { ... }`). Lihat contoh nyata read-only di `D:\Mandiri\KOPRA\R10.1\script\BP211_Adjustment_UDC_ST\Loadpage.c` dan `globals.h`; jangan salin isinya.
-- [ ] Test: golden JS + `import()` hasil transpile setiap fixture (tulis ke temp dir) untuk memastikan sintaks valid.
-- [ ] Smoke test opsional (skip bila env tidak di-set): `VUGEN_REAL_SCRIPTS=<folder>` → compile + `import()` setiap subfolder; jangan commit output.
+- [x] Parser: header control-flow juga diparse jadi ekspresi (`IfStatement.test`, `WhileStatement.test`, `DoWhileStatement.test`, `ForStatement.init/test/update`); `header.raw` tetap disimpan untuk pesan. Gagal parse → `Unsupported` + warning.
+- [x] Parser: `VariableDeclaration` multi-deklarator (`double a=0, b, c[256];`, pointer `char *p`) di dalam fungsi dan top-level. Tipe: `int char short long float double unsigned signed const static merc_timer_handle_t size_t`.
+- [x] `#include` header LoadRunner (`lrun.h`, `web_api.h`, `lrw_custom_body.h`, `as_web.h`) dan `#ifndef/#define/#endif` → diabaikan tanpa warning.
+- [x] Transpiler: hapus `replaceCoreFunctions` & semua jalur teks mentah; kondisi/inisialisasi lewat `expressionToJs`. Global → `let` level modul. **Hapus** hardcode `let startTime = 0;`. Perbaiki T11 (selalu kembalikan array).
+- [x] T12: satu sumber kebenaran daftar fungsi yang didukung — buat `server/runtime/api-names.js` yang mengekspor `SUPPORTED_FUNCTIONS` (nama export `vuser-api.js` tanpa awalan `__`), dipakai transpiler; tambah test yang memastikan setiap nama di daftar benar-benar diekspor `vuser-api.js` dan sebaliknya.
+- [x] T13: makro status jadi angka (`LR_PASS=0, LR_FAIL=1, LR_AUTO=2, LR_STOP=3`, `LR_EXIT_VUSER=0, LR_EXIT_ACTION_AND_CONTINUE=1, LR_EXIT_ITERATION_AND_CONTINUE=2, LR_EXIT_VUSER_AFTER_ITERATION=3, LR_EXIT_VUSER_AFTER_ACTION=4`); makro argumen web (`LAST ITEMDATA ENDITEM EXTRARES SOURCES SEARCH_FILTERS`) tetap sentinel string. Runtime menerima angka maupun string lama.
+- [x] T14: bila argumen pertama `Identifier`: `strcpy(d, s)` → `d = String(s)`, `strcat(d, s)` → `d = d + s`, `sprintf(d, f, ...)` → `d = await __vu.sprintf(f, ...)`. Lainnya → warning unsupported. (`strcat` hanya bila sudah ada di runtime; jika belum, cukup `strcpy`/`sprintf` — jangan tambah fungsi.)
+- [x] Fixture sintetis `__fixtures__/kopra-loadpage.c` + `kopra-globals.h` meniru **pola** script KOPRA (deklarasi multi, `char buf[256]`, `startTime = lr_start_timer(); tempSeq = lr_end_timer(startTime); seq1 = compareDuration(seq1, tempSeq);`, `if (lr_get_transaction_status(lr_eval_string("{transName}")) == LR_FAIL) { ... }`). Lihat contoh nyata read-only di `D:\Mandiri\KOPRA\R10.1\script\BP211_Adjustment_UDC_ST\Loadpage.c` dan `globals.h`; jangan salin isinya.
+- [x] Test: golden JS + `import()` hasil transpile setiap fixture (tulis ke temp dir) untuk memastikan sintaks valid.
+- [x] Smoke test opsional (skip bila env tidak di-set): `VUGEN_REAL_SCRIPTS=<folder>` → compile + `import()` setiap subfolder; jangan commit output.
 
 **AC:** golden hijau; `VUGEN_REAL_SCRIPTS="D:/Mandiri/KOPRA/R10.1/script" npx vitest run` → semua script ter-`import()` tanpa error sintaks (laporkan jumlah lulus/gagal); `grep -n "startTime" server/compiler/transpile.js` → kosong.
 

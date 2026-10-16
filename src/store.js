@@ -40,3 +40,30 @@ export function createStore(initial) {
     },
   };
 }
+
+/** Singleton store instance untuk akses global dari komponen */
+let _store = null;
+
+/** Inisialisasi store singleton (dipanggil sekali di main.js) */
+export function initStore(initial) {
+  _store = createStore(initial);
+  return _store;
+}
+
+/** Akses store singleton */
+export function getStore() {
+  if (!_store) throw new Error("Store belum diinisialisasi. Panggil initStore() dulu.");
+  return _store;
+}
+
+/** Helper untuk getState dari store singleton */
+export function getState() {
+  return getStore().get();
+}
+
+/** Helper untuk subscribe ke store singleton */
+export function subscribe(listener) {
+  return getStore().subscribe(listener);
+}
+
+

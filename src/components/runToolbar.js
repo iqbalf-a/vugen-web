@@ -1,5 +1,5 @@
 /**
- * Toolbar: input path folder script + riwayat path terakhir (localStorage).
+ * Toolbar: input path folder script + riwayat path terakhir (localStorage) + run options.
  */
 
 const STORAGE_KEY = "vugen-web:recent-paths";
@@ -19,21 +19,64 @@ function readRecent() {
  *   input: HTMLInputElement,
  *   datalist: HTMLDataListElement | null,
  *   openButton: HTMLButtonElement,
+ *   runButton: HTMLButtonElement,
+ *   stopButton: HTMLButtonElement,
  *   onOpen: (path: string) => void,
+ *   onRun: (options: Object) => void,
+ *   onStop: () => void,
+ *   getIterations: () => number,
+ *   getContinueOnError: () => boolean,
+ *   getIterationDelay: () => number,
+ *   getNewUserEachIteration: () => boolean,
+ *   getInsecureTLS: () => boolean,
+ *   getThinkTime: () => "ignore" | "run",
  * }} options
  */
-export function createToolbar({ input, datalist, openButton, onOpen }) {
+export function createToolbar({
+  input,
+  datalist,
+  openButton,
+  runButton,
+  stopButton,
+  onOpen,
+  onRun,
+  onStop,
+  getIterations,
+  getContinueOnError,
+  getIterationDelay,
+  getNewUserEachIteration,
+  getInsecureTLS,
+  getThinkTime,
+}) {
   if (input.value.trim() === "") {
     const [last] = readRecent();
     if (last) input.value = last;
   }
 
-  openButton.addEventListener("click", submit);
+  if (!openButton) {
+    console.error("[runToolbar] openButton is null!");
+  } else {
+    openButton.addEventListener("click", submit);
+  }
   input.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
     event.preventDefault();
     submit();
   });
+
+  runButton.addEventListener("click", () => {
+    const options = {
+      iterations: getIterations(),
+      continueOnError: getContinueOnError(),
+      iterationDelayMs: getIterationDelay(),
+      newUserEachIteration: getNewUserEachIteration(),
+      insecureTLS: getInsecureTLS(),
+      thinkTime: getThinkTime(),
+    };
+    onRun(options);
+  });
+
+  stopButton.addEventListener("click", onStop);
 
   renderDatalist();
 

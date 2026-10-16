@@ -1,24 +1,50 @@
 /**
- * VuGen Web — wiring F1: buka folder script, telusuri file, edit, Save.
- *
- * Tab multi-file dikelola di sini lewat peta `docs` (path → teks). Editor
- * CodeMirror hanya menampilkan dokumen aktif.
+ * VuGen Web — F1 + F4: buka folder script, edit, Save, Run, Snapshot, Log.
  */
 
-import { getHealth, openProject, readFile, saveFile } from "./api.js";
+import {
+  getHealth,
+  openProject,
+  readFile,
+  saveFile,
+  startRun,
+  stopRun,
+  getRun,
+  getRunEvents,
+} from "./api.js";
 import { createEditor } from "./components/editor.js";
 import { renderFileTree } from "./components/fileTree.js";
 import { createToolbar } from "./components/runToolbar.js";
-import { createStore } from "./store.js";
+import { createStepList } from "./components/stepList.js";
+import { createSnapshotPanel } from "./components/snapshotPanel.js";
+import { createParameterPanel } from "./components/parameterPanel.js";
+import { createLogPanel } from "./components/logPanel.js";
+import { initStore } from "./store.js";
 
 const els = {
   scriptPath: document.querySelector("#scriptPath"),
   scriptPathHistory: document.querySelector("#scriptPathHistory"),
   openBtn: document.querySelector("#openBtn"),
+  runBtn: document.querySelector("#runBtn"),
+  stopBtn: document.querySelector("#stopBtn"),
   status: document.querySelector("#status"),
   fileTree: document.querySelector("#fileTree"),
   tabBar: document.querySelector("#tabBar"),
   editor: document.querySelector("#editor"),
+  stepList: document.querySelector("#stepList"),
+  snapshotPanel: document.querySelector("#snapshotPanel"),
+  parameterPanel: document.querySelector("#parameterPanel"),
+  logPanel: document.querySelector("#logPanel"),
+  panelTabBar: document.querySelector("#panelTabBar"),
+  panelContainer: document.querySelector("#panelContainer"),
+  iterationsInput: document.querySelector("#iterations"),
+  continueOnErrorCheckbox: document.querySelector("#continueOnError"),
+  iterationDelayInput: document.querySelector("#iterationDelay"),
+  newUserEachIterationCheckbox: document.querySelector("#newUserEachIteration"),
+  insecureTLSCheckbox: document.querySelector("#insecureTLS"),
+  thinkTimeSelect: document.querySelector("#thinkTime"),
+  runOptions: document.querySelector("#runOptions"),
+  toggleOptions: document.querySelector("#toggleOptions"),
 };
 
 if (Object.values(els).some((element) => element === null)) {
@@ -28,7 +54,7 @@ if (Object.values(els).some((element) => element === null)) {
 /** @type {Map<string, { text: string, saved: string }>} */
 const docs = new Map();
 
-const store = createStore({
+const store = initStore({
   /** @type {"checking" | "ok" | "warn" | "error"} */
   health: "checking",
   status: "Memeriksa API…",
@@ -36,16 +62,29 @@ const store = createStore({
   project: null,
   /** @type {string | null} */
   activePath: null,
+  /** @type {string | null} */
+  currentRunId: null,
+  /** @type {Object | null} */
+  currentRun: null,
+  /** @type {Object | null} */
+  selectedStep: null,
+  /** @type {boolean} */
+  isRunning: false,
 });
+
+/** @type {EventSource | null} */
+let eventSource = null;
 
 const editor = createEditor(els.editor, { onChange: syncActiveDoc });
 
 store.subscribe((state) => {
   els.status.textContent = state.status;
   els.status.dataset.state = state.health;
+  els.runBtn.disabled = state.isRunning || !state.project;
+  els.stopBtn.disabled = !state.isRunning;
 });
 
-// Satu jalur simpan: Ctrl/Cmd+S global (editor tidak memasang binding sendiri).
+// Global Ctrl/Cmd+S
 document.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
     event.preventDefault();
@@ -53,15 +92,107 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+// Step select event from stepList
+document.addEventListener("stepSelect", (e) => {
+  const { step, run } = e.detail;
+  store.set({ selectedStep: step, currentRun: run });
+});
+
+// Editor line click -> select step
+editor.on("cursorActivity", () => {
+  const state = store.get();
+  if (!state.currentRun || !state.currentRun.steps) return;
+  const line = editor.getCursor().line + 1; // 1-based
+  const file = state.activePath;
+  if (!file) return;
+  // Find step at this line in current iteration
+  const iteration = store.get().selectedIteration || 1;
+  const step = state.currentRun.steps.find(s => s.file === file && s.line === line && s.iteration === iteration);
+  if (step && step.seq !== state.selectedStep?.seq) {
+    store.set({ selectedStep: step });
+    // Highlight in stepList via custom event
+    document.dispatchEvent(new CustomEvent("stepHighlight", { detail: { seq: step.seq, iteration } }));
+  }
+});
+
+// Step highlight event from stepList
+document.addEventListener("stepHighlight", () => {
+  // stepList handles scrolling to the step
+});
+
 createToolbar({
   input: els.scriptPath,
   datalist: els.scriptPathHistory,
   openButton: els.openBtn,
+  runButton: els.runBtn,
+  stopButton: els.stopBtn,
   onOpen: (path) => void openProjectPath(path),
+  onRun: (options) => void startRunFlow(options),
+  onStop: () => void stopRunFlow(),
+  getIterations: () => parseInt(els.iterationsInput.value, 10) || 1,
+  getContinueOnError: () => els.continueOnErrorCheckbox.checked,
+  getIterationDelay: () => parseInt(els.iterationDelayInput.value, 10) || 0,
+  getNewUserEachIteration: () => els.newUserEachIterationCheckbox.checked,
+  getInsecureTLS: () => els.insecureTLSCheckbox.checked,
+  getThinkTime: () => els.thinkTimeSelect.value,
+});
+
+// Panel tabs
+const panelTabs = [
+  { id: "snapshot", label: "Snapshot", el: els.snapshotPanel },
+  { id: "parameter", label: "Parameter", el: els.parameterPanel },
+  { id: "log", label: "Log", el: els.logPanel },
+];
+let activePanelId = "snapshot";
+
+function renderPanelTabs() {
+  if (!els.panelTabBar) return;
+  els.panelTabBar.innerHTML = panelTabs.map(tab => `
+    <button type="button"
+      class="px-3 py-1.5 rounded-t-[3px] font-mono text-[11px] ${tab.id === activePanelId
+        ? "bg-[#1b212b] text-[#e6edf3] border-b-2 border-[#d2a24c]"
+        : "text-[#7d8896] hover:text-[#e6edf3] hover:bg-[#1b212b]"
+      }"
+      data-panel="${tab.id}">
+      ${tab.label}
+    </button>
+  `).join("");
+
+  els.panelTabBar.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => switchPanel(btn.dataset.panel));
+  });
+}
+
+function switchPanel(panelId) {
+  activePanelId = panelId;
+  panelTabs.forEach(tab => {
+    if (tab.el) {
+      tab.el.classList.toggle("hidden", tab.id !== panelId);
+      tab.el.classList.toggle("block", tab.id === panelId);
+    }
+  });
+  renderPanelTabs();
+}
+
+// Toggle run options - show by default so users see Insecure TLS option
+let optionsVisible = true;
+els.runOptions.classList.remove("hidden"); // Show initially
+els.toggleOptions?.addEventListener("click", () => {
+  optionsVisible = !optionsVisible;
+  els.runOptions.classList.toggle("hidden", !optionsVisible);
+  els.toggleOptions.textContent = optionsVisible ? "▲ Sembunyikan opsi" : "▼ Tampilkan opsi";
 });
 
 renderFileTree(els.fileTree, null, { activePath: null, onOpenFile: openDoc });
 renderTabs();
+renderPanelTabs();
+
+// Initialize panels
+createStepList(els.stepList);
+createSnapshotPanel(els.snapshotPanel);
+createParameterPanel(els.parameterPanel);
+createLogPanel(els.logPanel);
+
 void checkHealth();
 
 function messageOf(error) {
@@ -211,4 +342,152 @@ function syncActiveDoc() {
   if (!doc) return;
   doc.text = editor.getValue();
   renderTabs();
+}
+
+/** Start run flow with SSE */
+async function startRunFlow(options) {
+  const { project, activePath } = store.get();
+  if (!project) return;
+
+  // Save active doc first
+  if (activePath) {
+    const doc = docs.get(activePath);
+    if (doc && editor.getValue() !== doc.saved) {
+      try {
+        await saveFile({ path: project.path, file: activePath, text: editor.getValue() });
+        doc.saved = editor.getValue();
+      } catch (error) {
+        store.set({ health: "error", status: `Simpan gagal sebelum run: ${messageOf(error)}` });
+        return;
+      }
+    }
+  }
+
+  try {
+    store.set({ isRunning: true, status: "Memulai run…" });
+
+    const { runId } = await startRun(project.path, options);
+    store.set({ currentRunId: runId, currentRun: null, selectedStep: null });
+
+    // Connect SSE
+    eventSource = await getRunEvents(runId, project.path, (event) => handleRunEvent(event, runId, project.path));
+  } catch (error) {
+    store.set({ isRunning: false, health: "error", status: `Gagal memulai run: ${messageOf(error)}` });
+  }
+}
+
+// Track current transaction per iteration
+const currentTransactionByIteration = new Map();
+
+/** Handle SSE events */
+function handleRunEvent(event, runId, scriptPath) {
+  const { type, data, ts } = event;
+  const state = store.get();
+
+  switch (type) {
+    case "started":
+      store.set({ status: `Run dimulai: ${runId}` });
+      currentTransactionByIteration.clear();
+      break;
+
+    case "iterationStart":
+      store.set({ status: `Iterasi ${data.iteration} ${data.action}…` });
+      break;
+
+    case "iterationEnd":
+      store.set({ status: `Iterasi ${data.iteration} ${data.action} ${data.status}` });
+      break;
+
+    case "log": {
+      if (data.level === "step") {
+        const stepData = JSON.parse(data.data);
+        const iteration = data.iteration || 1;
+        const currentTx = currentTransactionByIteration.get(iteration) || null;
+        const steps = state.currentRun?.steps ? [...state.currentRun.steps] : [];
+        steps.push({ ...stepData, seq: steps.length + 1, iteration, transaction: currentTx });
+        store.set({
+          currentRun: { ...state.currentRun, steps, scriptPath },
+          status: `Step ${steps.length}: ${stepData.type} ${stepData.name} → ${stepData.response?.status || "?"}`,
+        });
+        break;
+      }
+      
+      const logs = state.currentRun?.log ? [...state.currentRun.log] : [];
+      logs.push({ ...data, ts: data.ts || ts });
+      store.set({ currentRun: { ...state.currentRun, log: logs } });
+      
+      // Track transaction from lr_start_transaction / lr_end_transaction log messages
+      const msg = data.msg;
+      const iteration = data.iteration || 1;
+      if (typeof msg === "string") {
+        if (msg.startsWith("lr_start_transaction: ")) {
+          const txName = msg.substring("lr_start_transaction: ".length);
+          currentTransactionByIteration.set(iteration, txName);
+        } else if (msg.startsWith("lr_end_transaction: ")) {
+          currentTransactionByIteration.delete(iteration);
+        }
+      }
+      break;
+    }
+
+    case "transaction": {
+      const txData = JSON.parse(data.data);
+      const iteration = data.iteration || 1;
+      currentTransactionByIteration.set(iteration, txData.name);
+      const transactions = state.currentRun?.transactions ? [...state.currentRun.transactions] : [];
+      transactions.push(txData);
+      store.set({ currentRun: { ...state.currentRun, transactions } });
+      break;
+    }
+
+    case "done":
+      store.set({ isRunning: false, status: `Run selesai: ${data.status}` });
+      // Fetch full run result
+      void fetchRunResult(runId, scriptPath);
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      break;
+
+    case "stopped":
+      store.set({ isRunning: false, status: `Run dihentikan: ${data.reason}` });
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      break;
+
+    case "error":
+      store.set({ health: "error", status: `Error: ${data.message}` });
+      break;
+  }
+}
+
+/** Fetch full run result after completion */
+async function fetchRunResult(runId, scriptPath) {
+  try {
+    const run = await getRun(runId, scriptPath);
+    store.set({ currentRun: { ...run, scriptPath } });
+  } catch (error) {
+    store.set({ health: "error", status: `Gagal ambil hasil run: ${messageOf(error)}` });
+  }
+}
+
+/** Stop run */
+async function stopRunFlow() {
+  const { currentRunId, project } = store.get();
+  if (!currentRunId || !project) return;
+
+  try {
+    await stopRun(currentRunId);
+    store.set({ isRunning: false, status: "Stop signal sent" });
+  } catch (error) {
+    store.set({ health: "error", status: `Gagal stop: ${messageOf(error)}` });
+  }
+
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
 }

@@ -95,6 +95,20 @@ export function createEditor(root, { onChange } = {}) {
       view.focus();
     },
 
+    /**
+     * Listen to editor events
+     * @param {"cursorActivity"} event
+     * @param {Function} handler
+     */
+    on(event, handler) {
+      if (event === "cursorActivity") {
+        // Use updateListener to detect cursor/selection changes
+        return EditorView.updateListener.of((update) => {
+          if (update.selectionSet) handler(update);
+        });
+      }
+    },
+
     destroy() {
       view.destroy();
     },

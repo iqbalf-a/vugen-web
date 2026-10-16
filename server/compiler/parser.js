@@ -214,13 +214,14 @@ class Parser {
       const startToken = this.peek();
 
       this.pos = nameIndex + 1;
-      this.skipBalanced("(", ")");
+      // Parse parameters between ( and )
+      const params = this.parseFunctionParams();
       const block = this.parseBlock();
 
       return {
         type: "FunctionDeclaration",
         name: nameToken.value,
-        params: [],
+        params,
         body: block.body,
         raw: this.source.slice(startToken.start, this.endOffset()),
         file: this.file,
@@ -284,6 +285,64 @@ class Parser {
       }
     }
     this.warn(this.peek(), `Tanda ${close} tidak ditemukan.`);
+  }
+
+  /**
+   * Parse function parameter list: (type name, type name, ...)
+   * Returns array of { type: string, name: string }
+   */
+  parseFunctionParams() {
+    const params = [];
+    // Current position should be at the token AFTER the function name
+    // Expect '('
+    if (!this.checkValue("(")) {
+      // No parameter list found, return empty params
+      return params;
+    }
+    this.next(); // consume '('
+
+    // Handle empty parameter list: ()
+    if (this.checkValue(")")) {
+      this.next(); // consume ')'
+      return params;
+    }
+
+    while (!this.atEnd() && !this.checkValue(")")) {
+      // Parse type (can be multiple tokens like "const char *")
+      const typeTokens = [];
+      while (!this.atEnd() && !this.checkValue(")") && !this.checkValue(",")) {
+        const token = this.next();
+        if (token.type === "identifier" || TYPE_KEYWORDS.has(token.value) || token.value === "*" || token.value === "[" || token.value === "]") {
+          typeTokens.push(token.value);
+        } else {
+          // Unexpected token, but continue
+          typeTokens.push(token.value);
+        }
+      }
+
+      // The last identifier before ',' or ')' is the parameter name
+      // For simplicity, extract the last identifier as name, rest as type
+      const typeStr = typeTokens.join(" ").trim();
+      let name = "";
+      // Find last identifier that's not a type keyword
+      for (let i = typeTokens.length - 1; i >= 0; i--) {
+        if (!TYPE_KEYWORDS.has(typeTokens[i]) && typeTokens[i] !== "*" && typeTokens[i] !== "[" && typeTokens[i] !== "]") {
+          name = typeTokens[i];
+          break;
+        }
+      }
+
+      params.push({ type: typeStr.replace(new RegExp(`\\b${name}\\b`), "").trim(), name });
+
+      if (this.checkValue(",")) {
+        this.next(); // consume ','
+      }
+    }
+
+    // consume ')'
+    if (this.checkValue(")")) this.next();
+
+    return params;
   }
 
   // --- statement --------------------------------------------------------
@@ -376,21 +435,21 @@ class Parser {
     const consequent = this.parseStatement();
     let alternate = null;
     if (this.eatValue("else")) alternate = this.parseStatement();
-    return { type: "IfStatement", header, consequent, alternate, file: this.file, line: token.line };
+    return { type: "IfStatement", header, consequent, alternate, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
   }
 
   parseFor() {
     const token = this.next();
     const header = this.readParenRaw();
     const body = this.parseStatement();
-    return { type: "ForStatement", header, body, file: this.file, line: token.line };
+    return { type: "ForStatement", header, body, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
   }
 
   parseWhile() {
     const token = this.next();
     const header = this.readParenRaw();
     const body = this.parseStatement();
-    return { type: "WhileStatement", header, body, file: this.file, line: token.line };
+    return { type: "WhileStatement", header, body, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
   }
 
   parseDoWhile() {
@@ -404,7 +463,7 @@ class Parser {
       this.warn(this.peek(), "`while` tidak ditemukan pada do-while.");
     }
     this.eatValue(";");
-    return { type: "DoWhileStatement", body, header, file: this.file, line: token.line };
+    return { type: "DoWhileStatement", body, header, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
   }
 
   parseReturn() {

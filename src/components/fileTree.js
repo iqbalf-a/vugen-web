@@ -1,13 +1,23 @@
 /**
- * File tree sederhana: daftar file script, dikelompokkan per folder.
+ * File tree: daftar file script, dikelompokkan per kategori (Action Utama, Action General, Parameter, Config).
  */
 
 const ACTIVE_CLASS = "bg-[#243044] text-[#e6edf3]";
 const IDLE_CLASS = "text-[#9aa7b8] hover:bg-[#1b212b]";
 
+/** @typedef {{ path: string, name: string, ext: string, kind: string, category: string }} FileItem */
+
+/** @type {Record<string, { label: string, order: number }>} */
+const CATEGORY_CONFIG = {
+  "action-utama": { label: "Action Utama", order: 1 },
+  "action-general": { label: "Action General", order: 2 },
+  parameter: { label: "Parameter Files", order: 3 },
+  config: { label: "Config & Others", order: 4 },
+};
+
 /**
  * @param {HTMLElement} root
- * @param {{ files: Array<{ path: string, name: string }> } | null} project
+ * @param {{ files: FileItem[] } | null} project
  * @param {{ activePath: string | null, onOpenFile: (path: string) => void }} options
  */
 export function renderFileTree(root, project, { activePath, onOpenFile }) {
@@ -22,22 +32,43 @@ export function renderFileTree(root, project, { activePath, onOpenFile }) {
     return;
   }
 
-  /** @type {Map<string, Array<{ path: string, name: string }>>} */
+  /** @type {Map<string, FileItem[]>} */
   const groups = new Map();
   for (const file of project.files) {
-    const slash = file.path.lastIndexOf("/");
-    const dir = slash === -1 ? "." : file.path.slice(0, slash);
-    if (!groups.has(dir)) groups.set(dir, []);
-    groups.get(dir)?.push(file);
+    const cat = file.category || "config";
+    if (!groups.has(cat)) groups.set(cat, []);
+    groups.get(cat)?.push(file);
   }
 
-  const sorted = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  for (const [dir, files] of sorted) {
+  // Sort categories by order
+  const sortedCats = [...groups.entries()].sort((a, b) => {
+    const orderA = CATEGORY_CONFIG[a[0]]?.order ?? 99;
+    const orderB = CATEGORY_CONFIG[b[0]]?.order ?? 99;
+    return orderA - orderB;
+  });
+
+  for (const [cat, files] of sortedCats) {
+    const config = CATEGORY_CONFIG[cat] || { label: cat, order: 99 };
+
     const heading = document.createElement("div");
-    heading.className = "mt-2 mb-1 truncate font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]";
-    heading.textContent = dir;
-    heading.title = dir;
+    heading.className = "mt-3 mb-1 flex items-center gap-2";
+    heading.innerHTML = `
+      <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]">${config.label}</span>
+      <span class="w-full h-[1px] bg-[#2a3644]"></span>
+    `;
     root.append(heading);
+
+    // Sort files within category: main action first, then alphabetical
+    files.sort((a, b) => {
+      if (cat === "action-utama" || cat === "action-general") {
+        // Put vuser_init/vuser_end at end of action-general
+        const aSpecial = a.name.toLowerCase() === "vuser_init.c" || a.name.toLowerCase() === "vuser_end.c";
+        const bSpecial = b.name.toLowerCase() === "vuser_init.c" || b.name.toLowerCase() === "vuser_end.c";
+        if (aSpecial && !bSpecial) return 1;
+        if (!aSpecial && bSpecial) return -1;
+      }
+      return a.name.localeCompare(b.name);
+    });
 
     for (const file of files) {
       const active = file.path === activePath;

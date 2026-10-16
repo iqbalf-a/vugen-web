@@ -13,6 +13,7 @@
 import { requestUrl, sendError, sendJson } from "../http-utils.js";
 import { getFile, putFile } from "./file.js";
 import { getProject } from "./project.js";
+import { handleRunRoutes } from "./run.js";
 
 /** @type {ApiRoute[]} */
 const routes = [
@@ -26,12 +27,30 @@ const routes = [
   { methods: ["GET"], path: "/project", handler: getProject },
   { methods: ["GET"], path: "/file", handler: getFile },
   { methods: ["PUT"], path: "/file", handler: putFile },
+  { methods: ["POST"], path: "/run", handler: handleRunRoutes },
+  { methods: ["GET"], path: "/run/:id/events", handler: handleRunRoutes },
+  { methods: ["POST"], path: "/run/:id/stop", handler: handleRunRoutes },
+  { methods: ["GET"], path: "/run/:id", handler: handleRunRoutes },
+  { methods: ["GET"], path: "/run/:id/step/:seq/body", handler: handleRunRoutes },
+  { methods: ["GET"], path: "/run/:id/snapshot/:name/body", handler: handleRunRoutes },
+  { methods: ["GET"], path: "/run/:id/debug", handler: handleRunRoutes },
 ];
 
 function normalizePath(pathname) {
   if (pathname === "/api") return "/";
   if (pathname.startsWith("/api/")) return pathname.slice("/api".length);
   return pathname;
+}
+
+function matchRoute(pathname, routePath) {
+  // Exact match
+  if (pathname === routePath) return true;
+  // Dynamic route match (e.g., /run/:id/events matches /run/abc/events)
+  if (routePath.includes(":")) {
+    const routeRegex = new RegExp("^" + routePath.replace(/:[^/]+/g, "[^/]+") + "$");
+    return routeRegex.test(pathname);
+  }
+  return false;
 }
 
 function statusOf(error) {
@@ -44,7 +63,8 @@ export function apiRouter(req, res) {
   const pathname = normalizePath(url.pathname);
   const method = req.method ?? "GET";
 
-  const forPath = routes.filter((route) => route.path === pathname);
+  // Find matching route (exact or dynamic)
+  const forPath = routes.filter((route) => matchRoute(pathname, route.path));
   if (forPath.length === 0) {
     sendError(res, 404, `Route tidak ditemukan: ${method} ${pathname}.`);
     return;

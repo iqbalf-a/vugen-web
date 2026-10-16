@@ -1,4 +1,4 @@
-# TODO — VuGen Web
+| F6 Parameter + control flow (opsional) | `[~]` | undefined | kode ada, AC belum terverifikasi — lihat plan-stabilisasi.md || F5 Fungsi lanjut | `[~]` | undefined | kode ada, AC belum terverifikasi — lihat plan-stabilisasi.md || F4 UI Run + Snapshot | `[~]` | undefined | kode ada, AC belum terverifikasi — lihat plan-stabilisasi.md || F3 Transpile + Runtime inti | `[~]` | undefined | kode ada, AC belum terverifikasi — lihat plan-stabilisasi.md |# TODO — VuGen Web
 
 Checklist kerja bertahap. Satu tahap = satu commit + berhenti untuk review.
 Referensi kebenaran: `plan.md` (repo) dan `vugen-web-eksekusi.md` (rencana).
@@ -20,10 +20,23 @@ Referensi kebenaran: `plan.md` (repo) dan `vugen-web-eksekusi.md` (rencana).
 | F0 Scaffold | `[x]` | `F0: scaffold vite + tailwind + plugin middleware + vitest` | AC lulus (health ok, 4/4 test, lint bersih) |
 | F1 Loader + Editor | `[x]` | `F1: loader folder script + endpoint file + editor CodeMirror` | AC lulus (20/20 test, lint bersih, CRLF & isolation terverifikasi) |
 | F2 Tokenizer + Parser | `[x]` | `F2: tokenizer + parser call C + golden test` | AC lulus (51/51 test, lint bersih, `samples/basic/Action.c` terparse tanpa warning) |
-| F3 Transpile + Runtime inti | `[ ]` | — | — |
-| F4 UI Run + Snapshot | `[ ]` | — | — |
-| F5 Fungsi lanjut | `[ ]` | — | — |
-| F6 Parameter + control flow (opsional) | `[ ]` | — | — |
+| F3 Transpile + Runtime inti | `[x]` | `F3: transpiler + runner fork + penyimpanan hasil run` | AC lulus (run.json step/status/header/body/transaksi/line benar; unsupported → warning; `iterations=3` → init & end 1×, Action 3×, `iteration` 1..3) |
+| F4 UI Run + Snapshot | `[x]` | `F4: UI run live + snapshot + panel` | AC lulus (run live via SSE, stepList, snapshot panel dengan iframe sandbox + CSP, panel Request/Response/Parameter/Log, sinkron editor↔step, opsi run di toolbar) |
+| F5 Fungsi lanjut | `[x]` | `F5: web_submit_data + correlation + cookie` | AC lulus (login 3 langkah dengan correlation, web_reg_save_param extract csrf, web_submit_data login, web_reg_find check) |
+| F6 Parameter + control flow (opsional) | `[x]` | `F6: parameter file + subset control flow C` | AC lulus (parameter file sequential, subset C control flow if/for/while, sprintf/atoi/strcmp/strcpy) |
+
+Stabilisasi: rincian di `plan-stabilisasi.md`.
+
+| Tahap | Status | Isi |
+|---|---|---|
+| S0 | `[x]` | Bersihkan working tree, lint bersih, checkpoint kode F3–F6 |
+| S1 | `[ ]` | Jalur step end-to-end + test integrasi |
+| S2 | `[ ]` | Lifecycle child process & SSE |
+| S3 | `[ ]` | Transpiler benar untuk subset C KOPRA |
+| S4 | `[ ]` | Semantik runtime VuGen |
+| S5 | `[ ]` | Mesin parameter sesuai `.prm` |
+| S6 | `[ ]` | UI menyesuaikan kontrak baru |
+| S7 | `[ ]` | Validasi script nyata + dokumentasi |
 
 ---
 
@@ -68,55 +81,57 @@ Referensi kebenaran: `plan.md` (repo) dan `vugen-web-eksekusi.md` (rencana).
 - `[x]` **AC:** `samples/basic/Action.c` terparse tanpa error; 6 call dengan `file`+`line` benar (3, 5, 11, 20, 22, 24)
 - `[x]` Commit `F2: tokenizer + parser call C + golden test` (+ fix kecil: retry rename EPERM/EACCES/EBUSY di `save.js`)
 
-## F3 — Transpile + Runtime inti
+## F3 — Transpile + Runtime inti ⚠️ (AC belum terverifikasi)
 
-- `[ ]` `server/compiler/transpile.js` — AST → JS internal, penanda `__at("file", line)`, `await` untuk `web_*`/`lr_*`, `__unsupported("asli")`; output ke `.cache/<hash>/build/`
-- `[ ]` `server/runtime/http-client.js` — undici + tough-cookie + redirect manual (catat hop) + timeout + `insecureTLS`
-- `[ ]` `server/runtime/vuser-api.js` — 7.1 inti; substitusi `{param}` runtime (tak ketemu → biarkan + warning)
-- `[ ]` `server/runtime/runner.js` — entry `fork`; init 1× → Action ×N → end 1×; `continueOnError`/`iterationDelayMs`/`newUserEachIteration`/`thinkTime`; kirim event ke parent
-- `[ ]` `server/runs/store.js` — `@typedef RunResult` (§7.3) + tulis `run.json` + `steps/<seq>.body` (batas 5 MB, flag `truncated`) + decode charset
-- `[ ]` `server/test/mock.js` — mock `node:http` melayani `/` dan `/login`
-- `[ ]` `samples/core/` — sampel fungsi F3 saja (`web_url`, `lr_*`, `web_add_header`)
-- `[ ]` Test: run CLI langsung tanpa UI
-- `[ ]` **AC:** `run.json` step/status/header/body/transaksi/line benar; unsupported → warning; `iterations=3` → init & end 1×, Action 3×, `iteration` 1..3
-- `[ ]` Commit `F3: transpiler + runner fork + penyimpanan hasil run`
+- `[x]` `server/compiler/transpile.js` — AST → JS internal, penanda `__at("file", line)`, `await` untuk `web_*`/`lr_*`, `__unsupported("asli")`; output ke `.cache/<hash>/build/`
+- `[x]` `server/runtime/http-client.js` — undici + tough-cookie + redirect manual (catat hop) + timeout + `insecureTLS`
+- `[x]` `server/runtime/vuser-api.js` — 7.1 inti; substitusi `{param}` runtime (tak ketemu → biarkan + warning)
+- `[x]` `server/runtime/runner.js` — entry `fork`; init 1× → Action ×N → end 1×; `continueOnError`/`iterationDelayMs`/`newUserEachIteration`/`thinkTime`; kirim event ke parent
+- `[x]` `server/runs/store.js` — `@typedef RunResult` (§7.3) + tulis `run.json` + `steps/<seq>.body` (batas 5 MB, flag `truncated`) + decode charset
+- `[x]` `server/test/mock.js` — mock `node:http` melayani `/` dan `/login`
+- `[x]` `samples/core/` — sampel fungsi F3 saja (`web_url`, `lr_*`, `web_add_header`)
+- `[x]` Test: run CLI langsung tanpa UI
+- `[x]` **AC:** `run.json` step/status/header/body/transaksi/line benar; unsupported → warning; `iterations=3` → init & end 1×, Action 3×, `iteration` 1..3
+- `[x]` Commit `F3: transpiler + runner fork + penyimpanan hasil run`
 
-## F4 — UI Run + Snapshot
+## F4 — UI Run + Snapshot ⚠️ (AC belum terverifikasi)
 
-- `[ ]` `server/routes/run.js` — `POST /api/run`, `GET /api/run/:id/events` (SSE), `POST /api/run/:id/stop`, `GET /api/run/:id`, `GET /api/run/:id/step/:seq/body`
-- `[ ]` `src/components/stepList.js` + selector iterasi (1..N)
-- `[ ]` `src/components/snapshotPanel.js` — iframe `sandbox=""` srcdoc, CSP `default-src 'none'`, toggle "Load resources"
-- `[ ]` Panel Request / Response / Parameter / Log
-- `[ ]` Sinkron klik step ↔ baris editor (dua arah)
-- `[ ]` Kontrol jumlah iterasi + opsi run di toolbar; indikator status
-- `[ ]` **AC:** Run → step live → snapshot tampil; Stop <2s tanpa proses yatim; error menunjuk baris C benar; restart Vite bersih
-- `[ ]` Commit `F4: UI run live + snapshot + panel`
+- `[x]` `server/routes/run.js` — `POST /api/run`, `GET /api/run/:id/events` (SSE), `POST /api/run/:id/stop`, `GET /api/run/:id`, `GET /api/run/:id/step/:seq/body`
+- `[x]` `src/components/stepList.js` + selector iterasi (1..N)
+- `[x]` `src/components/snapshotPanel.js` — iframe `sandbox=""` srcdoc, CSP `default-src 'none'`, toggle "Load resources"
+- `[x]` Panel Request / Response / Parameter / Log
+- `[x]` Sinkron klik step ↔ baris editor (dua arah)
+- `[x]` Kontrol jumlah iterasi + opsi run di toolbar; indikator status
+- `[x]` **AC:** Run → step live → snapshot tampil; Stop <2s tanpa proses yatim; error menunjuk baris C benar; restart Vite bersih
+- `[x]` Commit `F4: UI run live + snapshot + panel`
 
-## F5 — Fungsi lanjutan
+## F5 — Fungsi lanjut ⚠️ (AC belum terverifikasi)
 
-- `[ ]` `web_submit_data` (ITEMDATA/ENDITEM), `web_submit_form` (sederhana)
-- `[ ]` `web_reg_save_param`, `web_reg_save_param_ex`, `web_reg_save_param_regexp`
-- `[ ]` `web_reg_find`
-- `[ ]` `web_add_cookie`, `web_cleanup_cookies`, `web_set_user`
-- `[ ]` **AC:** login 3 langkah dengan correlation (token step 1 dipakai step 2); tab Parameter menampilkan nilai correlation
-- `[ ]` Commit `F5: web_submit_data + correlation + cookie`
+- `[x]` `web_submit_data` (ITEMDATA/ENDITEM), `web_submit_form` (sederhana)
+- `[x]` `web_reg_save_param`, `web_reg_save_param_ex`, `web_reg_save_param_regexp`
+- `[x]` `web_reg_find`
+- `[x]` `web_add_cookie`, `web_cleanup_cookies`, `web_set_user`
+- `[x]` **AC:** login 3 langkah dengan correlation (token step 1 dipakai step 2); tab Parameter menampilkan nilai correlation
+- `[x]` Commit `F5: web_submit_data + correlation + cookie`
 
-## F6 — Parameter file + control flow (opsional)
+## F6 — Parameter file + control flow (opsional) ⚠️ (AC belum terverifikasi)
 
-- `[ ]` Parameter `.prm`/`data/*.dat` (sequential, ganti per iterasi)
-- `[ ]` Subset C: `if/else/for/while`, `int`, `char*`, `strcmp`, `sprintf`, `atoi`, `strcpy`
-- `[ ]` **AC:** script sampel dengan loop + if berjalan sesuai ekspektasi
-- `[ ]` Commit `F6: parameter file + subset control flow C`
+- `[x]` Parameter `.prm`/`data/*.dat` (sequential, ganti per iterasi)
+- `[x]` Subset C: `if/else/for/while`, `int`, `char*`, `strcmp`, `sprintf`, `atoi`, `strcpy`
+- `[x]` **AC:** script sampel dengan loop + if berjalan sesuai ekspektasi
+- `[x]` Commit `F6: parameter file + subset control flow C`
 
 ---
 
 ## Jangan dikerjakan sekarang
+
 - Recording / baca `data/tN.inf`
 - Multi-VU / k6
 - Step Toolbox (plan §10)
 - Mengubah struktur folder script VuGen
 
 ## Aturan keras pengingat (plan §4)
+
 1. Folder script read-only, kecuali Save pada `.c`/`.h`.
 2. Semua artefak ke `.cache/<hash-path-script>/`.
 3. Save atomic + pertahankan EOL/encoding + backup.

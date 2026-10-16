@@ -16,6 +16,13 @@ import { cacheKeyFor, toPosix } from "./paths.js";
 const SCRIPT_EXTENSIONS = new Set([".c", ".h"]);
 const CONFIG_EXTENSIONS = new Set([".usr", ".cfg", ".usp", ".prm", ".dat"]);
 const SKIP_DIRECTORIES = new Set(["node_modules", ".git", ".cache", "result", "results"]);
+// Skip preprocessed/combined files that duplicate function definitions
+const SKIP_FILES = new Set([
+  "pre_cci.c",
+  "combined_",
+  "pre_cci.h",
+  "combined.h",
+]);
 const MAX_DEPTH = 4;
 const MAX_FILES = 2000;
 
@@ -74,6 +81,10 @@ async function listFiles(scriptDir) {
       const ext = path.extname(entry.name).toLowerCase();
       if (!SCRIPT_EXTENSIONS.has(ext) && !CONFIG_EXTENSIONS.has(ext)) continue;
 
+      // Skip preprocessed/combined files
+      const lowerName = entry.name.toLowerCase();
+      if (Array.from(SKIP_FILES).some(skip => lowerName.startsWith(skip))) continue;
+
       const stats = await fs.stat(absolute);
       files.push({
         path: toPosix(path.relative(scriptDir, absolute)),
@@ -92,8 +103,8 @@ async function listFiles(scriptDir) {
 }
 
 /**
- * Ambil baris `key = value` yang value-nya berakhiran `.c`.
- * Hanya itu yang kita anggap referensi file action.
+ * Parse file konfigurasi VuGen (.usp, .cfg) untuk ekstrak Run Logic.
+ * Format .usp: INI-style dengan section [RunLogicRunRoot] dan key RunLogicActionOrder.
  *
  * @param {string} text
  * @returns {RunLogicEntry[]}
@@ -101,19 +112,106 @@ async function listFiles(scriptDir) {
 function parseConfigEntries(text) {
   /** @type {RunLogicEntry[]} */
   const entries = [];
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (line === "" || line.startsWith("[") || line.startsWith(";") || line.startsWith("#")) continue;
+  const lines = text.split(/\r?\n/);
+  let currentSection = "";
+  let runLogicRunRootEntries = [];
+  let runLogicInitEntries = [];
+  let runLogicEndEntries = [];
 
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (line === "" || line.startsWith(";") || line.startsWith("#")) continue;
+
+    // Section header: [SectionName] or [SectionName:SubName]
+    const sectionMatch = /^\[([^\]]+)\]$/.exec(line);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      continue;
+    }
+
+    // Key = Value
     const match = /^([^=]+?)\s*=\s*(.+?)\s*$/.exec(line);
     if (!match) continue;
 
+    const key = match[1].trim();
     const value = match[2].replace(/^["']|["']$/g, "").trim();
-    if (!/\.c$/i.test(value)) continue;
-    if (value.includes("\\") || value.includes("/")) continue;
-    entries.push({ key: match[1].trim(), file: value });
+
+    // Parse RunLogicRunRoot section - MAIN ACTIONS
+    if (currentSection === "RunLogicRunRoot") {
+      if (key === "RunLogicActionOrder") {
+        const actions = value.split(",").map(a => a.trim()).filter(a => a);
+        for (const action of actions) {
+          runLogicRunRootEntries.push({ key: action, file: action + ".c" });
+        }
+      }
+      continue;
+    }
+
+    // Parse RunLogicRunRoot subsections - [RunLogicRunRoot:ActionName]
+    if (currentSection.startsWith("RunLogicRunRoot:") && key === "Name") {
+      runLogicRunRootEntries.push({ key: value, file: value + ".c" });
+      continue;
+    }
+
+    // Parse RunLogicInitRoot section - INIT ACTIONS
+    if (currentSection === "RunLogicInitRoot") {
+      if (key === "RunLogicActionOrder") {
+        const actions = value.split(",").map(a => a.trim()).filter(a => a);
+        for (const action of actions) {
+          runLogicInitEntries.push({ key: action, file: action + ".c" });
+        }
+      }
+      continue;
+    }
+
+    // Parse RunLogicInitRoot subsections
+    if (currentSection.startsWith("RunLogicInitRoot:") && key === "Name") {
+      runLogicInitEntries.push({ key: value, file: value + ".c" });
+      continue;
+    }
+
+    // Parse RunLogicEndRoot section - END ACTIONS
+    if (currentSection === "RunLogicEndRoot") {
+      if (key === "RunLogicActionOrder") {
+        const actions = value.split(",").map(a => a.trim()).filter(a => a);
+        for (const action of actions) {
+          runLogicEndEntries.push({ key: action, file: action + ".c" });
+        }
+      }
+      continue;
+    }
+
+    // Parse RunLogicEndRoot subsections
+    if (currentSection.startsWith("RunLogicEndRoot:") && key === "Name") {
+      runLogicEndEntries.push({ key: value, file: value + ".c" });
+      continue;
+    }
+
+    // Generic .c file references (fallback) - only if no RunLogic entries yet
+    if (/\.c$/i.test(value) && !value.includes("\\") && !value.includes("/") 
+        && runLogicRunRootEntries.length === 0 
+        && runLogicInitEntries.length === 0 
+        && runLogicEndEntries.length === 0) {
+      entries.push({ key, file: value });
+    }
   }
-  return entries;
+
+  // Deduplicate by file
+  const seen = new Set();
+  const dedupe = (arr) => arr.filter(e => {
+    if (seen.has(e.file)) return false;
+    seen.add(e.file);
+    return true;
+  });
+
+  const runRoot = dedupe(runLogicRunRootEntries);
+  const runInit = dedupe(runLogicInitEntries);
+  const runEnd = dedupe(runLogicEndEntries);
+
+
+  // Combine: init + main actions + end
+  return [...runInit, ...runRoot, ...runEnd];
 }
 
 /**
@@ -129,7 +227,18 @@ async function resolveRunLogic(scriptDir, files) {
 
   const configCandidates = files.filter(
     (file) => file.kind === "config" && (file.ext === ".usr" || file.name.toLowerCase() === "default.usp"),
-  );
+  ).sort((a, b) => {
+    // Prioritize default.usp > .usp > others
+    const aIsUsp = a.name.toLowerCase() === "default.usp";
+    const bIsUsp = b.name.toLowerCase() === "default.usp";
+    if (aIsUsp && !bIsUsp) return -1;
+    if (!aIsUsp && bIsUsp) return 1;
+    const aIsUspExt = a.ext === ".usp";
+    const bIsUspExt = b.ext === ".usp";
+    if (aIsUspExt && !bIsUspExt) return -1;
+    if (!aIsUspExt && bIsUspExt) return 1;
+    return 0;
+  });
 
   /** @type {RunLogicEntry[]} */
   let entries = [];
@@ -211,8 +320,92 @@ function collectActions(files) {
 }
 
 /**
+ * Load parameter files (.prm, data/*.dat) for sequential parameter substitution.
+ * Returns a map of parameterName -> { values: string[], currentIndex: number }
+ *
  * @param {string} scriptDir
+ * @param {Array<{ path: string, name: string, ext: string }>} files
+ * @returns {Promise<Map<string, { values: string[], currentIndex: number }>>}
  */
+async function loadParameterFiles(scriptDir, files) {
+  /** @type {Map<string, { values: string[], currentIndex: number }>} */
+  const params = new Map();
+
+  // Load .prm files
+  const prmFiles = files.filter((file) => file.ext === ".prm");
+  for (const prmFile of prmFiles) {
+    try {
+      const content = await fs.readFile(path.join(scriptDir, prmFile.path), "utf8");
+      // Parse .prm format: typically CSV-like or name=value per line
+      // VuGen .prm format: each line is a row, first row may be headers
+      const lines = content.split(/\r?\n/).filter((line) => line.trim() !== "");
+      if (lines.length === 0) continue;
+
+      // Check if first line is headers
+      const firstLine = lines[0];
+      const hasHeaders = firstLine.includes(",") || firstLine.includes("=");
+
+      if (hasHeaders) {
+        const headers = firstLine.split(",").map((h) => h.trim());
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(",").map((v) => v.trim());
+          headers.forEach((header, idx) => {
+            if (values[idx] !== undefined) {
+              if (!params.has(header)) params.set(header, { values: [], currentIndex: 0 });
+              params.get(header).values.push(values[idx]);
+            }
+          });
+        }
+      } else {
+        // Single column, use filename as param name
+        const paramName = path.basename(prmFile.name, ".prm");
+        params.set(paramName, { values: lines, currentIndex: 0 });
+      }
+    } catch {
+      // Silently ignore parameter file errors
+    }
+  }
+
+  // Load data/*.dat files (both in data/ subfolder and root folder)
+  const datFiles = files.filter((file) => file.ext === ".dat" && (file.path.startsWith("data/") || !file.path.includes("/")));
+  for (const datFile of datFiles) {
+    try {
+      const content = await fs.readFile(path.join(scriptDir, datFile.path), "utf8");
+      const lines = content.split(/\r?\n/).filter((line) => line.trim() !== "");
+      if (lines.length === 0) continue;
+
+      const paramName = path.basename(datFile.name, ".dat");
+      // Skip header line if it matches the parameter name (VuGen .dat format)
+      const values = lines[0] === paramName ? lines.slice(1) : lines;
+      if (values.length === 0) continue;
+      params.set(paramName, { values, currentIndex: 0 });
+    } catch {
+      // Silently ignore parameter file errors
+    }
+  }
+
+  return params;
+}
+
+/**
+ * Kategori file untuk UI grouping
+ * @param {string} name
+ * @param {string} ext
+ * @param {string} kind
+ * @param {string | null} mainActionFile
+ * @returns {"action-utama" | "action-general" | "parameter" | "config"}
+ */
+function categorizeFile(name, ext, kind, mainActionFile) {
+  const lower = name.toLowerCase();
+  if (ext === ".dat") return "parameter";
+  if (ext === ".c") {
+    if (lower === "vuser_init.c" || lower === "vuser_end.c") return "config";
+    if (mainActionFile && name === mainActionFile) return "action-utama";
+    return "action-general";
+  }
+  return "config";
+}
+
 export async function loadProject(scriptDir) {
   const { files, warnings } = await listFiles(scriptDir);
   const runLogic = await resolveRunLogic(scriptDir, files);
@@ -220,12 +413,24 @@ export async function loadProject(scriptDir) {
   const runActions = runLogic.actions;
   const actions = runActions.length > 0 ? runActions : collectActions(files);
 
+  // Identify main action file from Run Logic
+  const mainActionFile = runLogic.actions.length > 0 ? runLogic.actions[0].file : null;
+
+  // Add category to each file
+  const categorizedFiles = files.map((file) => ({
+    ...file,
+    category: categorizeFile(file.name, file.ext, file.kind, mainActionFile),
+  }));
+
+  const parameterFiles = await loadParameterFiles(scriptDir, files);
+
   return {
     path: scriptDir,
     cacheKey: cacheKeyFor(scriptDir),
-    files,
+    files: categorizedFiles,
     actions,
     runLogic,
+    parameterFiles,
     warnings: [...warnings, ...runLogic.warnings],
   };
 }

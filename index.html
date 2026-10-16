@@ -40,8 +40,43 @@
         <span id="status" data-state="checking" class="font-mono text-[11px] text-[#7d8896]">…</span>
       </header>
 
+      <!-- Run Options (collapsible) -->
+      <div id="runOptions" class="border-b border-[#232a33] bg-[#141922] px-4 py-3 text-[11px] text-[#e6edf3]">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <label class="flex items-center gap-2">
+            <input type="number" id="iterations" value="1" min="1" max="1000" class="w-16 h-6 rounded border border-[#232a33] bg-[#1b212b] px-2 text-[11px] text-[#e6edf3] outline-none focus:border-[#d2a24c]" />
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Iterasi</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="continueOnError" class="accent-[#d2a24c]" />
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Lanjut error</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="number" id="iterationDelay" value="0" min="0" max="60000" class="w-20 h-6 rounded border border-[#232a33] bg-[#1b212b] px-2 text-[11px] text-[#e6edf3] outline-none focus:border-[#d2a24c]" />
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Jeda (ms)</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="newUserEachIteration" checked class="accent-[#d2a24c]" />
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">User baru</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="insecureTLS" class="accent-[#d2a24c]" checked />
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Insecure TLS</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <select id="thinkTime" class="h-6 rounded border border-[#232a33] bg-[#1b212b] px-2 text-[11px] text-[#e6edf3] outline-none focus:border-[#d2a24c]">
+              <option value="ignore">Think time: ignore</option>
+              <option value="run">Think time: run</option>
+            </select>
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]"></span>
+          </label>
+        </div>
+        <button id="toggleOptions" type="button" class="mt-2 text-[10px] font-mono text-[#7d8896] hover:text-[#e6edf3]">▲ Sembunyikan opsi</button>
+      </div>
+
       <!-- ── Tiga area ── -->
       <main class="grid min-h-0 flex-1 grid-cols-[260px_minmax(0,1fr)_380px]">
+        <!-- Kiri: FileTree + StepList -->
         <aside class="flex min-h-0 flex-col border-r border-[#232a33] bg-[#121821]">
           <div class="border-b border-[#232a33] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">File Script</div>
           <div id="fileTree" class="min-h-0 flex-1 overflow-auto px-2 py-2 text-[12.5px] text-[#5b6572]">Belum ada folder yang dibuka.</div>
@@ -49,6 +84,7 @@
           <div id="stepList" class="min-h-0 flex-1 overflow-auto px-2 py-2 font-mono text-[11.5px] text-[#5b6572]">Belum ada hasil run.</div>
         </aside>
 
+        <!-- Tengah: Editor (tab per file) -->
         <section class="flex min-h-0 flex-col bg-[#0e1116]">
           <div id="tabBar" class="flex min-h-[34px] items-center gap-1 border-b border-[#232a33] bg-[#141922] px-2 py-1"></div>
           <div id="editor" class="min-h-0 flex-1 overflow-hidden">
@@ -56,9 +92,14 @@
           </div>
         </section>
 
+        <!-- Kanan: Panel tab (Snapshot, Request, Response, Parameter, Log) -->
         <section class="flex min-h-0 flex-col border-l border-[#232a33] bg-[#141922]">
           <div id="panelTabBar" class="flex min-h-[34px] items-center gap-1 border-b border-[#232a33] px-2 py-1"></div>
-          <div id="panel" class="min-h-0 flex-1 overflow-auto px-3 py-3 font-mono text-[11.5px] text-[#5b6572]">Belum ada hasil run.</div>
+          <div class="min-h-0 flex-1 overflow-hidden" id="panelContainer">
+            <div id="snapshotPanel" class="h-full"></div>
+            <div id="parameterPanel" class="h-full hidden"></div>
+            <div id="logPanel" class="h-full hidden"></div>
+          </div>
         </section>
       </main>
     </div>

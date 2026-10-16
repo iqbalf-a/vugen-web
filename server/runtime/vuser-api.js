@@ -13,6 +13,7 @@
 import vm from "node:vm";
 
 import { decodeBody, saveStepBody } from "../runs/store.js";
+import { compileJsonPath, queryJsonPath } from "./jsonpath.js";
 import { formatPrintf } from "./printf.js";
 
 /** @typedef {import("./http-client.js").ResponseInfo} ResponseInfo */
@@ -247,15 +248,17 @@ const nextHeaders = new Map();
 
 export function web_add_header(name, value) {
   const { log } = needCtx();
-  nextHeaders.set(String(name).toLowerCase(), String(value ?? ""));
-  log("info", `web_add_header: ${name} = ${value}`);
+  const resolved = substituteParams(String(value ?? "")); // {param} disubstitusi saat fungsi dipanggil (seperti VuGen)
+  nextHeaders.set(String(name).toLowerCase(), resolved);
+  log("info", `web_add_header: ${name} = ${resolved}`);
   return 0;
 }
 
 export function web_add_auto_header(name, value) {
   const { log } = needCtx();
-  autoHeaders.set(String(name).toLowerCase(), String(value ?? ""));
-  log("info", `web_add_auto_header: ${name} = ${value}`);
+  const resolved = substituteParams(String(value ?? "")); // {param} disubstitusi saat fungsi dipanggil (seperti VuGen)
+  autoHeaders.set(String(name).toLowerCase(), resolved);
+  log("info", `web_add_auto_header: ${name} = ${resolved}`);
   return 0;
 }
 
@@ -542,6 +545,60 @@ export function web_reg_save_param_regexp(...args) {
   return 0;
 }
 
+/** Atribut web_reg_save_param_json yang dikenal; lainnya diabaikan dengan warning */
+const JSON_PARAM_ATTRIBUTES = new Set(["ParamName", "QueryString", "Scope", "SelectAll", "NotFound", "Ordinal"]);
+
+/**
+ * web_reg_save_param_json — Register correlation dari body JSON (berlaku untuk request berikutnya).
+ * Argumen: "ParamName=x", "QueryString=<jsonpath>", SEARCH_FILTERS, "Scope=BODY", ["SelectAll=Yes|No"],
+ *   ["NotFound=Error|Warning"], ["Ordinal=n"], LAST
+ * JSONPath subset: $, .nama, ..nama, [n], [*], ['nama'] (lihat jsonpath.js).
+ * `Scope=ALL` (dipakai script KOPRA) diperlakukan sebagai BODY; scope lain diabaikan dengan warning.
+ */
+export function web_reg_save_param_json(...args) {
+  const { log } = needCtx();
+  const opts = parseWebArgs(args);
+
+  const name = opts.ParamName;
+  const query = opts.QueryString;
+  if (!name) return concludeFailure("web_reg_save_param_json", "", "atribut ParamName wajib");
+  if (!query) return concludeFailure("web_reg_save_param_json", "", `atribut QueryString wajib (ParamName=${name})`);
+
+  let segments;
+  try {
+    segments = compileJsonPath(query);
+  } catch (error) {
+    return concludeFailure("web_reg_save_param_json", "", `ParamName=${name}: ${error.message}`);
+  }
+
+  for (const key of Object.keys(opts)) {
+    if (key !== "headers" && !JSON_PARAM_ATTRIBUTES.has(key)) log("warn", `web_reg_save_param_json "${name}": atribut ${key} tidak dikenal; diabaikan`);
+  }
+
+  const scope = String(opts.Scope ?? "BODY").toUpperCase();
+  if (scope !== "BODY" && scope !== "ALL") log("warn", `web_reg_save_param_json "${name}": Scope=${opts.Scope} belum didukung; memakai BODY`);
+
+  let selectAll = /^yes$/i.test(opts.SelectAll ?? "");
+  let ordinal = 1;
+  if (opts.Ordinal !== undefined) {
+    if (/^all$/i.test(opts.Ordinal)) selectAll = true;
+    else if (/^[1-9]\d*$/.test(opts.Ordinal)) ordinal = Number(opts.Ordinal);
+    else log("warn", `web_reg_save_param_json "${name}": Ordinal=${opts.Ordinal} tidak valid; memakai 1`);
+  }
+
+  correlationRegistry.push({
+    kind: "json",
+    name,
+    query,
+    segments,
+    selectAll,
+    ordinal,
+    notFoundIsError: !/^warning$/i.test(opts.NotFound ?? ""),
+  });
+  log("info", `web_reg_save_param_json: registered "${name}" QueryString=${query}${selectAll ? " SelectAll=Yes" : ordinal > 1 ? ` Ordinal=${ordinal}` : ""}`);
+  return 0;
+}
+
 /**
  * web_reg_find — Register content check.
  * Argumen: "Text=...", "SaveCount=...", LAST
@@ -771,6 +828,53 @@ function extractCorrelation(rule, bodyText) {
   return { value: null };
 }
 
+/** Nilai JSON -> teks parameter (objek/array disimpan sebagai JSON ringkas) */
+function jsonValueToParam(value) {
+  return value !== null && typeof value === "object" ? JSON.stringify(value) : String(value);
+}
+
+/**
+ * Evaluasi satu aturan web_reg_save_param_json terhadap response.
+ * @param {{ name: string, query: string, segments: any[], selectAll: boolean, ordinal: number, notFoundIsError: boolean }} rule
+ * @param {string[]} problems alasan step gagal (diisi bila NotFound=Error)
+ */
+function applyJsonRule(rule, resp, bodyText, contentType, problems) {
+  const { log, params } = needCtx();
+
+  const notFound = (reason) => {
+    const message = `web_reg_save_param_json "${rule.name}": ${reason}`;
+    if (rule.notFoundIsError) problems.push(message);
+    else log("warn", message);
+  };
+
+  let document;
+  try {
+    document = JSON.parse(bodyText || decodeBody(resp.body, contentType));
+  } catch {
+    notFound("body response bukan JSON valid");
+    return;
+  }
+
+  const matches = queryJsonPath(document, rule.segments);
+
+  if (rule.selectAll) {
+    if (matches.length === 0) return notFound(`QueryString ${rule.query} tidak ditemukan`);
+    const previous = Number(params.get(`${rule.name}_count`)) || 0;
+    for (let i = 1; i <= previous; i++) params.delete(`${rule.name}_${i}`);
+    matches.forEach((value, index) => params.set(`${rule.name}_${index + 1}`, jsonValueToParam(value)));
+    params.set(`${rule.name}_count`, String(matches.length));
+    log("info", `JSON correlation: ${rule.name}_count = ${matches.length}`);
+    return;
+  }
+
+  if (rule.ordinal > matches.length) {
+    return notFound(`QueryString ${rule.query} tidak ditemukan${rule.ordinal > 1 ? ` (Ordinal=${rule.ordinal}, ada ${matches.length} match)` : ""}`);
+  }
+  const value = jsonValueToParam(matches[rule.ordinal - 1]);
+  params.set(rule.name, value);
+  log("info", `JSON correlation: ${rule.name} = "${value}"`);
+}
+
 /** Handle response: simpan body, correlation, web_reg_find, kirim event step, lalu nilai sukses/gagal */
 async function handleResponse(stepName, resp, type, snapshotName) {
   const c = needCtx();
@@ -787,6 +891,10 @@ async function handleResponse(stepName, resp, type, snapshotName) {
 
   // Process correlations: extract values and save to params
   for (const rule of correlationRegistry) {
+    if (rule.kind === "json") {
+      applyJsonRule(rule, resp, bodyText, contentType, problems);
+      continue;
+    }
     const { value, error } = extractCorrelation(rule, bodyText);
     if (error) {
       problems.push(`Correlation "${rule.name}": ${error}`);

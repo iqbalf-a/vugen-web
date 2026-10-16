@@ -8,6 +8,8 @@
  * - GET  /slow          -> Menjawab setelah 10 detik (untuk tes Stop)
  * - GET  /status/:code  -> Menjawab dengan status HTTP tertentu (untuk tes step gagal)
  * - GET  /echo-headers  -> Mengembalikan header request sebagai JSON (untuk tes header/cookie)
+ * - GET  /json          -> JSON bersarang (untuk tes correlation JSON)
+ * - GET  /not-json      -> teks biasa (bukan JSON)
  * - GET  /flaky         -> 500 pada hit pertama sejak mock start, 200 sesudahnya (tes iterasi gagal)
  *
  * Dipakai oleh runner test tanpa server eksternal.
@@ -177,6 +179,33 @@ const server = createServer(async (req, res) => {
   if (statusMatch) {
     res.writeHead(Number(statusMatch[1]), { "Content-Type": "text/plain" });
     res.end(`status ${statusMatch[1]}`);
+    return;
+  }
+
+  // GET /json — dokumen bersarang untuk tes web_reg_save_param_json
+  if (url.pathname === "/json") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        requestId: "R-77",
+        data: {
+          token: "tok-123",
+          profile: { kopraId: "K-9", companyId: "C-1" },
+          items: [{ id: 10, companyId: "C-2" }, { id: 20 }, { id: 30 }],
+          count: 3,
+          flag: true,
+          nothing: null,
+          tags: ["a", "b"],
+        },
+      }),
+    );
+    return;
+  }
+
+  // GET /not-json
+  if (url.pathname === "/not-json") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("hello, bukan json");
     return;
   }
 

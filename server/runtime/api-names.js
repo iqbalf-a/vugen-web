@@ -37,6 +37,7 @@ export const SUPPORTED_FUNCTIONS = Object.freeze([
   "web_reg_find",
   "web_reg_save_param",
   "web_reg_save_param_ex",
+  "web_reg_save_param_json",
   "web_reg_save_param_regexp",
   "web_rest",
   "web_set_max_html_param_len",

@@ -155,6 +155,15 @@ describe("R2 header: auto vs sekali pakai", () => {
     expect(headersOf(steps()[0])["x-next"]).toBeUndefined();
   });
 
+  it("{param} di nilai header disubstitusi saat fungsi dipanggil (pola KOPRA: companyId={companyId})", async () => {
+    env.ctx.params.set("companyId", "C-42");
+    api.web_add_auto_header("companyId", "{companyId}");
+    api.web_add_header("X-Once", "v-{companyId}");
+    env.ctx.params.set("companyId", "BERUBAH"); // perubahan sesudah pemanggilan tidak mempengaruhi header
+    await api.web_url("cek", `URL=${BASE}/echo-headers`, "LAST");
+    expect(headersOf(steps()[0])).toMatchObject({ companyid: "C-42", "x-once": "v-C-42" });
+  });
+
   it("web_cleanup_auto_headers menghapus auto header", async () => {
     api.web_add_auto_header("X-Auto", "ada");
     api.web_cleanup_auto_headers();

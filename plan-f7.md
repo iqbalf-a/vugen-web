@@ -42,12 +42,12 @@ Ini **tahap fitur** — menambah fungsi runtime diizinkan, tetapi **hanya** fung
 
 ### F7b — Correlation JSON: `web_reg_save_param_json`
 
-- [ ] Registrasi seperti `web_reg_save_param` yang sudah ada (berlaku untuk request berikutnya), evaluasi pada body response.
-- [ ] Atribut: `ParamName` (wajib), `QueryString` (wajib), `Scope=BODY` (default; nilai lain → warning, tetap BODY), `SelectAll=Yes|No` (default No), `NotFound=Error|Warning` (default Error), `Ordinal` (opsional). Abaikan `SEARCH_FILTERS` sentinel dan atribut filter tak dikenal dengan warning.
-- [ ] Evaluator JSONPath **subset sendiri** (tanpa dependency) di `server/runtime/jsonpath.js`: `$`, `.nama`, `..nama` (recursive descent), `[n]`, `[*]`, `['nama']`. Sintaks lain → error registrasi yang jelas.
-- [ ] Hasil: match pertama (atau `Ordinal`); string → apa adanya, angka/boolean → `String()`, objek/array → `JSON.stringify` (**[cek]** LR menyimpan teks JSON aslinya). `SelectAll=Yes` → `name_1..name_n` + `name_count` (sama dengan pola `web_reg_save_param` yang ada, bila ada; kalau belum ada, cukup `name_count` + `name_n`).
-- [ ] Body bukan JSON valid / tidak ketemu → `NotFound=Error`: step error (perilaku S5), `Warning`: log warn.
-- [ ] Test tabel jsonpath + test integrasi dengan mock JSON (mis. `$..token` di objek bersarang, `$.data.items[1].id`).
+- [x] Registrasi seperti `web_reg_save_param` yang sudah ada (berlaku untuk request berikutnya), evaluasi pada body response.
+- [x] Atribut: `ParamName` (wajib), `QueryString` (wajib), `Scope=BODY` (default; nilai lain → warning, tetap BODY), `SelectAll=Yes|No` (default No), `NotFound=Error|Warning` (default Error), `Ordinal` (opsional). Abaikan `SEARCH_FILTERS` sentinel dan atribut filter tak dikenal dengan warning.
+- [x] Evaluator JSONPath **subset sendiri** (tanpa dependency) di `server/runtime/jsonpath.js`: `$`, `.nama`, `..nama` (recursive descent), `[n]`, `[*]`, `['nama']`. Sintaks lain → error registrasi yang jelas.
+- [x] Hasil: match pertama (atau `Ordinal`); string → apa adanya, angka/boolean → `String()`, objek/array → `JSON.stringify` (**[cek]** LR menyimpan teks JSON aslinya). `SelectAll=Yes` → `name_1..name_n` + `name_count` (sama dengan pola `web_reg_save_param` yang ada, bila ada; kalau belum ada, cukup `name_count` + `name_n`).
+- [x] Body bukan JSON valid / tidak ketemu → `NotFound=Error`: step error (perilaku S5), `Warning`: log warn.
+- [x] Test tabel jsonpath + test integrasi dengan mock JSON (mis. `$..token` di objek bersarang, `$.data.items[1].id`).
 
 ### F7c — Header & parameter
 

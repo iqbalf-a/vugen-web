@@ -39,7 +39,7 @@ Status proyek yang **jujur** per akhir stabilisasi (S0–S7, 2026-10-16). Rencan
 | Sub-tahap | Status | Isi |
 |---|---|---|
 | F7a | `[x]` | `lr_exit` — mode 0–4, status PASS/FAIL/AUTO, transaksi terbuka ditutup; iterasi gagal tidak menghentikan run |
-| F7b | `[ ]` | `web_reg_save_param_json` + subset JSONPath |
+| F7b | `[x]` | `web_reg_save_param_json` + subset JSONPath — subset JSONPath sendiri (`jsonpath.js`), SelectAll/Ordinal/NotFound; {param} di nilai header kini disubstitusi |
 | F7c | `[ ]` | `web_remove_auto_header`, `web_revert_auto_header`, `lr_param_sprintf`, `web_convert_from_formatted` (Base64) |
 | F7d | `[ ]` | `web_concurrent_start/end` (no-op, request tetap berurutan) |
 

@@ -13,7 +13,7 @@
 
 import { getStore, subscribe } from "../store.js";
 import { escapeHtml } from "../utils/html.js";
-import { availableGroups, endpointLabel, formatMs, groupLabel, stepGroupOf } from "../utils/steps.js";
+import { availableGroups, endpointParts, formatMs, groupLabel, shortPath, stepGroupOf } from "../utils/steps.js";
 
 /** @type {HTMLElement|null} */
 let root = null;
@@ -77,7 +77,7 @@ function renderSteps(state) {
   if (!stepListEl) return;
   const run = state.currentRun;
   if (!run || !run.steps) {
-    stepListEl.innerHTML = '<div class="text-muted text-sm p-4">Belum ada step</div>';
+    stepListEl.innerHTML = '<div class="px-3 py-2 text-[12px] text-[#5b6572]">Belum ada step</div>';
     return;
   }
 
@@ -86,7 +86,7 @@ function renderSteps(state) {
   const steps = run.steps.filter((step) => stepGroupOf(step, runLogic) === group);
 
   if (steps.length === 0) {
-    stepListEl.innerHTML = `<div class="text-muted text-sm p-4">Tidak ada step untuk ${escapeHtml(groupLabel(group))}</div>`;
+    stepListEl.innerHTML = `<div class="px-3 py-2 text-[12px] text-[#5b6572]">Tidak ada step untuk ${escapeHtml(groupLabel(group))}</div>`;
     return;
   }
 
@@ -100,7 +100,7 @@ function renderSteps(state) {
 
   const selectedSeq = state.selectedStep?.seq;
 
-  // Format ringkas (sidebar sempit): "loadpage ▼  1 API  1/1 OK  29ms", lalu tiap API: "GET /path  5.2ms".
+  // Header transaksi: "▼ nama (diprioritaskan)  1/2 OK  58ms". Baris API: "✓ #1 [POST] …/content/inquiry  30ms".
   // Nama API = endpoint dari URL request (bukan nama step di script); nama step, status, file:baris ada di tooltip.
   stepListEl.innerHTML = Array.from(txMap.entries()).map(([txName, txSteps]) => {
     const isExpanded = !collapsedTransactions.has(txName);
@@ -108,35 +108,35 @@ function renderSteps(state) {
     const okCount = txSteps.filter(isOk).length;
     const txResult = (run.transactions ?? []).find((tx) => tx.name === txName && tx.iteration === txSteps[0].iteration);
     const txFailed = txResult?.status === "Fail" || okCount < txSteps.length;
-    const txTitle = `${txName}${txResult ? ` — ${txResult.status}` : ""}`;
+    const txTitle = `${txName}${txResult ? ` — ${txResult.status}` : ""} · ${txSteps.length} API`;
 
     return `
-      <div class="tx-section mb-1">
-        <div class="tx-header flex cursor-pointer select-none items-center gap-2 rounded-[3px] px-2 py-1 hover:bg-[#1b212b]"
+      <div class="tx-section mt-2 first:mt-1">
+        <div class="tx-header flex cursor-pointer select-none items-center gap-2 px-3 py-1.5 hover:bg-[#161c24]"
              data-tx="${escapeHtml(txName)}" title="${escapeHtml(txTitle)}">
-          <span class="min-w-0 truncate font-semibold ${txFailed ? "text-red-400" : "text-[#e6edf3]"}">${escapeHtml(txName)}</span>
-          <span class="tx-toggle shrink-0 text-[10px] text-[#7d8896]" aria-expanded="${isExpanded}">${isExpanded ? "▼" : "▶"}</span>
-          <span class="ml-auto shrink-0 text-[#7d8896]">${txSteps.length} API</span>
-          <span class="shrink-0 ${txFailed ? "text-red-400" : "text-green-400"}">${okCount}/${txSteps.length} OK</span>
-          <span class="tx-duration shrink-0 text-[#7d8896]">${escapeHtml(formatMs(duration))}</span>
+          <span class="tx-toggle w-3 shrink-0 text-center text-[12px] leading-none text-[#7d8896]" aria-expanded="${isExpanded}">${isExpanded ? "▾" : "▸"}</span>
+          <span class="tx-name min-w-0 flex-1 truncate font-sans font-semibold ${txFailed ? "text-red-400" : "text-[#e6edf3]"}">${escapeHtml(txName)}</span>
+          <span class="shrink-0 text-[11px] tabular-nums ${txFailed ? "text-red-400" : "text-green-400"}">${okCount}/${txSteps.length} OK</span>
+          <span class="tx-duration w-14 shrink-0 text-right text-[11px] tabular-nums text-[#7d8896]">${escapeHtml(formatMs(duration))}</span>
         </div>
         <div class="tx-body ${isExpanded ? "" : "hidden"}" data-tx-body="${escapeHtml(txName)}">
           ${txSteps.map((step) => {
             const { icon, color } = stepStyle(step);
-            const selected = step.seq === selectedSeq ? "bg-[#1b212b] text-[#e6edf3]" : "text-[#aab4c0]";
-            const endpoint = endpointLabel(step);
-            const detail = `${step.name} · #${step.seq} ${step.type} · ${step.response?.status || "-"} · ${formatMs(step.timing?.durationMs)} · ${step.file}:${step.line}`;
+            const { method, path } = endpointParts(step);
+            const selected = step.seq === selectedSeq;
+            const detail = `${step.name} · ${method} ${path} · #${step.seq} ${step.type} · ${step.response?.status || "-"} · ${formatMs(step.timing?.durationMs)} · ${step.file}:${step.line}`;
             return `
-              <div class="step-item cursor-pointer rounded-[3px] py-0.5 pl-5 pr-2 hover:bg-[#1b212b] ${selected}"
+              <div class="step-item cursor-pointer border-l-2 py-1 pl-[18px] pr-3 ${selected ? "border-[#d2a24c] bg-[#1b212b] text-[#e6edf3]" : "border-transparent text-[#aab4c0] hover:bg-[#161c24]"}"
                    data-seq="${escapeHtml(step.seq)}"
                    title="${escapeHtml(detail)}">
-                <div class="flex min-w-0 items-center gap-1.5">
-                  <span class="shrink-0 text-[10px] ${color}">${icon}</span>
-                  <span class="step-number shrink-0 text-[10px] text-[#5b6572]">#${escapeHtml(step.seq)}</span>
-                  <span class="step-endpoint min-w-0 flex-1 truncate">${escapeHtml(endpoint)}</span>
-                  <span class="step-duration shrink-0 text-[#7d8896]">${escapeHtml(formatMs(step.timing?.durationMs))}</span>
+                <div class="flex min-w-0 items-center gap-2">
+                  <span class="w-3 shrink-0 text-center text-[10px] ${color}">${icon}</span>
+                  <span class="step-number shrink-0 text-[10px] tabular-nums text-[#5b6572]">#${escapeHtml(step.seq)}</span>
+                  ${method ? `<span class="step-method w-9 shrink-0 text-center text-[10px] text-[#7d8896]">${escapeHtml(method)}</span>` : ""}
+                  <span class="step-endpoint min-w-0 flex-1 truncate">${escapeHtml(shortPath(path))}</span>
+                  <span class="step-duration w-14 shrink-0 text-right text-[11px] tabular-nums text-[#7d8896]">${escapeHtml(formatMs(step.timing?.durationMs))}</span>
                 </div>
-                ${step.error ? `<div class="step-error break-all pl-4 text-[10.5px] text-red-400">${escapeHtml(step.error)}</div>` : ""}
+                ${step.error ? `<div class="step-error break-words pl-[20px] pt-0.5 text-[11px] text-red-400 [overflow-wrap:anywhere]">${escapeHtml(step.error)}</div>` : ""}
               </div>
             `;
           }).join("")}
@@ -216,14 +216,14 @@ export function createStepList(container, { onSelect } = {}) {
   onSelectStep = onSelect ?? null;
   lastRenderKey = "";
   root.innerHTML = `
-    <div class="flex flex-col h-full bg-gray-900">
-      <div class="p-3 border-b border-gray-700">
-        <label class="block text-xs font-medium text-gray-400 mb-1" for="iterationSelect">Iterasi</label>
-        <select id="iterationSelect" class="w-full bg-gray-800 border border-gray-700 text-white text-sm px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+    <div class="flex h-full flex-col bg-[#121821]">
+      <div class="flex shrink-0 items-center gap-2 px-3 py-2">
+        <label class="shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]" for="iterationSelect">Lihat</label>
+        <select id="iterationSelect" class="h-7 min-w-0 flex-1 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[12px] text-[#e6edf3] outline-none focus:border-[#d2a24c]">
           <option value="1">Iterasi 1</option>
         </select>
       </div>
-      <div id="stepListItems" class="flex-1 overflow-y-auto font-mono text-sm"></div>
+      <div id="stepListItems" class="min-h-0 flex-1 overflow-y-auto font-mono text-[12px]"></div>
     </div>
   `;
 

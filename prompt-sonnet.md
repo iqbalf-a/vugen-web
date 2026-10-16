@@ -72,22 +72,22 @@ Hasil audit UI dengan Chrome headless di **1500×900** dan **1280×720**. Skenar
 
 ### U1b — Step list (`src/components/stepList.js`)
 
-- [ ] **Nama transaksi terpotong parah** (`login_t…`) karena "2 API", "1/2 OK", dan durasi memakan tempat. Nama transaksi harus diprioritaskan:
+- [x] **Nama transaksi terpotong parah** (`login_t…`) karena "2 API", "1/2 OK", dan durasi memakan tempat. Nama transaksi harus diprioritaskan:
   - Baris header: `▼ nama-transaksi` (nama `min-w-0 truncate`, `flex-1`), lalu di kanan **hanya** `1/2 OK` dan durasi.
   - Hapus "2 API" karena sudah tersirat di `1/2`.
   - Toggle ▼/▶ taruh **di kiri** nama, ukuran tetap 12px, supaya kolom rata.
   - Angka pakai `tabular-nums`. Durasi rata kanan dengan lebar tetap (mis. `w-14 text-right`) supaya sejajar antar baris.
-- [ ] **Format durasi tidak seragam** ("4.6ms", "58ms", "6.7ms" bercampur).
+- [x] **Format durasi tidak seragam** ("4.6ms", "58ms", "6.7ms" bercampur).
   - Tetap pakai `formatMs` di `src/utils/steps.js`, tapi sejajarkan dengan kolom rata kanan seperti di atas.
-- [ ] **Label step `POST /api/public/c…` terpotong di bagian paling informatif.** Ujung path biasanya pembeda antar API.
+- [x] **Label step `POST /api/public/c…` terpotong di bagian paling informatif.** Ujung path biasanya pembeda antar API.
   - Tampilkan method sebagai badge kecil berlebar tetap (GET/POST, 10px).
   - Path dipotong **dari depan** (`…/content/inquiry`). Cukup potong di JS menjadi 2 segmen terakhir bila lebih dari 28 karakter, dan path lengkap tetap di `title`.
   - Nomor `#1` 10px `#5b6572`.
-- [ ] **Spasi baris tidak konsisten.**
+- [x] **Spasi baris tidak konsisten.**
   - Header transaksi `py-1.5`, item step `py-1`, indentasi step 20px dari tepi kiri nama transaksi, dan jarak antar transaksi 8px.
   - Baris error ("HTTP 500") sejajar dengan teks label step (indent sama), 11px.
   - Item terpilih: latar `#1b212b` plus border kiri 2px aksen `#d2a24c`. Hover: latar `#161c24`.
-- [ ] **Selector iterasi** memakai label "Iterasi" + select "Iterasi 1 ✗". Kata "Iterasi" muncul dua kali, padding `p-3` besar, dan select tinggi.
+- [x] **Selector iterasi** memakai label "Iterasi" + select "Iterasi 1 ✗". Kata "Iterasi" muncul dua kali, padding `p-3` besar, dan select tinggi.
   - Jadikan satu baris: label kecil + select setinggi 28px. Teks opsi tetap dari `groupLabel` (vuser_init / Iterasi N / vuser_end) beserta tanda ✗.
   - Jarak ke list 8px.
 

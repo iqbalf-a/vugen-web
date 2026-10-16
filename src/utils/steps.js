@@ -61,16 +61,41 @@ export function groupLabel(group) {
  * @returns {string}
  */
 export function endpointLabel(step) {
+  const { method, path } = endpointParts(step);
+  return `${method} ${path}`.trim();
+}
+
+/**
+ * Method dan path endpoint terpisah (untuk badge method di daftar step).
+ * Tanpa URL yang valid: method kosong dan path = nama step.
+ *
+ * @param {{ name?: string, request?: { method?: string, url?: string } }} step
+ * @returns {{ method: string, path: string }}
+ */
+export function endpointParts(step) {
   const url = step.request?.url;
   if (url) {
     try {
-      const { pathname } = new URL(url);
-      return `${(step.request?.method || "").toUpperCase()} ${pathname}`.trim();
+      return { method: (step.request?.method || "").toUpperCase(), path: new URL(url).pathname };
     } catch {
       // URL tidak valid (mis. masih berisi {param}): pakai nama step
     }
   }
-  return step.name || "(tanpa nama)";
+  return { method: "", path: step.name || "(tanpa nama)" };
+}
+
+/**
+ * Path dipendekkan dari DEPAN bila lebih dari `max` karakter: dua segmen terakhir dengan awalan "…/"
+ * (ujung path biasanya pembeda antar API). Path lengkap tetap dipakai untuk tooltip.
+ *
+ * @param {string} path
+ * @param {number} [max]
+ */
+export function shortPath(path, max = 22) {
+  if (path.length <= max) return path;
+  const segments = path.split("/").filter(Boolean);
+  if (segments.length <= 2) return path;
+  return `…/${segments.slice(-2).join("/")}`;
 }
 
 /** Durasi ringkas: < 10 ms satu desimal, selebihnya bilangan bulat. Contoh: 5.2ms, 24ms */

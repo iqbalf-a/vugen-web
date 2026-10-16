@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { availableGroups, endpointLabel, formatMs, groupLabel, snapshotInfo, stepGroupOf } from "./steps.js";
+import { availableGroups, endpointLabel, endpointParts, formatMs, groupLabel, shortPath, snapshotInfo, stepGroupOf } from "./steps.js";
 
 const RUN_LOGIC = { init: "vuser_init.c", end: "vuser_end.c" };
 
@@ -107,5 +107,31 @@ describe("snapshotInfo", () => {
   it("iterasi lain dan vuser_end tidak dihitung sebagai duplikat", () => {
     expect(snapshotInfo(steps[3], steps, RUN_LOGIC)).toMatchObject({ group: 2, duplicate: null });
     expect(snapshotInfo(steps[4], steps, RUN_LOGIC)).toMatchObject({ group: "end", duplicate: null });
+  });
+});
+
+describe("endpointParts", () => {
+  it("method (huruf besar) dan path terpisah", () => {
+    expect(endpointParts({ request: { method: "post", url: "https://h:8443/a/b?x=1" } })).toEqual({ method: "POST", path: "/a/b" });
+  });
+
+  it("tanpa URL valid: method kosong, path = nama step", () => {
+    expect(endpointParts({ name: "RPS_1", request: { method: "GET", url: "bukan url" } })).toEqual({ method: "", path: "RPS_1" });
+  });
+});
+
+describe("shortPath", () => {
+  it("path pendek tidak diubah", () => {
+    expect(shortPath("/home")).toBe("/home");
+    expect(shortPath("/api/public/content")).toBe("/api/public/content");
+  });
+
+  it("path panjang: dua segmen terakhir dengan awalan …/", () => {
+    expect(shortPath("/new/kopra/api/public/content/inquiry")).toBe("…/content/inquiry");
+  });
+
+  it("batas dapat diatur; path dengan <= 2 segmen tidak dipotong", () => {
+    expect(shortPath("/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbb")).toBe("/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbb");
+    expect(shortPath("/a/b/c/d", 4)).toBe("…/c/d");
   });
 });

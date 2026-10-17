@@ -111,6 +111,7 @@ describe("parsePrm", () => {
       name: "Host",
       type: "Table",
       table: "hosts.dat",
+      columnName: null,
       selectNextRow: "Sequential",
       updateValueOn: "EachIteration",
       outOfRangePolicy: "Cycle",

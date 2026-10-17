@@ -20,6 +20,7 @@ export const SUPPORTED_FUNCTIONS = Object.freeze([
   "lr_output_message",
   "lr_unmask",
   "lr_param_sprintf",
+  "lr_save_int",
   "lr_save_string",
   "lr_set_transaction",
   "lr_start_timer",

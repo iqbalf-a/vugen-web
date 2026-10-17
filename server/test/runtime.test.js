@@ -674,3 +674,38 @@ describe("lr_unmask", () => {
     expect(api.lr_unmask(HELLO_MASKED)).toBe("hello");
   });
 });
+
+describe("lr_save_int", () => {
+  beforeEach(() => { env = bindContext(); });
+
+  it("menyimpan integer sebagai string desimal", () => {
+    expect(api.lr_save_int(42, "count")).toBe(0);
+    expect(env.ctx.params.get("count")).toBe("42");
+  });
+
+  it("negatif dan nol", () => {
+    api.lr_save_int(-7, "neg");
+    expect(env.ctx.params.get("neg")).toBe("-7");
+    api.lr_save_int(0, "zero");
+    expect(env.ctx.params.get("zero")).toBe("0");
+  });
+
+  it("nilai float dipotong jadi integer (Math.trunc)", () => {
+    api.lr_save_int(3.9, "t");
+    expect(env.ctx.params.get("t")).toBe("3");
+    api.lr_save_int(-1.1, "t2");
+    expect(env.ctx.params.get("t2")).toBe("-1");
+  });
+
+  it("string angka dikonversi, NaN jadi 0", () => {
+    api.lr_save_int("99", "s");
+    expect(env.ctx.params.get("s")).toBe("99");
+    api.lr_save_int("abc", "bad");
+    expect(env.ctx.params.get("bad")).toBe("0");
+  });
+
+  it("tersedia via lr_eval_string setelah disimpan", () => {
+    api.lr_save_int(10, "page");
+    expect(api.lr_eval_string("halaman={page}")).toBe("halaman=10");
+  });
+});

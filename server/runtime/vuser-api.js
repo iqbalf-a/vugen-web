@@ -70,6 +70,14 @@ export function lr_save_string(value, name) {
   return 0;
 }
 
+/** Set parameter dari nilai integer (lr_save_int) — disimpan sebagai string desimal */
+export function lr_save_int(value, name) {
+  const { params, log } = needCtx();
+  params.set(name, String(Math.trunc(Number(value)) || 0), "lr_save_int");
+  log("info", `lr_save_int: ${name} = "${params.get(name)}"`);
+  return 0;
+}
+
 /** Evaluasi parameter (lr_eval_string) — substitusi {param} */
 export function lr_eval_string(str) {
   const { params } = needCtx();

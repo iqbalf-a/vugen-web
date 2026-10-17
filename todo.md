@@ -49,9 +49,9 @@ Status proyek yang **jujur** per akhir stabilisasi (S0–S7, 2026-10-16). Rencan
 |---|---|---|
 | U1a | `[x]` | Layout & proporsi (kolom 18/1fr/34%, kolom kiri 38/62, bar opsi satu baris, status badge, scrollbar) — screenshot: scratchpad/u1/before|after (sm=1280x720, lg=1500x900) |
 | U1b | `[x]` | Step list (nama transaksi diprioritaskan, kolom durasi rata kanan, badge method, selector iterasi) — nama transaksi 24 karakter utuh di 1500; kolom kiri 20% |
-| U1c | `[x]` | Snapshot / Parameter / Log (tab seragam, header snapshot 2 baris, status tanpa '-', log grid) — belum diverifikasi screenshot penuh (lihat laporan) |
-| U1d | `[ ]` | Panel search CodeMirror (gaya aplikasi, label Indonesia, highlight) |
-| U1e | `[ ]` | Bug kecil (snapshot kosong setelah run, warning param palsu, teks kosong snapshot) |
+| U1c | `[x]` | Snapshot / Parameter / Log (tab seragam, header snapshot 2 baris, status tanpa '-', log grid) — terverifikasi screenshot 1500x900 |
+| U1d | `[x]` | Panel search CodeMirror (gaya aplikasi, label Indonesia, highlight) — dark theme, amber highlight, label ID terverifikasi screenshot 1500x900 |
+| U1e | `[x]` | Bug kecil: substituteParams regex (JSON body tidak memicu warn), fetchRunResult race (SSE close dulu), snapshot empty-state + render token |
 
 ## Status script referensi (compile + `import()` saja; belum pernah dijalankan ke server target)
 

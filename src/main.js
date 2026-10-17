@@ -9,6 +9,7 @@ import {
   saveFile,
   startRun,
   stopRun,
+  resumeRun,
   getRun,
   getRunEvents,
 } from "./api.js";
@@ -16,7 +17,7 @@ import { createEditor } from "./components/editor.js";
 import { renderFileTree } from "./components/fileTree.js";
 import { createToolbar } from "./components/runToolbar.js";
 import { createStepList } from "./components/stepList.js";
-import { callEndLine } from "./utils/callRange.js";
+import { callEndLine, statementStartLine } from "./utils/callRange.js";
 import { stepGroupOf } from "./utils/steps.js";
 import { createSnapshotPanel } from "./components/snapshotPanel.js";
 import { createParameterPanel } from "./components/parameterPanel.js";
@@ -30,6 +31,7 @@ const els = {
   openBtn: document.querySelector("#openBtn"),
   runBtn: document.querySelector("#runBtn"),
   stopBtn: document.querySelector("#stopBtn"),
+  resumeBtn: document.querySelector("#resumeBtn"),
   status: document.querySelector("#status"),
   fileTree: document.querySelector("#fileTree"),
   tabBar: document.querySelector("#tabBar"),
@@ -61,7 +63,7 @@ const docs = new Map();
 const store = initStore({
   /** @type {"checking" | "ok" | "warn" | "error"} */
   health: "checking",
-  status: "Memeriksa API…",
+  status: "Checking API…",
   /** @type {any} */
   project: null,
   /** @type {string | null} */
@@ -76,18 +78,60 @@ const store = initStore({
   selectedIteration: 1,
   /** @type {boolean} */
   isRunning: false,
+  /** @type {boolean} */
+  isPaused: false,
+  /** Step yang sedang di-fetch (sebelum response tiba) — untuk animasi live */
+  pendingStep: null,
+  /** Live position from lineAt event — for non-HTTP line highlight */
+  liveAt: null,
 });
 
 /** @type {EventSource | null} */
 let eventSource = null;
 
-const editor = createEditor(els.editor, { onChange: syncActiveDoc });
+/** Word wrap state (persists across tab switches) */
+let wordWrapEnabled = false;
+
+/** Breakpoints per file path: Map<path, Set<lineNumber>> */
+const breakpoints = new Map();
+
+const editor = createEditor(els.editor, {
+  onChange: syncActiveDoc,
+  onBreakpointsChange(lines) {
+    const path = store.get().activePath;
+    if (!path) return;
+    if (lines.size > 0) breakpoints.set(path, lines);
+    else breakpoints.delete(path);
+  },
+});
+
+let lastPendingSeq = null;
+let lastLiveAt = null;
 
 store.subscribe((state) => {
   els.status.textContent = state.status;
   els.status.dataset.state = state.health;
   els.runBtn.disabled = state.isRunning || !state.project;
   els.stopBtn.disabled = !state.isRunning;
+  els.resumeBtn.disabled = !state.isPaused;
+  editor.setRunning(state.isRunning);
+
+  // Highlight pending line (HTTP step) or live position (non-HTTP line) in editor
+  const pending = state.pendingStep;
+  const live = state.liveAt;
+  const pendingSeq = pending?.seq ?? null;
+  const liveKey = live ? `${live.file}:${live.line}` : null;
+  if (pendingSeq !== lastPendingSeq || liveKey !== lastLiveAt) {
+    lastPendingSeq = pendingSeq;
+    lastLiveAt = liveKey;
+    if (pending && pending.file === state.activePath && pending.line) {
+      editor.highlightPendingLine(pending.line);
+    } else if (live && live.file === state.activePath && live.line) {
+      editor.highlightPendingLine(live.line);
+    } else {
+      editor.highlightPendingLine(null);
+    }
+  }
 });
 
 // Global Ctrl/Cmd+S
@@ -153,7 +197,7 @@ const panelTabs = [
   { id: "snapshot", label: "Snapshot", el: els.snapshotPanel },
   { id: "parameter", label: "Parameter", el: els.parameterPanel },
   { id: "log", label: "Log", el: els.logPanel },
-  { id: "transactions", label: "Transaksi", el: els.transactionsPanel },
+  { id: "transactions", label: "Transactions", el: els.transactionsPanel },
 ];
 let activePanelId = "snapshot";
 
@@ -185,7 +229,7 @@ els.runOptions.classList.remove("hidden"); // Show initially
 els.toggleOptions?.addEventListener("click", () => {
   optionsVisible = !optionsVisible;
   els.runOptions.classList.toggle("hidden", !optionsVisible);
-  els.toggleOptions.textContent = optionsVisible ? "▲ Sembunyikan opsi" : "▼ Tampilkan opsi";
+  els.toggleOptions.textContent = optionsVisible ? "▲ Hide options" : "▼ Show options";
 });
 
 renderFileTree(els.fileTree, null, { activePath: null, onOpenFile: openDoc });
@@ -210,11 +254,11 @@ async function checkHealth() {
     const { ok } = await getHealth();
     store.set(
       ok
-        ? { health: "ok", status: "API siap. Isi folder script lalu tekan Buka Folder." }
-        : { health: "warn", status: "API merespons tidak dikenal" },
+        ? { health: "ok", status: "API ready. Enter a script folder path and click Open Folder." }
+        : { health: "warn", status: "API returned an unexpected response" },
     );
   } catch (error) {
-    store.set({ health: "error", status: `API tidak siap: ${messageOf(error)}` });
+    store.set({ health: "error", status: `API not ready: ${messageOf(error)}` });
   }
 }
 
@@ -222,7 +266,7 @@ async function checkHealth() {
  * @param {string} path
  */
 async function openProjectPath(path) {
-  store.set({ health: "checking", status: `Membuka ${path}…` });
+  store.set({ health: "checking", status: `Opening ${path}…` });
 
   try {
     const project = await openProject(path);
@@ -243,7 +287,7 @@ async function openProjectPath(path) {
     const first = project.actions[0]?.file ?? project.files.find((file) => file.ext === ".c")?.path;
     if (first) await openDoc(first);
   } catch (error) {
-    store.set({ health: "error", status: `Gagal membuka folder: ${messageOf(error)}` });
+    store.set({ health: "error", status: `Failed to open folder: ${messageOf(error)}` });
   }
 }
 
@@ -259,7 +303,7 @@ async function openDoc(path) {
       const file = await readFile(project.path, path);
       docs.set(path, { text: file.text, saved: file.text });
     } catch (error) {
-      store.set({ health: "error", status: `Gagal membuka ${path}: ${messageOf(error)}` });
+      store.set({ health: "error", status: `Failed to open ${path}: ${messageOf(error)}` });
       return;
     }
   }
@@ -276,9 +320,20 @@ function activateDoc(path) {
 
   store.set({ activePath: path });
   editor.setDoc(doc.text);
+  editor.setBreakpoints(breakpoints.get(path) ?? new Set());
   editor.focus();
   renderTabs();
   renderFileTree(els.fileTree, store.get().project, { activePath: path, onOpenFile: openDoc });
+
+  // Re-apply or clear pending/live highlight for the newly active file
+  const { pendingStep: pending, liveAt: live } = store.get();
+  if (pending && pending.file === path && pending.line) {
+    editor.highlightPendingLine(pending.line);
+  } else if (live && live.file === path && live.line) {
+    editor.highlightPendingLine(live.line);
+  } else {
+    editor.highlightPendingLine(null);
+  }
 }
 
 async function saveActive() {
@@ -288,7 +343,7 @@ async function saveActive() {
 
   const text = editor.getValue();
   if (text === doc.saved) {
-    store.set({ status: `Tidak ada perubahan pada ${activePath}.` });
+    store.set({ status: `No changes in ${activePath}.` });
     return;
   }
 
@@ -298,44 +353,102 @@ async function saveActive() {
     doc.saved = text;
     store.set({
       health: "ok",
-      status: `Tersimpan: ${result.path} · ${result.size} byte · ${String(result.eol).toUpperCase()} · ${result.encoding}`,
+      status: `Saved: ${result.path} · ${result.size} bytes · ${String(result.eol).toUpperCase()} · ${result.encoding}`,
     });
     renderTabs();
   } catch (error) {
-    store.set({ health: "error", status: `Gagal menyimpan ${activePath}: ${messageOf(error)}` });
+    store.set({ health: "error", status: `Failed to save ${activePath}: ${messageOf(error)}` });
   }
 }
 
 function renderTabs() {
   const activePath = store.get().activePath;
-  const tabs = [...docs.entries()].map(([path, doc]) => {
+  const tabItems = [...docs.entries()].map(([path, doc]) => {
     const active = path === activePath;
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = `flex items-center gap-1.5 rounded-[3px] px-2.5 py-1 font-mono text-[11.5px] ${
+    const item = document.createElement("div");
+    item.className = `flex items-center rounded-[3px] font-mono text-[11.5px] ${
       active ? "bg-[#243044] text-[#e6edf3]" : "text-[#9aa7b8] hover:bg-[#1b212b]"
     }`;
-    item.title = path;
-    item.dataset.path = path;
 
-    const label = document.createElement("span");
-    label.className = "truncate";
-    label.textContent = path.split("/").pop() ?? path;
-    item.append(label);
+    const label = document.createElement("button");
+    label.type = "button";
+    label.className = "flex items-center gap-1.5 px-2.5 py-1 max-w-[160px] truncate";
+    label.title = path;
+    label.dataset.path = path;
+
+    const labelText = document.createElement("span");
+    labelText.className = "truncate";
+    labelText.textContent = path.split("/").pop() ?? path;
+    label.append(labelText);
 
     if (doc.text !== doc.saved) {
       const dot = document.createElement("span");
-      dot.className = "text-[#d2a24c]";
+      dot.className = "text-[#d2a24c] shrink-0";
       dot.textContent = "●";
-      dot.title = "Belum disimpan";
-      item.append(dot);
+      dot.title = "Unsaved";
+      label.append(dot);
     }
 
-    item.addEventListener("click", () => activateDoc(path));
+    label.addEventListener("click", () => activateDoc(path));
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "flex items-center justify-center w-5 h-5 mr-0.5 rounded text-[#5b6572] hover:text-[#e6edf3] hover:bg-[#1b212b]";
+    closeBtn.title = "Close tab";
+    closeBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+    closeBtn.addEventListener("click", (e) => { e.stopPropagation(); closeDoc(path); });
+
+    item.append(label, closeBtn);
     return item;
   });
 
-  els.tabBar.replaceChildren(...tabs);
+  // Editor action buttons pinned to the right
+  const separator = document.createElement("div");
+  separator.className = "flex-1";
+
+  const wrapBtn = document.createElement("button");
+  wrapBtn.type = "button";
+  wrapBtn.title = wordWrapEnabled ? "Disable word wrap" : "Enable word wrap";
+  wrapBtn.className = `flex items-center gap-1 rounded px-2 py-1 text-[11px] font-sans transition-colors ${
+    wordWrapEnabled ? "text-[#d2a24c] bg-[#1b212b]" : "text-[#5b6572] hover:text-[#9aa7b8]"
+  }`;
+  wrapBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M2 8h8a2 2 0 0 1 0 4H8m2 0-2 2m2-2-2-2"/></svg><span>Wrap</span>`;
+  wrapBtn.addEventListener("click", () => {
+    wordWrapEnabled = !wordWrapEnabled;
+    editor.setWordWrap(wordWrapEnabled);
+    renderTabs();
+  });
+
+  const beautifyBtn = document.createElement("button");
+  beautifyBtn.type = "button";
+  beautifyBtn.title = "Beautify (reformat indentation)";
+  beautifyBtn.className = "flex items-center gap-1 rounded px-2 py-1 text-[11px] font-sans text-[#5b6572] hover:text-[#9aa7b8] transition-colors";
+  beautifyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h3M7 4h7M2 8h7M11 8h3M2 12h5M9 12h5"/></svg><span>Beautify</span>`;
+  beautifyBtn.addEventListener("click", () => {
+    editor.beautify();
+    syncActiveDoc();
+  });
+
+  els.tabBar.replaceChildren(...tabItems, separator, wrapBtn, beautifyBtn);
+}
+
+/** Tutup tab. Konfirmasi bila ada perubahan yang belum disimpan. */
+function closeDoc(path) {
+  const doc = docs.get(path);
+  if (!doc) return;
+  if (doc.text !== doc.saved) {
+    if (!confirm(`"${path.split("/").pop()}" has unsaved changes. Close without saving?`)) return;
+  }
+  docs.delete(path);
+  const remaining = [...docs.keys()];
+  const next = remaining[remaining.length - 1] ?? null;
+  if (next) {
+    activateDoc(next);
+  } else {
+    store.set({ activePath: null });
+    editor.setDoc("");
+    renderTabs();
+  }
 }
 
 function syncActiveDoc() {
@@ -359,14 +472,22 @@ async function startRunFlow(options) {
         await saveFile({ path: project.path, file: activePath, text: editor.getValue() });
         doc.saved = editor.getValue();
       } catch (error) {
-        store.set({ health: "error", status: `Simpan gagal sebelum run: ${messageOf(error)}` });
+        store.set({ health: "error", status: `Save failed before run: ${messageOf(error)}` });
         return;
       }
     }
   }
 
   try {
-    store.set({ isRunning: true, status: "Memulai run…" });
+    followedFile = null;
+    store.set({ isRunning: true, liveAt: null, pendingStep: null, isPaused: false, status: "Starting run…" });
+
+    const bpList = [];
+    for (const [file, lines] of breakpoints) {
+      const text = docs.get(file)?.text;
+      for (const line of lines) bpList.push({ file, line: text ? statementStartLine(text, line) : line });
+    }
+    options.breakpoints = bpList;
 
     const { runId } = await startRun(project.path, options);
     store.set({
@@ -379,8 +500,20 @@ async function startRunFlow(options) {
     // Connect SSE
     eventSource = await getRunEvents(runId, project.path, (event) => handleRunEvent(event, runId, project.path));
   } catch (error) {
-    store.set({ isRunning: false, health: "error", status: `Gagal memulai run: ${messageOf(error)}` });
+    store.set({ isRunning: false, health: "error", status: `Failed to start run: ${messageOf(error)}` });
   }
+}
+
+let followedFile = null;
+let followChain = Promise.resolve();
+
+/** Buka tab file tempat eksekusi berada (mis. fungsi di file lain) saat run pindah file. */
+function followLiveFile(file) {
+  if (!file || file === followedFile) return;
+  followedFile = file;
+  const { project, activePath } = store.get();
+  if (file === activePath || !project?.files.some((f) => f.path === file)) return;
+  followChain = followChain.then(() => openDoc(file));
 }
 
 /** Handle SSE events */
@@ -390,21 +523,32 @@ function handleRunEvent(event, runId, scriptPath) {
 
   switch (type) {
     case "started":
-      store.set({ status: `Run dimulai: ${runId}` });
+      store.set({ status: `Run started: ${runId}` });
       break;
 
     case "iterationStart":
-      store.set({ status: `Iterasi ${data.iteration} ${data.action}…` });
+      store.set({ status: `Iteration ${data.iteration} ${data.action}…` });
       break;
 
     case "iterationEnd":
-      store.set({ status: `Iterasi ${data.iteration} ${data.action} ${data.status}` });
+      store.set({ status: `Iteration ${data.iteration} ${data.action} ${data.status}` });
+      break;
+
+    case "stepPending":
+      store.set({ pendingStep: data });
+      break;
+
+    case "lineAt":
+      store.set({ liveAt: data });
+      followLiveFile(data.file);
       break;
 
     case "step": {
       const steps = state.currentRun?.steps ? [...state.currentRun.steps, data] : [data];
       store.set({
         currentRun: { ...state.currentRun, steps, scriptPath, runId },
+        pendingStep: null,
+        isPaused: false,
         status: `Step ${data.seq}: ${data.type} ${data.name} → ${data.response?.status || "?"}`,
       });
       break;
@@ -423,8 +567,15 @@ function handleRunEvent(event, runId, scriptPath) {
       break;
     }
 
+    case "paused":
+      store.set({ isPaused: true, status: `Paused at ${data.file}:${data.line}` });
+      if (data.file) void openDoc(data.file).then(() => {
+        if (data.line) editor.highlightPendingLine(data.line);
+      });
+      break;
+
     case "done":
-      store.set({ isRunning: false, health: data.status === "passed" ? "ok" : data.status === "failed" ? "error" : "warn", status: `Run selesai: ${data.status}` });
+      store.set({ isRunning: false, isPaused: false, pendingStep: null, liveAt: null, health: data.status === "passed" ? "ok" : data.status === "failed" ? "error" : "warn", status: `Run complete: ${data.status}` });
       // Tutup SSE dulu, baru fetch run.json — hindari race di beberapa browser
       if (eventSource) {
         eventSource.close();
@@ -435,7 +586,7 @@ function handleRunEvent(event, runId, scriptPath) {
 
     case "stopped":
       // Event "done" menyusul (setelah run.json tersimpan) dan menutup stream.
-      store.set({ status: `Run dihentikan: ${data.reason}` });
+      store.set({ liveAt: null, isPaused: false, status: `Run stopped: ${data.reason}` });
       break;
 
     case "error":
@@ -450,7 +601,20 @@ async function fetchRunResult(runId, scriptPath) {
     const run = await getRun(runId, scriptPath);
     store.set({ currentRun: { ...run, scriptPath } });
   } catch (error) {
-    store.set({ health: "error", status: `Gagal ambil hasil run: ${messageOf(error)}` });
+    store.set({ health: "error", status: `Failed to fetch run result: ${messageOf(error)}` });
+  }
+}
+
+els.resumeBtn.addEventListener("click", () => void resumeRunFlow());
+
+async function resumeRunFlow() {
+  const { currentRunId } = store.get();
+  if (!currentRunId) return;
+  try {
+    await resumeRun(currentRunId);
+    store.set({ isPaused: false, status: "Resuming…" });
+  } catch (error) {
+    store.set({ health: "error", status: `Failed to resume: ${messageOf(error)}` });
   }
 }
 
@@ -462,9 +626,9 @@ async function stopRunFlow() {
   try {
     await stopRun(currentRunId);
     // Stream SSE tetap terbuka: event "stopped" lalu "done" mengakhiri run dan memuat run.json.
-    store.set({ status: "Menghentikan run…" });
+    store.set({ status: "Stopping run…" });
   } catch (error) {
-    store.set({ isRunning: false, health: "error", status: `Gagal stop: ${messageOf(error)}` });
+    store.set({ isRunning: false, health: "error", status: `Failed to stop run: ${messageOf(error)}` });
     eventSource?.close();
     eventSource = null;
   }

@@ -17,12 +17,12 @@ export async function requestJson(path, init = {}) {
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error(`Respons bukan JSON (HTTP ${res.status}).`);
+      throw new Error(`Response is not JSON (HTTP ${res.status}).`);
     }
   }
 
   if (!res.ok) {
-    throw new Error(data?.error ?? `Request gagal (HTTP ${res.status}).`);
+    throw new Error(data?.error ?? `Request failed (HTTP ${res.status}).`);
   }
   return data;
 }
@@ -36,7 +36,7 @@ export async function requestRaw(path, init = {}) {
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `Request gagal (HTTP ${res.status}).`);
+    throw new Error(text || `Request failed (HTTP ${res.status}).`);
   }
   return res.arrayBuffer();
 }
@@ -90,6 +90,10 @@ export function stopRun(runId) {
   return requestJson(`/api/run/${runId}/stop`, { method: "POST" });
 }
 
+export function resumeRun(runId) {
+  return requestJson(`/api/run/${encodeURIComponent(runId)}/resume`, { method: "POST" });
+}
+
 /**
  * @param {string} runId
  * @param {string} scriptPath
@@ -115,7 +119,7 @@ export function getRunEvents(runId, scriptPath, onEvent) {
       reject(err);
     };
 
-    ["step", "log", "transaction", "iterationStart", "iterationEnd", "started", "done", "stopped", "error"].forEach(type => {
+    ["step", "stepPending", "lineAt", "log", "transaction", "iterationStart", "iterationEnd", "started", "done", "stopped", "error", "paused"].forEach(type => {
       es.addEventListener(type, (e) => {
         try {
           onEvent({ type, data: e.data ? JSON.parse(e.data) : {}, ts: Date.now() });

@@ -33,16 +33,22 @@ const vu = {
   runStartMs: 0,     // epoch ms awal run (untuk timing.startMs)
   cacheDir: "",
   runId: "",
+  breakpoints: [],     // [{file, line}] — passed from run options
+  pauseResolve: null,  // resolve fn for current breakpoint pause; null when not paused
   scriptDir: "",
   unmaskMap: null,   // pemetaan override dari lr_unmask.json (null = belum dicoba, {} = tidak ada file)
   log: (level, msg) => {
     sendEvent("log", { level, msg, file: vu.currentFile, line: vu.currentLine, iteration: vu.currentIteration });
   },
   sendEvent,
-  __at: (file, line, vars) => {
+  __at: async (file, line, vars) => {
     vu.currentFile = file;
     vu.currentLine = line;
     vu.currentVars = typeof vars === "function" ? vars : null;
+    // Emit live position for every executed line — for live editor highlight
+    sendEvent("lineAt", { file, line });
+    // Check for breakpoint on any line
+    await pauseAtBreakpoint(file, line);
   },
   __unsupported: (raw, file, line) => {
     vu.log("warn", `Unsupported: ${raw} at ${file}:${line}`);
@@ -55,9 +61,12 @@ const vu = {
 };
 
 // Attach all vuser-api functions to vu object
+const runnerAt = vu.__at;
 Object.assign(vu, vuserApi);
+vu.__at = runnerAt; // vuser-api punya __at polos; versi runner yang memancarkan lineAt + breakpoint
 
 vuserApi.__bind(vu);
+vu.pauseAtBreakpoint = pauseAtBreakpoint;
 
 /** Kirim event ke parent process */
 function sendEvent(type, data, callback) {
@@ -144,6 +153,22 @@ function advanceParameterFiles() {
   }
 }
 
+/** Pause execution if a breakpoint matches. Resolves when parent sends "resume". */
+async function pauseAtBreakpoint(file, line) {
+  if (!vu.breakpoints.length || !line) return;
+  const fileBase = (file || "").split(/[\\/]/).pop().toLowerCase();
+  const hit = vu.breakpoints.find((bp) => {
+    const bpBase = (bp.file || "").split(/[\\/]/).pop().toLowerCase();
+    return (bp.file === file || bpBase === fileBase) && Number(bp.line) === line;
+  });
+  if (!hit) return;
+  await new Promise((resolve) => {
+    vu.pauseResolve = resolve;
+    sendEvent("paused", { file, line, seq: vu.seq + 1 });
+  });
+  vu.pauseResolve = null;
+}
+
 /** Main run logic */
 async function run(payload) {
 
@@ -172,6 +197,7 @@ async function run(payload) {
       iterationDelayMs: options.iterationDelayMs || 0,
       newUserEachIteration: options.newUserEachIteration !== false,
     };
+    vu.breakpoints = Array.isArray(options.breakpoints) ? options.breakpoints : [];
 
     initParameterFiles(parameters);
 
@@ -334,6 +360,8 @@ process.on("message", (msg) => {
   } else if (msg?.type === "stop") {
     // Keluar setelah event terkirim supaya parent tahu ini stop yang disengaja
     sendEvent("stopped", { reason: "Received stop signal" }, () => process.exit(0));
+  } else if (msg?.type === "resume") {
+    if (vu.pauseResolve) vu.pauseResolve();
   }
 });
 

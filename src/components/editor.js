@@ -9,16 +9,140 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { cpp } from "@codemirror/lang-cpp";
 import { bracketMatching, indentOnInput } from "@codemirror/language";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
-import { EditorState, StateEffect } from "@codemirror/state";
+import { Compartment, EditorState, RangeSet, StateEffect, StateField } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import {
+  Decoration,
   EditorView,
+  GutterMarker,
   drawSelection,
+  gutter,
   highlightActiveLine,
   highlightActiveLineGutter,
   keymap,
   lineNumbers,
 } from "@codemirror/view";
+import { beautifyC } from "../utils/beautify.js";
+
+// ── Pending-line highlight ────────────────────────────────────────────────────
+/** Set pending line (1-based) or null to clear */
+const setPendingLine = StateEffect.define();
+
+/** Stores a DecorationSet for the currently-pending line */
+const pendingLineField = StateField.define({
+  create: () => Decoration.none,
+  update(deco, tr) {
+    for (const effect of tr.effects) {
+      if (!effect.is(setPendingLine)) continue;
+      const lineNum = effect.value;
+      if (!lineNum || lineNum < 1 || lineNum > tr.state.doc.lines) return Decoration.none;
+      const line = tr.state.doc.line(lineNum);
+      return Decoration.set([Decoration.line({ class: "cm-pending-line" }).range(line.from)]);
+    }
+    return deco.map(tr.changes);
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+const PENDING_THEME = EditorView.baseTheme({
+  ".cm-pending-line": {
+    backgroundColor: "rgba(210,162,76,0.30) !important",
+    boxShadow: "inset 3px 0 0 #d2a24c",
+    animation: "cm-pending-pulse 1.2s ease-in-out infinite",
+  },
+  ".cm-pending-line .cm-gutterElement": {
+    color: "#d2a24c !important",
+  },
+  "@keyframes cm-pending-pulse": {
+    "0%,100%": { backgroundColor: "rgba(210,162,76,0.22)" },
+    "50%": { backgroundColor: "rgba(210,162,76,0.40)" },
+  },
+});
+
+// ── Breakpoint gutter ─────────────────────────────────────────────────────────
+class BpMarker extends GutterMarker {
+  constructor(active = true) {
+    super();
+    this.active = active;
+  }
+  toDOM() {
+    const el = document.createElement("span");
+    el.className = this.active ? "cm-bp-dot cm-bp-dot--on" : "cm-bp-dot cm-bp-dot--ghost";
+    el.textContent = "●";
+    return el;
+  }
+  eq(other) { return other instanceof BpMarker && other.active === this.active; }
+}
+const bpMarker = new BpMarker(true);
+const bpGhostMarker = new BpMarker(false);
+
+const toggleBpEffect = StateEffect.define(); // number: 1-based line to toggle
+const setBpEffect = StateEffect.define();    // number[]: replace entire set
+
+const bpField = StateField.define({
+  create: () => new Set(),
+  update(lines, tr) {
+    for (const e of tr.effects) {
+      if (e.is(toggleBpEffect)) {
+        const next = new Set(lines);
+        if (next.has(e.value)) next.delete(e.value);
+        else next.add(e.value);
+        return next;
+      }
+      if (e.is(setBpEffect)) return new Set(e.value);
+    }
+    return lines;
+  },
+});
+
+const BP_THEME = EditorView.baseTheme({
+  ".cm-bp-gutter": { width: "18px", cursor: "pointer" },
+  ".cm-bp-gutter .cm-gutterElement": {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0",
+    lineHeight: "1",
+  },
+  ".cm-bp-gutter .cm-gutterElement:hover .cm-bp-dot--ghost": { opacity: "0.5" },
+  ".cm-bp-dot": {
+    fontSize: "13px",
+    lineHeight: "1",
+    userSelect: "none",
+  },
+  ".cm-bp-dot--on": { color: "#ef4444" },
+  ".cm-bp-dot--ghost": { color: "#ef4444", opacity: "0" },
+});
+
+const bpGutter = gutter({
+  class: "cm-bp-gutter",
+  markers(view) {
+    const lines = view.state.field(bpField);
+    if (lines.size === 0) return RangeSet.empty;
+    const marks = [];
+    for (const ln of lines) {
+      if (ln >= 1 && ln <= view.state.doc.lines) {
+        marks.push(bpMarker.range(view.state.doc.line(ln).from));
+      }
+    }
+    return RangeSet.of(marks, true);
+  },
+  initialSpacer: () => bpGhostMarker,
+  lineMarker(view, line) {
+    const ln = view.state.doc.lineAt(line.from).number;
+    const lines = view.state.field(bpField);
+    return lines.has(ln) ? null : bpGhostMarker;
+  },
+  lineMarkerChange: (update) => update.transactions.some((tr) => tr.effects.some((e) => e.is(toggleBpEffect) || e.is(setBpEffect))),
+  domEventHandlers: {
+    mousedown(view, line) {
+      if (view.state.readOnly) return true; // breakpoint dikunci selama run
+      const ln = view.state.doc.lineAt(line.from).number;
+      view.dispatch({ effects: toggleBpEffect.of(ln) });
+      return true;
+    },
+  },
+});
 
 const THEME = EditorView.theme({
   "&": { height: "100%", fontSize: "12.5px", backgroundColor: "#0e1116" },
@@ -95,43 +219,38 @@ const THEME = EditorView.theme({
   ".cm-searchMatch-selected": { backgroundColor: "rgba(210,162,76,.5)" },
 });
 
-const ID_PHRASES = EditorState.phrases.of({
-  "Find": "Cari",
-  "Replace": "Ganti",
-  "next": "Berikutnya",
-  "previous": "Sebelumnya",
-  "all": "Semua",
-  "match case": "Huruf besar/kecil",
-  "regexp": "Regex",
-  "by word": "Kata utuh",
-  "replace": "Ganti",
-  "replace all": "Ganti semua",
-  "close": "Tutup",
-});
-
 /**
  * @param {HTMLElement} root
  * @param {{ onChange?: () => void }} [options]
  */
-export function createEditor(root, { onChange } = {}) {
+export function createEditor(root, { onChange, onBreakpointsChange } = {}) {
   root.replaceChildren();
+
+  const wrapCompartment = new Compartment();
+  const idleCompartment = new Compartment();
+  const idleExtensions = [highlightActiveLine(), highlightSelectionMatches(), EditorState.readOnly.of(false)];
+  const runningExtensions = [EditorState.readOnly.of(true)];
 
   const state = EditorState.create({
     doc: "",
     extensions: [
       lineNumbers(),
       highlightActiveLineGutter(),
-      highlightActiveLine(),
+      idleCompartment.of(idleExtensions),
       drawSelection(),
       history(),
       bracketMatching(),
       indentOnInput(),
-      highlightSelectionMatches(),
       cpp(),
       oneDark,
       THEME,
-      ID_PHRASES,
       EditorView.editable.of(true),
+      wrapCompartment.of([]), // word wrap off by default
+      pendingLineField,
+      PENDING_THEME,
+      bpField,
+      BP_THEME,
+      bpGutter,
       keymap.of([
         ...defaultKeymap,
         ...historyKeymap,
@@ -140,6 +259,9 @@ export function createEditor(root, { onChange } = {}) {
       ]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) onChange?.();
+        if (update.transactions.some((tr) => tr.effects.some((e) => e.is(toggleBpEffect) || e.is(setBpEffect)))) {
+          onBreakpointsChange?.(new Set(update.state.field(bpField)));
+        }
       }),
     ],
   });
@@ -195,6 +317,66 @@ export function createEditor(root, { onChange } = {}) {
     /** Posisi kursor: { line } 0-based */
     getCursor() {
       return { line: view.state.doc.lineAt(view.state.selection.main.head).number - 1 };
+    },
+
+    /**
+     * Highlight the given 1-based line as "pending" (pulsing amber).
+     * Pass null or 0 to clear the highlight.
+     * @param {number|null} lineNum
+     */
+    highlightPendingLine(lineNum) {
+      const num = (lineNum && lineNum >= 1) ? lineNum : null;
+      view.dispatch({ effects: setPendingLine.of(num) });
+      if (num && num <= view.state.doc.lines) {
+        const pos = view.state.doc.line(num).from;
+        // Scroll hanya bila baris di luar area terlihat, supaya tidak melompat di tiap baris
+        const coords = view.coordsAtPos(pos);
+        const rect = view.scrollDOM.getBoundingClientRect();
+        const visible = coords && coords.top >= rect.top + 40 && coords.bottom <= rect.bottom - 40;
+        if (!visible) view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "center" }) });
+      }
+    },
+
+    /**
+     * Selama run: read-only, tanpa highlight teks yang mirip / active line, dan seleksi dikecilkan
+     * ke kursor supaya satu-satunya sorotan adalah baris yang sedang berjalan.
+     * @param {boolean} running
+     */
+    setRunning(running) {
+      if (view.state.readOnly === running) return;
+      view.dispatch({
+        effects: idleCompartment.reconfigure(running ? runningExtensions : idleExtensions),
+        selection: running ? { anchor: view.state.selection.main.head } : undefined,
+      });
+    },
+
+    /** Toggle soft word wrap on/off */
+    setWordWrap(enabled) {
+      view.dispatch({
+        effects: wrapCompartment.reconfigure(enabled ? EditorView.lineWrapping : []),
+      });
+    },
+
+    /** Beautify (reindent) the document content in-place */
+    beautify() {
+      if (view.state.readOnly) return;
+      const current = view.state.doc.toString();
+      const formatted = beautifyC(current);
+      if (formatted === current) return;
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: formatted },
+      });
+    },
+
+    /** Set breakpoints for the current doc (replaces all). @param {Set<number>|number[]} lines */
+    setBreakpoints(lines) {
+      const arr = lines instanceof Set ? [...lines] : (Array.isArray(lines) ? lines : []);
+      view.dispatch({ effects: setBpEffect.of(arr) });
+    },
+
+    /** @returns {Set<number>} current breakpoints (1-based line numbers) */
+    getBreakpoints() {
+      return new Set(view.state.field(bpField));
     },
 
     destroy() {

@@ -11,8 +11,8 @@ const IDLE_CLASS = "text-[#9aa7b8] hover:bg-[#1b212b]";
 
 /** @type {Record<string, { label: string, order: number }>} */
 const CATEGORY_CONFIG = {
-  "action-utama": { label: "Action Utama", order: 1 },
-  "action-general": { label: "Action General", order: 2 },
+  "action-utama": { label: "Main Action", order: 1 },
+  "action-general": { label: "General Action", order: 2 },
   parameter: { label: "Parameter Files", order: 3 },
   config: { label: "Config & Others", order: 4 },
 };
@@ -26,11 +26,11 @@ export function renderFileTree(root, project, { activePath, onOpenFile }) {
   root.replaceChildren();
 
   if (!project) {
-    root.textContent = "Belum ada folder yang dibuka.";
+    root.textContent = "No folder opened.";
     return;
   }
   if (project.files.length === 0) {
-    root.textContent = "Tidak ada file .c / .h / config di folder ini.";
+    root.textContent = "No .c / .h / config files in this folder.";
     return;
   }
 

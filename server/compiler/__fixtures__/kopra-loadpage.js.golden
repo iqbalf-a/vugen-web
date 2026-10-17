@@ -7,8 +7,8 @@ export function __bind(vu) {
   __vu = vu;
 }
 
-function __at(file, line, vars) {
-  __vu.__at(file, line, vars);
+async function __at(file, line, vars) {
+  return __vu.__at(file, line, vars);
 }
 
 function __unsupported(raw, file, line) {
@@ -25,67 +25,67 @@ let retryLimit = 3, retryCount = 0;
 let lastError = "";
 
 export async function __fn_compareDuration(duration1, duration2) {
-  __at("kopra-globals.h", 14);
+  await __at("kopra-globals.h", 14);
   if ((duration1 < duration2)) {
-    __at("kopra-globals.h", 15);
+    await __at("kopra-globals.h", 15);
     return duration2;
   } else {
-    __at("kopra-globals.h", 17);
+    await __at("kopra-globals.h", 17);
     return duration1;
   }
 }
 
 export async function __fn_Loadpage(parentTrans) {
-  __at("kopra-loadpage.c", 4);
+  await __at("kopra-loadpage.c", 4);
   let seq1 = 0, seq2 = 0, tempSeq = 0, totalSeq = 0;
-  __at("kopra-loadpage.c", 5);
+  await __at("kopra-loadpage.c", 5);
   let transSeqName = "";
-  __at("kopra-loadpage.c", 6);
+  await __at("kopra-loadpage.c", 6);
   let label = "demo";
-  __at("kopra-loadpage.c", 7);
+  await __at("kopra-loadpage.c", 7);
   let i = 0, attempts = 0;
-  __at("kopra-loadpage.c", 9);
+  await __at("kopra-loadpage.c", 9);
   await __vu.web_set_max_html_param_len("10000");
-  __at("kopra-loadpage.c", 11);
+  await __at("kopra-loadpage.c", 11);
   await __vu.lr_save_string(parentTrans, "parentTrans");
-  __at("kopra-loadpage.c", 12);
+  await __at("kopra-loadpage.c", 12);
   await __vu.web_js_run("Code= myFunc(LR.getParam('parentTrans'));", "SOURCES", "Code= var myFunc = function(p) { LR.setParam('subTrans', p.slice(0, 8)); }", "ENDITEM", "LAST");
-  __at("kopra-loadpage.c", 20);
+  await __at("kopra-loadpage.c", 20);
   await __vu.web_set_sockets_option("SSL_VERSION", "AUTO");
-  __at("kopra-loadpage.c", 21);
+  await __at("kopra-loadpage.c", 21);
   await __vu.web_add_auto_header("Accept-Language", "en-US,en;q=0.9");
-  __at("kopra-loadpage.c", 23);
+  await __at("kopra-loadpage.c", 23);
   (startTime = await __vu.lr_start_timer());
-  __at("kopra-loadpage.c", 24, () => [["startTime", startTime, "merc_timer_handle_t"], ["retryLimit", retryLimit, "int"], ["retryCount", retryCount, "int"], ["lastError", lastError, "char[128]"], ["parentTrans", parentTrans, "char*"], ["seq1", seq1, "double"], ["seq2", seq2, "double"], ["tempSeq", tempSeq, "double"], ["totalSeq", totalSeq, "double"], ["transSeqName", transSeqName, "char[256]"], ["label", label, "char*"], ["i", i, "int"], ["attempts", attempts, "int"]]);
+  await __at("kopra-loadpage.c", 24, () => [["startTime", startTime, "merc_timer_handle_t"], ["retryLimit", retryLimit, "int"], ["retryCount", retryCount, "int"], ["lastError", lastError, "char[128]"], ["parentTrans", parentTrans, "char*"], ["seq1", seq1, "double"], ["seq2", seq2, "double"], ["tempSeq", tempSeq, "double"], ["totalSeq", totalSeq, "double"], ["transSeqName", transSeqName, "char[256]"], ["label", label, "char*"], ["i", i, "int"], ["attempts", attempts, "int"]]);
   await __vu.web_url(await __vu.lr_eval_string("DEMO_{subTrans}_01_ui"), "URL=https://{host}/demo/ui", "TargetFrame=", "Resource=0", "Referer=", "Snapshot=t1.inf", "Mode=HTML", "LAST");
-  __at("kopra-loadpage.c", 32);
+  await __at("kopra-loadpage.c", 32);
   (tempSeq = await __vu.lr_end_timer(startTime));
-  __at("kopra-loadpage.c", 33);
+  await __at("kopra-loadpage.c", 33);
   (seq1 = await __fn_compareDuration(seq1, tempSeq));
-  __at("kopra-loadpage.c", 35);
+  await __at("kopra-loadpage.c", 35);
   for ((i = 0); (i < 3); (i++)) {
-    __at("kopra-loadpage.c", 36);
+    await __at("kopra-loadpage.c", 36);
     (transSeqName = await __vu.sprintf("%s_%d", parentTrans, i));
-    __at("kopra-loadpage.c", 37);
+    await __at("kopra-loadpage.c", 37);
     (label = String(transSeqName));
   }
-  __at("kopra-loadpage.c", 40);
+  await __at("kopra-loadpage.c", 40);
   while (((attempts < retryLimit) && (await __vu.strcmp(await __vu.lr_eval_string("{flag}"), "y") == 0))) {
-    __at("kopra-loadpage.c", 41);
+    await __at("kopra-loadpage.c", 41);
     (attempts++);
   }
-  __at("kopra-loadpage.c", 43);
+  await __at("kopra-loadpage.c", 43);
   if ((await __vu.lr_get_transaction_status(await __vu.lr_eval_string("{transName}")) == 1)) {
-    __at("kopra-loadpage.c", 44);
+    await __at("kopra-loadpage.c", 44);
     await __vu.lr_error_message("transaksi gagal: %s", await __vu.lr_eval_string("{transName}"));
-    __at("kopra-loadpage.c", 45);
+    await __at("kopra-loadpage.c", 45);
     await __vu.lr_exit(2, 1);
   }
-  __at("kopra-loadpage.c", 48);
+  await __at("kopra-loadpage.c", 48);
   (totalSeq = (seq1 + seq2));
-  __at("kopra-loadpage.c", 49);
+  await __at("kopra-loadpage.c", 49);
   await __vu.lr_set_transaction(await __vu.lr_eval_string("{transSeqName}"), totalSeq, await __vu.lr_get_transaction_status(parentTrans));
-  __at("kopra-loadpage.c", 50);
+  await __at("kopra-loadpage.c", 50);
   return 0;
 }
 

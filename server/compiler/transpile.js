@@ -166,13 +166,13 @@ function typeLabel(dataType, declarator) {
  * runtime memanggilnya saat step dikirim sehingga nilainya adalah nilai pada saat request dijalankan.
  */
 function atStatement(node, context) {
-  if (!ownParts(node).some(containsStepCall)) return `__at(${quote(node.file)}, ${node.line});`;
+  if (!ownParts(node).some(containsStepCall)) return `await __at(${quote(node.file)}, ${node.line});`;
 
   /** @type {Map<string, string>} */
   const visible = new Map();
   for (const scope of context.scopes) for (const [name, type] of scope) visible.set(name, type);
   const entries = [...visible].map(([name, type]) => `[${quote(name)}, ${jsName(name)}, ${quote(type)}]`);
-  return `__at(${quote(node.file)}, ${node.line}, () => [${entries.join(", ")}]);`;
+  return `await __at(${quote(node.file)}, ${node.line}, () => [${entries.join(", ")}]);`;
 }
 
 /** @param {Context} context @param {AstNode} node @param {string} message */
@@ -521,8 +521,8 @@ export function transpilePrograms(programs) {
     "  __vu = vu;",
     "}",
     "",
-    "function __at(file, line, vars) {",
-    "  __vu.__at(file, line, vars);",
+    "async function __at(file, line, vars) {",
+    "  return __vu.__at(file, line, vars);",
     "}",
     "",
     "function __unsupported(raw, file, line) {",

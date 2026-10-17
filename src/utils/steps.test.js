@@ -50,7 +50,7 @@ describe("groupLabel", () => {
   it("label yang mudah dibaca", () => {
     expect(groupLabel("init")).toBe("vuser_init");
     expect(groupLabel("end")).toBe("vuser_end");
-    expect(groupLabel(2)).toBe("Iterasi 2");
+    expect(groupLabel(2)).toBe("Iteration 2");
   });
 });
 
@@ -67,7 +67,7 @@ describe("endpointLabel", () => {
   it("tanpa URL / URL tidak valid -> nama step; tanpa keduanya -> placeholder", () => {
     expect(endpointLabel({ name: "RPS_26_inquiry", request: { method: "GET", url: "" } })).toBe("RPS_26_inquiry");
     expect(endpointLabel({ name: "x", request: { method: "GET", url: "bukan url" } })).toBe("x");
-    expect(endpointLabel({})).toBe("(tanpa nama)");
+    expect(endpointLabel({})).toBe("(unnamed)");
   });
 
   it("tanpa method: hanya path", () => {

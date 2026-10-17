@@ -78,6 +78,22 @@ export function stopRun(runId) {
 }
 
 /**
+ * Resume a paused run by sending a resume IPC message to the child.
+ * @param {string} runId
+ * @returns {boolean} false if run not found or child already dead
+ */
+export function resumeRun(runId) {
+  const run = runs.get(runId);
+  if (!run || !isAlive(run.child)) return false;
+  try {
+    run.child.send({ type: "resume" });
+  } catch {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Kill semua child yang masih hidup. Dipakai saat server close / Vite restart / proses keluar.
  * @returns {number} jumlah child yang dibunuh
  */

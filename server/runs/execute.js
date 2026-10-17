@@ -48,6 +48,7 @@ function normalizeOptions(options = {}) {
     insecureTLS: options.insecureTLS ?? false,
     thinkTime: options.thinkTime ?? "ignore",
     timeoutMs: options.timeoutMs ?? 60000,
+    breakpoints: Array.isArray(options.breakpoints) ? options.breakpoints : [],
   };
 }
 

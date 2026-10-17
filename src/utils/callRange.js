@@ -58,3 +58,49 @@ export function callEndLine(text, startLine) {
 
   return startLine;
 }
+
+/**
+ * Baris awal statement yang memuat `targetLine`. Runner hanya berhenti di baris awal statement
+ * (`__at`), jadi breakpoint di baris lanjutan argumen dipindah ke sini. Baris yang diawali pada
+ * kedalaman kurung 0 dianggap awal statement; baris di dalam kurung terbuka dianggap lanjutan.
+ *
+ * @param {string} text isi file
+ * @param {number} targetLine 1-based
+ * @returns {number}
+ */
+export function statementStartLine(text, targetLine) {
+  let line = 1;
+  let depth = 0;
+  let start = 1;
+
+  for (let i = 0; i < text.length && line <= targetLine; i += 1) {
+    const char = text[i];
+
+    if (char === "\n") {
+      line += 1;
+      if (depth <= 0 && line <= targetLine) start = line;
+    } else if (char === '"' || char === "'") {
+      for (i += 1; i < text.length && text[i] !== char; i += 1) {
+        if (text[i] === "\\") i += 1;
+        else if (text[i] === "\n") line += 1;
+      }
+    } else if (char === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i += 1;
+      i -= 1;
+    } else if (char === "/" && text[i + 1] === "*") {
+      for (i += 2; i < text.length && !(text[i] === "*" && text[i + 1] === "/"); i += 1) {
+        if (text[i] === "\n") {
+          line += 1;
+          if (depth <= 0 && line <= targetLine) start = line;
+        }
+      }
+      i += 1;
+    } else if (char === "(") {
+      depth += 1;
+    } else if (char === ")") {
+      depth -= 1;
+    }
+  }
+
+  return start;
+}

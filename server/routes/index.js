@@ -14,7 +14,7 @@
 import { requestUrl, sendError, sendJson } from "../http-utils.js";
 import { getFile, putFile } from "./file.js";
 import { getProject } from "./project.js";
-import { handleRunEvents, handleRunGet, handleRunPost, handleRunStepBody, handleRunStop } from "./run.js";
+import { handleRunEvents, handleRunGet, handleRunPost, handleRunResume, handleRunStepBody, handleRunStop } from "./run.js";
 
 /** @type {ApiRoute[]} */
 const routes = [
@@ -31,6 +31,7 @@ const routes = [
   { methods: ["POST"], path: "/run", handler: handleRunPost },
   { methods: ["GET"], path: "/run/:id/events", handler: handleRunEvents },
   { methods: ["POST"], path: "/run/:id/stop", handler: handleRunStop },
+  { methods: ["POST"], path: "/run/:id/resume", handler: handleRunResume },
   { methods: ["GET"], path: "/run/:id", handler: handleRunGet },
   { methods: ["GET"], path: "/run/:id/step/:seq/body", handler: handleRunStepBody },
 ];

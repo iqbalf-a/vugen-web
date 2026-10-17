@@ -590,10 +590,11 @@ export function web_reg_save_param(paramName, ...args) {
     ord: parseInt(opts.Ord || opts.ord || "1", 10),
     regexp: null,
     saveParam: opts.SaveParam || opts.saveparam || paramName,
+    scope: (opts.Scope || opts.scope || "BODY").toUpperCase(),
   };
 
   correlationRegistry.push(rule);
-  log("info", `web_reg_save_param: registered "${paramName}" LB="${rule.lb}" RB="${rule.rb}" Ord=${rule.ord}`);
+  log("info", `web_reg_save_param: registered "${paramName}" LB="${rule.lb}" RB="${rule.rb}" Ord=${rule.ord} Scope=${rule.scope}`);
   return 0;
 }
 
@@ -618,10 +619,11 @@ export function web_reg_save_param_ex(...args) {
     ord: parseInt(opts.Ord || opts.ord || "1", 10),
     regexp: opts.RegExp || opts.regexp || null,
     saveParam: opts.SaveParam || opts.saveparam || paramName,
+    scope: (opts.Scope || opts.scope || "BODY").toUpperCase(),
   };
 
   correlationRegistry.push(rule);
-  log("info", `web_reg_save_param_ex: registered "${paramName}" ${rule.regexp ? `RegExp="${rule.regexp}"` : `LB="${rule.lb}" RB="${rule.rb}"`} Ord=${rule.ord}`);
+  log("info", `web_reg_save_param_ex: registered "${paramName}" ${rule.regexp ? `RegExp="${rule.regexp}"` : `LB="${rule.lb}" RB="${rule.rb}"`} Ord=${rule.ord} Scope=${rule.scope}`);
   return 0;
 }
 
@@ -790,7 +792,7 @@ function parseWebArgs(args) {
     const eq = arg.indexOf("=");
     if (eq <= 0) continue;
     const key = arg.slice(0, eq).trim();
-    const value = arg.slice(eq + 1).trim();
+    const value = arg.slice(eq + 1); // no trim — values like RB=\r\n must keep their CR/LF bytes
     // Handle known headers
     if (key.toLowerCase() === "referer") {
       if (value !== "") result.headers.referer = value; // "Referer=" kosong: tidak ada header
@@ -881,8 +883,25 @@ function concludeFailure(type, name, problem) {
 async function sendRequest({ type, name, snapshotName, method, url, explicitHeaders = {}, defaultContentType, body }) {
   const c = needCtx();
   const finalUrl = substituteParams(url);
-  const headers = mergeRequestHeaders(explicitHeaders, { consume: true });
+  // Substitute {param} in explicit headers (Referer=, etc.) — auto/next headers are already substituted at set-time
+  const resolvedExplicit = Object.fromEntries(
+    Object.entries(explicitHeaders).map(([k, v]) => [k, substituteParams(String(v ?? ""))])
+  );
+  const headers = mergeRequestHeaders(resolvedExplicit, { consume: true });
   if (body && defaultContentType && !headers["content-type"]) headers["content-type"] = defaultContentType;
+
+  // Notify UI that a request is about to start (for live step highlight)
+  c.sendEvent("stepPending", {
+    seq: c.seq + 1,
+    type,
+    name: substituteParams(name),
+    method,
+    url: finalUrl,
+    file: c.currentFile || "",
+    line: c.currentLine || 0,
+    iteration: c.currentIteration || 1,
+    transaction: innermostTransaction(),
+  });
 
   let resp;
   try {
@@ -1026,6 +1045,18 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   const isText = contentType.includes("text/") || contentType.includes("json") || contentType.includes("xml");
   const bodyText = isText ? decodeBody(resp.body, contentType) : "";
 
+  // Headers sebagai teks untuk Scope=ALL/HEADERS: "header-name: value\r\n"
+  const headersText = Object.entries(resp.headers || {})
+    .map(([k, v]) => `${k}: ${v}\r\n`)
+    .join("");
+
+  /** Pilih teks pencarian sesuai Scope */
+  function scopeText(scope) {
+    if (scope === "HEADERS") return headersText;
+    if (scope === "ALL") return headersText + bodyText;
+    return bodyText; // BODY (default)
+  }
+
   /** Alasan step gagal (R6/R7) */
   const problems = [];
   if (resp.status >= 400) problems.push(`HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""}`);
@@ -1036,7 +1067,7 @@ async function handleResponse(stepName, resp, type, snapshotName) {
       applyJsonRule(rule, resp, bodyText, contentType, problems);
       continue;
     }
-    const { value, error } = extractCorrelation(rule, bodyText);
+    const { value, error } = extractCorrelation(rule, scopeText(rule.scope || "BODY"));
     if (error) {
       problems.push(`Correlation "${rule.name}": ${error}`);
     } else if (value !== null) {

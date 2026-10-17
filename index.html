@@ -28,7 +28,7 @@
         </div>
 
         <button id="openBtn" type="button" class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3 text-[12px] font-medium hover:border-[#3a4553]">
-          Buka Folder
+          Open Folder
         </button>
         <button id="runBtn" type="button" disabled class="h-8 rounded-[3px] border border-[#d2a24c] bg-[#d2a24c] px-3.5 text-[12px] font-bold text-[#1c1200] disabled:cursor-not-allowed disabled:opacity-50">
           Run
@@ -36,28 +36,31 @@
         <button id="stopBtn" type="button" disabled class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-50">
           Stop
         </button>
+        <button id="resumeBtn" type="button" disabled class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-50">
+          Resume
+        </button>
 
         <span id="status" data-state="checking" class="status-badge">…</span>
       </header>
 
-      <!-- Run Options (      <!-- Opsi run: satu baris; tombol sembunyikan di ujung kanan (hanya kontrolnya yang disembunyikan) -->
+      <!-- Opsi run: satu baris; tombol sembunyikan di ujung kanan (hanya kontrolnya yang disembunyikan) -->
       <div id="runOptions" class="flex items-center gap-x-5 border-b border-[#232a33] bg-[#141922] px-4 text-[11px] text-[#e6edf3]">
         <div id="runOptionsControls" class="flex min-h-9 flex-1 flex-wrap items-center gap-x-5 gap-y-1 py-1">
           <label class="flex items-center gap-2">
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Iterasi</span>
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Iterations</span>
             <input type="number" id="iterations" value="1" min="1" max="1000" class="h-6 w-16 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[11px] text-[#e6edf3] outline-none focus:border-[#d2a24c]" />
           </label>
           <label class="flex items-center gap-2">
             <input type="checkbox" id="continueOnError" class="accent-[#d2a24c]" />
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Lanjut error</span>
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Continue on error</span>
           </label>
           <label class="flex items-center gap-2">
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Jeda (ms)</span>
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Delay (ms)</span>
             <input type="number" id="iterationDelay" value="0" min="0" max="60000" class="h-6 w-20 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[11px] text-[#e6edf3] outline-none focus:border-[#d2a24c]" />
           </label>
           <label class="flex items-center gap-2">
             <input type="checkbox" id="newUserEachIteration" checked class="accent-[#d2a24c]" />
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">User baru</span>
+            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">New user</span>
           </label>
           <label class="flex items-center gap-2">
             <input type="checkbox" id="insecureTLS" class="accent-[#d2a24c]" checked />
@@ -70,20 +73,20 @@
             </select>
           </label>
         </div>
-        <button id="toggleOptions" type="button" class="ml-auto shrink-0 py-2 font-mono text-[10px] text-[#7d8896] hover:text-[#e6edf3]">▲ Sembunyikan opsi</button>
+        <button id="toggleOptions" type="button" class="ml-auto shrink-0 py-2 font-mono text-[10px] text-[#7d8896] hover:text-[#e6edf3]">▲ Hide options</button>
       </div>
 
       <!-- ── Tiga area: kiri ±20%, tengah fleksibel, kanan ±34% ── -->
-      <main class="grid min-h-0 flex-1 grid-cols-[minmax(250px,20%)_minmax(0,1fr)_minmax(400px,34%)]">
+      <main class="grid min-h-0 flex-1 grid-cols-[minmax(250px,20%)_minmax(0,1fr)_minmax(340px,28%)]">
         <!-- Kiri: FileTree (maks 38%) + StepList (sisanya) -->
         <aside class="flex min-h-0 flex-col border-r border-[#232a33] bg-[#121821]">
           <div class="flex max-h-[38%] min-h-0 shrink-0 flex-col">
-            <div class="section-head">File Script</div>
-            <div id="fileTree" class="min-h-0 flex-1 overflow-auto px-2 py-2 text-[12px] text-[#5b6572]">Belum ada folder yang dibuka.</div>
+            <div class="section-head">Script Files</div>
+            <div id="fileTree" class="min-h-0 flex-1 overflow-auto px-2 py-2 text-[12px] text-[#5b6572]">No folder opened.</div>
           </div>
           <div class="flex min-h-0 flex-1 flex-col">
-            <div class="section-head border-t">Step Run</div>
-            <div id="stepList" class="min-h-0 flex-1 overflow-auto font-mono text-[12px] text-[#5b6572]"><div class="px-3 py-2">Belum ada hasil run.</div></div>
+            <div class="section-head border-t">Run Steps</div>
+            <div id="stepList" class="min-h-0 flex-1 overflow-auto font-mono text-[12px] text-[#5b6572]"><div class="px-3 py-2">No run results yet.</div></div>
           </div>
         </aside>
 
@@ -91,7 +94,7 @@
         <section class="flex min-h-0 flex-col bg-[#0e1116]">
           <div id="tabBar" class="flex h-9 shrink-0 items-center gap-1 border-b border-[#232a33] bg-[#141922] px-2"></div>
           <div id="editor" class="min-h-0 flex-1 overflow-hidden">
-            <div class="grid h-full place-items-center text-[12px] text-[#5b6572]">Belum ada file yang dibuka.</div>
+            <div class="grid h-full place-items-center text-[12px] text-[#5b6572]">No file opened.</div>
           </div>
         </section>
 

@@ -193,13 +193,13 @@ function headersSection(headers) {
   const text = count > 0 ? formatHeaders(headers) : "";
   const inner = count > 0
     ? `<pre class="snap-code p-2 text-gray-300 text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere] max-h-48">${escapeHtml(text)}</pre>`
-    : '<div class="p-2 text-[11px] text-gray-500">(tidak ada header)</div>';
+    : '<div class="p-2 text-[11px] text-gray-500">(no headers)</div>';
   return section("Headers", `${count} header`, count > 0 ? text : null, inner);
 }
 
 /** Section Body: judul "Body (json)" dst., ukuran, tombol Copy (tidak untuk biner) */
 function bodySection(text, category, htmlInner, sizeText) {
-  if (text === "" && category !== "binary") return section("Body", "(kosong)", null, '<div class="p-2 text-[11px] text-gray-500">Tidak ada body</div>');
+  if (text === "" && category !== "binary") return section("Body", "(empty)", null, '<div class="p-2 text-[11px] text-gray-500">No body</div>');
   return section(`Body (${category})`, sizeText, category === "binary" ? null : displayBody(text, category), htmlInner);
 }
 
@@ -208,7 +208,7 @@ function renderRequestTab(snapReq) {
   const reqContentType = snapReq.headers?.['content-type'] || snapReq.headers?.['Content-Type'] || '';
   const reqCategory = getContentCategory(reqContentType) === 'html' ? 'text' : getContentCategory(reqContentType);
   const reqBodyText = snapReq.bodyPreview || '';
-  const reqSize = `${(new Blob([reqBodyText]).size / 1024).toFixed(1)} KB${reqBodyText.length >= 2048 ? ' (dipotong 2 KB)' : ''}`;
+  const reqSize = `${(new Blob([reqBodyText]).size / 1024).toFixed(1)} KB${reqBodyText.length >= 2048 ? ' (truncated at 2 KB)' : ''}`;
   const bodyHtml = reqBodyText ? renderContent(reqBodyText, reqCategory, { contentType: reqContentType, size: reqBodyText.length, truncated: false }) : '';
 
   const requestLine = `
@@ -368,7 +368,7 @@ async function renderSnapshot() {
           <span class="snapshot-number shrink-0 font-semibold text-[#d2a24c]">#${escapeHtml(snap.number)}</span>
           ${snapMethod ? `<span class="shrink-0 rounded-[3px] bg-[#1b212b] px-1.5 py-0.5 font-mono text-[10px] text-[#aab4c0]">${escapeHtml(snapMethod)}</span>` : ""}
           <span class="snapshot-path min-w-0 flex-1 truncate text-[13px] font-medium text-[#e6edf3]" title="${escapeHtml(snapPath)}">${escapeHtml(snapPath)}</span>
-          ${snap.duplicate ? `<span class="snapshot-duplicate shrink-0 rounded-[3px] border border-[#2a3644] px-1.5 py-0.5 font-mono text-[10px] text-[#aab4c0]" title="ke-${escapeHtml(snap.duplicate.index)} dari ${escapeHtml(snap.duplicate.total)} pemanggilan endpoint ini">${escapeHtml(snap.duplicate.index)}/${escapeHtml(snap.duplicate.total)}</span>` : ""}
+          ${snap.duplicate ? `<span class="snapshot-duplicate shrink-0 rounded-[3px] border border-[#2a3644] px-1.5 py-0.5 font-mono text-[10px] text-[#aab4c0]" title="call ${escapeHtml(snap.duplicate.index)} of ${escapeHtml(snap.duplicate.total)} for this endpoint">${escapeHtml(snap.duplicate.index)}/${escapeHtml(snap.duplicate.total)}</span>` : ""}
         </div>
         <div class="snapshot-meta truncate px-3 pb-1 pt-1 text-[11px] text-[#7d8896]" title="${escapeHtml(snapMeta)}">${escapeHtml(snapMeta)}</div>
         <div class="flex px-1" role="tablist">
@@ -420,7 +420,7 @@ async function copyToClipboard(text, button) {
     area.remove();
   }
   const original = button.textContent;
-  button.textContent = ok ? 'Tersalin ✓' : 'Gagal';
+  button.textContent = ok ? 'Copied ✓' : 'Failed';
   setTimeout(() => {
     if (button.isConnected) button.textContent = original;
   }, 1200);
@@ -430,7 +430,7 @@ async function copyToClipboard(text, button) {
 function getEmptyStateHtml() {
   return `
     <div class="flex h-full items-center justify-center bg-[#141922]">
-      <p class="text-[12px] text-[#5b6572] text-center">Pilih step di kiri untuk melihat snapshot</p>
+      <p class="text-[12px] text-[#5b6572] text-center">Select a step on the left to view the snapshot</p>
     </div>
   `;
 }

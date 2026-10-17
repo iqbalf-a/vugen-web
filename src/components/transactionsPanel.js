@@ -55,11 +55,11 @@ function render() {
   lastRenderKey = key;
 
   if (!run) {
-    contentEl.innerHTML = emptyHtml("Belum ada run");
+    contentEl.innerHTML = emptyHtml("No run yet");
     return;
   }
   if (transactions.length === 0) {
-    contentEl.innerHTML = emptyHtml("Belum ada transaksi");
+    contentEl.innerHTML = emptyHtml("No transactions yet");
     return;
   }
 
@@ -85,7 +85,7 @@ function render() {
       <table class="w-full table-fixed border-collapse text-[11px]">
         <thead class="sticky top-0 bg-[#1b212b] text-left text-[#7d8896]">
           <tr>
-            <th class="px-3 py-1.5 font-semibold">Nama</th>
+            <th class="px-3 py-1.5 font-semibold">Name</th>
             <th class="px-3 py-1.5 text-right font-semibold">N</th>
             <th class="px-3 py-1.5 text-center font-semibold">Status</th>
             <th class="px-3 py-1.5 text-right font-semibold">Min (ms)</th>

@@ -50,7 +50,7 @@ export function availableGroups(steps, totalIterations, runLogic) {
 export function groupLabel(group) {
   if (group === "init") return "vuser_init";
   if (group === "end") return "vuser_end";
-  return `Iterasi ${group}`;
+  return `Iteration ${group}`;
 }
 
 /**
@@ -81,7 +81,7 @@ export function endpointParts(step) {
       // URL tidak valid (mis. masih berisi {param}): pakai nama step
     }
   }
-  return { method: "", path: step.name || "(tanpa nama)" };
+  return { method: "", path: step.name || "(unnamed)" };
 }
 
 /**

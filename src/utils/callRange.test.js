@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { callEndLine } from "./callRange.js";
+import { callEndLine, statementStartLine } from "./callRange.js";
 
 const SOURCE = [
   /* 1 */ "Loadpage(char* parentTrans)",
@@ -49,5 +49,15 @@ describe("callEndLine", () => {
     const text = "x(\n  y(\n    z(1)\n  ),\n  2\n);\nnext();";
     expect(callEndLine(text, 1)).toBe(6);
     expect(callEndLine(text, 2)).toBe(4);
+  });
+});
+
+describe("statementStartLine", () => {
+  it("baris argumen lanjutan dipetakan ke baris awal pemanggilan", () => {
+    for (const line of [5, 6, 7, 8, 9, 10]) expect(statementStartLine(SOURCE, line)).toBe(4);
+  });
+
+  it("baris awal statement tetap", () => {
+    for (const line of [1, 2, 3, 4, 11, 12, 13, 14]) expect(statementStartLine(SOURCE, line)).toBe(line);
   });
 });

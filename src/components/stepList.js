@@ -72,12 +72,44 @@ function updateGroupSelector(state) {
   groupSelect.value = String(state.selectedIteration);
 }
 
+/** Render baris pending (request sedang berlangsung) */
+function renderPendingRow(pending) {
+  if (!pending) return "";
+  const { method, url, name, transaction } = pending;
+  let path = url || "";
+  try { path = new URL(url).pathname; } catch { /* keep as-is */ }
+  const parts = path.split("/").filter(Boolean);
+  const short = parts.length > 2 ? "…/" + parts.slice(-2).join("/") : path;
+  const txLabel = transaction ? escapeHtml(transaction) : "No Transaction";
+  const methodLabel = method ? escapeHtml(method) : "";
+  return `
+    <div class="pending-step-section mt-2 first:mt-1">
+      <div class="tx-header flex items-center gap-2 px-3 py-1.5 bg-[#161c24]">
+        <span class="w-3 shrink-0 text-center text-[12px] text-[#7d8896]">▾</span>
+        <span class="min-w-0 flex-1 truncate font-sans font-semibold text-[#7d8896]">${txLabel}</span>
+        <span class="text-[10px] text-[#5b6572] italic">running…</span>
+      </div>
+      <div class="border-l-2 border-[#d2a24c] py-1 pl-[18px] pr-3 bg-[#1a1e28]">
+        <div class="flex min-w-0 items-center gap-2">
+          <span class="w-3 shrink-0 text-center text-[10px] text-[#d2a24c] animate-spin" style="display:inline-block">⟳</span>
+          <span class="step-number shrink-0 text-[10px] tabular-nums text-[#5b6572]">#${escapeHtml(String(pending.seq))}</span>
+          ${methodLabel ? `<span class="w-9 shrink-0 text-center text-[10px] text-[#d2a24c]">${methodLabel}</span>` : ""}
+          <span class="min-w-0 flex-1 truncate text-[#d2a24c] text-[12px]">${escapeHtml(short || name || "…")}</span>
+          <span class="shrink-0 text-[11px] text-[#5b6572] italic animate-pulse">pending</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 /** Render daftar step yang dikelompokkan per transaksi */
 function renderSteps(state) {
   if (!stepListEl) return;
   const run = state.currentRun;
+  const pendingStep = state.pendingStep;
   if (!run || !run.steps) {
-    stepListEl.innerHTML = '<div class="px-3 py-2 text-[12px] text-[#5b6572]">Belum ada step</div>';
+    stepListEl.innerHTML = '<div class="px-3 py-2 text-[12px] text-[#5b6572]">No steps yet</div>';
+    if (pendingStep) stepListEl.innerHTML += renderPendingRow(pendingStep);
     return;
   }
 
@@ -86,14 +118,14 @@ function renderSteps(state) {
   const steps = run.steps.filter((step) => stepGroupOf(step, runLogic) === group);
 
   if (steps.length === 0) {
-    stepListEl.innerHTML = `<div class="px-3 py-2 text-[12px] text-[#5b6572]">Tidak ada step untuk ${escapeHtml(groupLabel(group))}</div>`;
+    stepListEl.innerHTML = `<div class="px-3 py-2 text-[12px] text-[#5b6572]">No steps for ${escapeHtml(groupLabel(group))}</div>`;
     return;
   }
 
   // Group steps by transaction
   const txMap = new Map();
   for (const step of steps) {
-    const tx = step.transaction || "Tanpa Transaksi";
+    const tx = step.transaction || "No Transaction";
     if (!txMap.has(tx)) txMap.set(tx, []);
     txMap.get(tx).push(step);
   }
@@ -143,7 +175,16 @@ function renderSteps(state) {
         </div>
       </div>
     `;
-  }).join("");
+  }).join("") + renderPendingRow(
+    // Show pending only if it belongs to the current group
+    pendingStep && (pendingStep.iteration === group || (group === "init" && pendingStep.file?.includes("vuser_init")) || (group === "end" && pendingStep.file?.includes("vuser_end")))
+      ? pendingStep : null
+  );
+
+  // Scroll pending row into view when it appears
+  if (pendingStep) {
+    setTimeout(() => stepListEl?.querySelector(".pending-step-section")?.scrollIntoView({ block: "nearest" }), 0);
+  }
 
   // Toggle transaksi (default terbuka)
   stepListEl.querySelectorAll(".tx-header").forEach((el) => {
@@ -194,6 +235,7 @@ function render() {
     run?.options?.iterations ?? 0,
     state.selectedIteration,
     state.selectedStep?.seq ?? "",
+    state.pendingStep?.seq ?? "",
     [...collapsedTransactions].join("|"),
   ].join("#");
   if (key === lastRenderKey) return;
@@ -218,9 +260,9 @@ export function createStepList(container, { onSelect } = {}) {
   root.innerHTML = `
     <div class="flex h-full flex-col bg-[#121821]">
       <div class="flex shrink-0 items-center gap-2 px-3 py-2">
-        <label class="shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]" for="iterationSelect">Lihat</label>
+        <label class="shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]" for="iterationSelect">View</label>
         <select id="iterationSelect" class="h-7 min-w-0 flex-1 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[12px] text-[#e6edf3] outline-none focus:border-[#d2a24c]">
-          <option value="1">Iterasi 1</option>
+          <option value="1">Iteration 1</option>
         </select>
       </div>
       <div id="stepListItems" class="min-h-0 flex-1 overflow-y-auto font-mono text-[12px]"></div>

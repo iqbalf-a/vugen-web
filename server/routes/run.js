@@ -17,7 +17,7 @@ import path from "node:path";
 import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
 import { isValidRunId, loadRun, loadStepBody } from "../runs/store.js";
 import { startRun } from "../runs/execute.js";
-import { getRun, stopRun } from "../runs/registry.js";
+import { getRun, stopRun, resumeRun } from "../runs/registry.js";
 import { sendJson, sendError, startSse, readJsonBody } from "../http-utils.js";
 
 /**
@@ -84,6 +84,17 @@ export async function handleRunStop(req, res, _url, { id: runId }) {
     return sendError(res, 404, `Run ${runId} tidak ditemukan atau sudah selesai`);
   }
   sendJson(res, 200, { ok: true, message: "Stop signal sent" });
+}
+
+/**
+ * POST /api/run/:id/resume
+ */
+export async function handleRunResume(req, res, _url, { id: runId }) {
+  if (!requireRunId(res, runId)) return;
+  if (!resumeRun(runId)) {
+    return sendError(res, 404, `Run ${runId} not found or already finished`);
+  }
+  sendJson(res, 200, { ok: true });
 }
 
 /**

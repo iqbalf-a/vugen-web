@@ -37,7 +37,7 @@ function getLevelIcon(level) {
 /** Format timestamp */
 function formatTime(ts) {
   const date = new Date(ts);
-  return date.toLocaleTimeString("id-ID", { hour12: false }) + "." + String(date.getMilliseconds()).padStart(3, "0");
+  return date.toLocaleTimeString("en-US", { hour12: false }) + "." + String(date.getMilliseconds()).padStart(3, "0");
 }
 
 /** Render log panel */
@@ -48,7 +48,7 @@ function render() {
   const logs = run?.log || [];
 
   if (logs.length === 0) {
-    contentEl.innerHTML = '<div class="p-4 text-center text-[12px] text-[#5b6572]">Belum ada log</div>';
+    contentEl.innerHTML = '<div class="p-4 text-center text-[12px] text-[#5b6572]">No log entries yet</div>';
     return;
   }
 

@@ -49,7 +49,7 @@ function tableHtml(rows) {
     <table class="param-table w-full table-fixed border-collapse text-[11px]">
       <thead class="sticky top-0 bg-[#1b212b] text-left text-[#7d8896]">
         <tr>
-          <th class="param-sort w-2/5 cursor-pointer select-none px-3 py-1.5 font-semibold hover:text-yellow-400" data-sort="name" title="Urutkan menurut nama">Name ${arrow}</th>
+          <th class="param-sort w-2/5 cursor-pointer select-none px-3 py-1.5 font-semibold hover:text-yellow-400" data-sort="name" title="Sort by name">Name ${arrow}</th>
           <th class="px-3 py-1.5 font-semibold">Value</th>
         </tr>
       </thead>
@@ -87,20 +87,20 @@ function render() {
   const cVars = cRows(step);
   const rows = mode === "vugen" ? vugen : cVars;
 
-  const scope = step ? `pada Snapshot #${step.seq} · ${step.file}:${step.line}` : run ? "keadaan terakhir run" : "";
+  const scope = step ? `at Snapshot #${step.seq} · ${step.file}:${step.line}` : run ? "last run state" : "";
   const tab = (id, label, count) =>
     `<button type="button" role="tab" data-mode="${id}" aria-selected="${mode === id}" class="param-mode ui-tab">${escapeHtml(label)}<span class="ui-count">${escapeHtml(count)}</span></button>`;
 
   let body;
-  if (!run) body = emptyHtml("Belum ada run");
-  else if (mode === "c" && !step) body = emptyHtml("Pilih step (atau klik area API di editor) untuk melihat variabel C pada baris itu");
-  else if (rows.length === 0) body = emptyHtml(mode === "vugen" ? "Belum ada parameter" : "Tidak ada variabel C pada baris ini");
+  if (!run) body = emptyHtml("No run yet");
+  else if (mode === "c" && !step) body = emptyHtml("Select a step (or click an API area in the editor) to view C variables at that line");
+  else if (rows.length === 0) body = emptyHtml(mode === "vugen" ? "No parameters yet" : "No C variables at this line");
   else body = tableHtml(rows);
 
   contentEl.innerHTML = `
     <div class="panel-toolbar !px-1" role="tablist">
-      ${tab("vugen", "Parameter VuGen", vugen.length)}
-      ${tab("c", "Variabel C", step ? cVars.length : "–")}
+      ${tab("vugen", "VuGen Parameters", vugen.length)}
+      ${tab("c", "C Variables", step ? cVars.length : "–")}
       <span class="param-scope ml-auto min-w-0 truncate pr-2 text-[11px] text-[#7d8896]" title="${escapeHtml(scope)}">${escapeHtml(scope)}</span>
     </div>
     <div class="param-body flex-1 overflow-auto">${body}</div>

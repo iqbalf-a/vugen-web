@@ -19,7 +19,7 @@ Status proyek yang **jujur** per akhir stabilisasi (S0–S7, 2026-10-16). Rencan
 | F3 Transpile + Runtime inti | `[x]` | kode: `f2dfb97` (S0) | Sebelumnya hanya "kode ada". Kini terverifikasi lewat test integrasi S2–S5 (`run.f5`, `run.kopra`, `run.lifecycle`, `runtime`). |
 | F4 UI Run + Snapshot | `[x]` | kode: `f2dfb97` (S0) | Terverifikasi di Chrome headless (S6): step live, snapshot di iframe sandbox, ganti iterasi, Stop, editor ↔ step. Dua sinkronisasi editor ↔ step baru benar-benar bekerja di S6 (sebelumnya tidak terpasang). |
 | F5 Fungsi lanjut | `[x]` | kode: `f2dfb97` (S0) | Login 3 langkah + correlation + `web_reg_find` jalan ke mock (`run.f5.test.js`). |
-| F6 Parameter + control flow | `[~]` | kode: `f2dfb97` (S0) | Control flow & deklarasi C: selesai (S4). Parameter `.dat`: selesai (S6). Mesin parameter `.prm` (Table/Time/Userid, `SelectNextRow`, `GenerateNewVal`, `OutOfRangePolicy`): **belum** — backlog. |
+| F6 Parameter + control flow | `[x]` | kode: `f2dfb97` (S0) | Control flow & deklarasi C: selesai (S4). Parameter `.dat`: selesai (S6). Mesin parameter `.prm`: selesai — `parsePrm`, `SelectNextRow` (Sequential/Random/Unique), `UpdateValueOn` (Once), `OutOfRangePolicy` (Cycle/Continue/Abort). Time/Userid: backlog. |
 
 ## Progres stabilisasi (S0–S7)
 

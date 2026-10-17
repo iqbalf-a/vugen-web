@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { loadProject } from "./loader.js";
-import { loadParameters, parseDat } from "./parameters.js";
+import { loadParameters, parseDat, parsePrm } from "./parameters.js";
 
 let dir;
 
@@ -101,5 +101,76 @@ describe("loadParameters / loadProject", () => {
     expect(Array.isArray(project.parameters)).toBe(true);
     expect(project.parameterFiles).toBeUndefined();
     expect(JSON.parse(JSON.stringify(project.parameters))).toHaveLength(project.parameters.length);
+  });
+});
+
+describe("parsePrm", () => {
+  it("seksi tunggal dengan semua key", () => {
+    const text = '[parameter:Host]\r\nType="Table"\r\nTable="hosts.dat"\r\nSelectNextRow="Sequential"\r\nUpdateValueOn="EachIteration"\r\nWhenOutOfValues="Cycle"\r\n';
+    expect(parsePrm(text)).toEqual([{
+      name: "Host",
+      type: "Table",
+      table: "hosts.dat",
+      selectNextRow: "Sequential",
+      updateValueOn: "EachIteration",
+      outOfRangePolicy: "Cycle",
+    }]);
+  });
+
+  it("beberapa seksi; default berlaku bila key tidak ada", () => {
+    const text = '[parameter:ip]\nType="Table"\n\n[parameter:subTrans]\nSelectNextRow="Random"\n';
+    const result = parsePrm(text);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ name: "ip", type: "Table", selectNextRow: "Sequential", outOfRangePolicy: "Cycle" });
+    expect(result[1]).toMatchObject({ name: "subTrans", selectNextRow: "Random" });
+  });
+
+  it("WhenOutOfValues dan OutOfRangePolicy keduanya dipetakan ke outOfRangePolicy", () => {
+    expect(parsePrm('[parameter:x]\nWhenOutOfValues="Abort"\n')[0].outOfRangePolicy).toBe("Abort");
+    expect(parsePrm('[parameter:y]\nOutOfRangePolicy="Continue"\n')[0].outOfRangePolicy).toBe("Continue");
+  });
+
+  it("BOM dibuang; komentar (;) dilewati; baris kosong dilewati", () => {
+    const text = '\uFEFF; komentar\n[parameter:A]\nType="Table"\n\n; lagi\n';
+    expect(parsePrm(text)).toHaveLength(1);
+    expect(parsePrm(text)[0].name).toBe("A");
+  });
+
+  it("teks kosong -> array kosong", () => {
+    expect(parsePrm("")).toEqual([]);
+    expect(parsePrm("; hanya komentar\n")).toEqual([]);
+  });
+});
+
+describe("loadParameters dengan .prm", () => {
+  it(".prm menerapkan selectNextRow dan outOfRangePolicy ke parameter yang sudah dimuat dari .dat", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vugen-prm-"));
+    try {
+      await fs.writeFile(path.join(tmpDir, "ip.dat"), "ip\n10.0.0.1\n10.0.0.2\n", "utf8");
+      await fs.writeFile(path.join(tmpDir, "ip.prm"), '[parameter:ip]\nType="Table"\nSelectNextRow="Random"\nWhenOutOfValues="Continue"\n', "utf8");
+      await fs.writeFile(path.join(tmpDir, "Action.c"), "Action(){return 0;}", "utf8");
+      const { loadProject } = await import("./loader.js");
+      const project = await loadProject(tmpDir);
+      const ipParam = project.parameters.find((p) => p.name === "ip");
+      expect(ipParam).toBeDefined();
+      expect(ipParam.selectNextRow).toBe("Random");
+      expect(ipParam.outOfRangePolicy).toBe("Continue");
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it(".prm yang seksinya tidak ada di .dat tidak menghasilkan parameter baru", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vugen-prm2-"));
+    try {
+      await fs.writeFile(path.join(tmpDir, "ip.dat"), "ip\n1.2.3.4\n", "utf8");
+      await fs.writeFile(path.join(tmpDir, "notexist.prm"), '[parameter:ghost]\nType="Table"\n', "utf8");
+      await fs.writeFile(path.join(tmpDir, "Action.c"), "Action(){return 0;}", "utf8");
+      const { loadProject } = await import("./loader.js");
+      const project = await loadProject(tmpDir);
+      expect(project.parameters.find((p) => p.name === "ghost")).toBeUndefined();
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
   });
 });

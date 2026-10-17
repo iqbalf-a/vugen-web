@@ -62,21 +62,81 @@ function sendEvent(type, data, callback) {
 
 /**
  * Siapkan file parameter (.dat): urut per iterasi, nilai baris pertama langsung tersedia.
- * `parameters` berupa array [{ name, file, values }] dari loader (satu entri per kolom header .dat).
+ * `parameters` berupa array [{ name, file, values, selectNextRow?, updateValueOn?, outOfRangePolicy? }].
  */
 function initParameterFiles(parameters) {
   vu.parameterFiles = new Map();
-  for (const { name, file, values } of parameters ?? []) {
-    vu.parameterFiles.set(name, { values, currentIndex: 0, file });
+  for (const { name, file, values, selectNextRow = "Sequential", updateValueOn = "EachIteration", outOfRangePolicy = "Cycle" } of parameters ?? []) {
+    vu.parameterFiles.set(name, {
+      values,
+      currentIndex: 0,
+      file,
+      selectNextRow,
+      updateValueOn,
+      outOfRangePolicy,
+      usedIndices: selectNextRow === "Unique" ? new Set([0]) : null,
+    });
     if (values.length > 0) vu.params.set(name, values[0], `.dat: ${file}`);
   }
 }
 
-/** Iterasi berikutnya: maju satu baris per file parameter, kembali ke awal bila habis (perilaku VuGen) */
+/**
+ * Iterasi berikutnya: pilih baris sesuai strategi SelectNextRow dan OutOfRangePolicy dari .prm.
+ * Melempar Error bila OutOfRangePolicy="Abort" dan nilai habis.
+ */
 function advanceParameterFiles() {
-  for (const [name, file] of vu.parameterFiles) {
-    file.currentIndex = file.currentIndex < file.values.length - 1 ? file.currentIndex + 1 : 0;
-    vu.params.set(name, file.values[file.currentIndex], `.dat: ${file.file}`);
+  for (const [name, param] of vu.parameterFiles) {
+    if (param.updateValueOn === "Once") continue; // nilai tetap, tidak pernah maju
+
+    const n = param.values.length;
+    if (n === 0) continue;
+
+    let nextIndex;
+
+    if (param.selectNextRow === "Random") {
+      nextIndex = Math.floor(Math.random() * n);
+    } else if (param.selectNextRow === "Unique") {
+      let found = false;
+      for (let i = 1; i <= n; i++) {
+        const candidate = (param.currentIndex + i) % n;
+        if (!param.usedIndices.has(candidate)) {
+          nextIndex = candidate;
+          param.usedIndices.add(candidate);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // Semua nilai sudah dipakai
+        switch (param.outOfRangePolicy) {
+          case "Continue":
+            continue; // tetap di nilai terakhir
+          case "Abort":
+            throw new Error(`Parameter "${name}" kehabisan nilai unik (${n} baris, OutOfRangePolicy=Abort)`);
+          default: // Cycle
+            param.usedIndices.clear();
+            nextIndex = 0;
+            param.usedIndices.add(0);
+        }
+      }
+    } else {
+      // Sequential (default)
+      if (param.currentIndex < n - 1) {
+        nextIndex = param.currentIndex + 1;
+      } else {
+        switch (param.outOfRangePolicy) {
+          case "Continue":
+            continue; // tetap di nilai terakhir
+          case "Abort":
+            throw new Error(`Parameter "${name}" kehabisan nilai (${n} baris, OutOfRangePolicy=Abort)`);
+          default: // Cycle
+            nextIndex = 0;
+        }
+      }
+    }
+
+    param.currentIndex = nextIndex;
+    vu.params.set(name, param.values[nextIndex], `.dat: ${param.file}`);
   }
 }
 
@@ -209,7 +269,15 @@ async function run(payload) {
           vu.http.clearCookies();
           vuserApi.__resetHeaders();
         }
-        if (iter > 1) advanceParameterFiles();
+        if (iter > 1) {
+          try {
+            advanceParameterFiles();
+          } catch (error) {
+            vu.log("error", error.message);
+            anyFailed = true;
+            break;
+          }
+        }
 
         const result = await runUnit(mainFn, iter);
         anyFailed ||= result.failed;

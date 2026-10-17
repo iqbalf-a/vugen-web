@@ -1,18 +1,18 @@
 /**
- * project/parameters.js — Baca file parameter `.dat` script VuGen.
+ * project/parameters.js — Baca file parameter `.dat` dan konfigurasi `.prm` script VuGen.
  *
  * Format `.dat`: baris pertama SELALU header (nama kolom dipisah koma), baris berikutnya nilai.
- * Setiap kolom header menjadi satu parameter (nama case-sensitive, di-trim), sehingga
- * `{ip}` / `{subTrans}` langsung tersedia tanpa `lr_save_string`.
- *
- * File `.prm` (konfigurasi parameter VuGen, format INI) sengaja TIDAK dibaca di sini;
- * mesin `.prm` lengkap ada di backlog (plan-stabilisasi.md §9).
+ * Format `.prm`: INI-style dengan seksi `[parameter:NAME]` dan key=value.
  *
  * @typedef {Object} ParameterDef
- * @property {string} name - nama parameter (dari header)
+ * @property {string} name - nama parameter (dari header .dat)
  * @property {string} file - path relatif file `.dat` (POSIX)
  * @property {number} rows - jumlah baris nilai
  * @property {string[]} values - nilai per baris (hanya untuk runner; tidak dikirim ke browser)
+ * @property {"Table"|"Time"|"Userid"} [type] - tipe dari .prm (default "Table")
+ * @property {"Sequential"|"Random"|"Unique"|"Once"} [selectNextRow] - strategi pilih baris (default "Sequential")
+ * @property {"EachIteration"|"EachOccurrence"|"Once"} [updateValueOn] - kapan nilai diperbarui (default "EachIteration")
+ * @property {"Cycle"|"Continue"|"Abort"} [outOfRangePolicy] - jika indeks melebihi baris (default "Cycle")
  */
 
 import { promises as fs } from "node:fs";
@@ -41,7 +41,69 @@ export function parseDat(text) {
 }
 
 /**
- * Baca semua `.dat` di root script dan `data/`.
+ * Parse isi satu file `.prm` (format INI VuGen).
+ * Menghasilkan satu entri per seksi `[parameter:NAME]`.
+ *
+ * @param {string} text
+ * @returns {{ name: string, type: string, table: string|null, selectNextRow: string, updateValueOn: string, outOfRangePolicy: string }[]}
+ */
+export function parsePrm(text) {
+  const withoutBom = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const lines = withoutBom.split(/\r?\n/);
+
+  /** @type {{ name: string, type: string, table: string|null, selectNextRow: string, updateValueOn: string, outOfRangePolicy: string }[]} */
+  const sections = [];
+  let current = null;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith(";")) continue;
+
+    const secMatch = line.match(/^\[parameter:(.+)\]$/i);
+    if (secMatch) {
+      current = {
+        name: secMatch[1].trim(),
+        type: "Table",
+        table: null,
+        selectNextRow: "Sequential",
+        updateValueOn: "EachIteration",
+        outOfRangePolicy: "Cycle",
+      };
+      sections.push(current);
+      continue;
+    }
+
+    if (!current) continue;
+
+    const kvMatch = line.match(/^(\w+)\s*=\s*"?([^"]*)"?$/);
+    if (!kvMatch) continue;
+    const [, key, val] = kvMatch;
+
+    switch (key.toLowerCase()) {
+      case "type":
+        current.type = val;
+        break;
+      case "table":
+        current.table = val || null;
+        break;
+      case "selectnextrow":
+        current.selectNextRow = val;
+        break;
+      case "updatevalueon":
+        current.updateValueOn = val;
+        break;
+      case "whenoutofvalues":
+      case "outofrangepolicy":
+        current.outOfRangePolicy = val;
+        break;
+    }
+  }
+
+  return sections;
+}
+
+/**
+ * Baca semua `.dat` di root script dan `data/`, lalu terapkan konfigurasi dari `.prm`.
  * Nama parameter yang sama di dua file: file pertama dipakai, sisanya diberi warning.
  *
  * @param {string} scriptDir
@@ -75,6 +137,28 @@ export async function loadParameters(scriptDir, files) {
       }
       seen.set(column.name, datFile.path);
       parameters.push({ name: column.name, file: datFile.path, rows: column.values.length, values: column.values });
+    }
+  }
+
+  // Terapkan konfigurasi dari file .prm
+  const prmFiles = files.filter((file) => file.ext === ".prm");
+  for (const prmFile of prmFiles) {
+    let text;
+    try {
+      text = await fs.readFile(path.join(scriptDir, ...prmFile.path.split("/")), "utf8");
+    } catch (error) {
+      warnings.push(`Gagal membaca file konfigurasi ${prmFile.path}: ${error.message}`);
+      continue;
+    }
+
+    for (const section of parsePrm(text)) {
+      const param = parameters.find((p) => p.name === section.name);
+      if (!param) continue; // parameter tidak ditemukan di .dat mana pun; abaikan
+
+      if (section.type) param.type = /** @type {any} */ (section.type);
+      if (section.selectNextRow) param.selectNextRow = /** @type {any} */ (section.selectNextRow);
+      if (section.updateValueOn) param.updateValueOn = /** @type {any} */ (section.updateValueOn);
+      if (section.outOfRangePolicy) param.outOfRangePolicy = /** @type {any} */ (section.outOfRangePolicy);
     }
   }
 

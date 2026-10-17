@@ -21,6 +21,7 @@ import { stepGroupOf } from "./utils/steps.js";
 import { createSnapshotPanel } from "./components/snapshotPanel.js";
 import { createParameterPanel } from "./components/parameterPanel.js";
 import { createLogPanel } from "./components/logPanel.js";
+import { createTransactionsPanel } from "./components/transactionsPanel.js";
 import { initStore } from "./store.js";
 
 const els = {
@@ -37,6 +38,7 @@ const els = {
   snapshotPanel: document.querySelector("#snapshotPanel"),
   parameterPanel: document.querySelector("#parameterPanel"),
   logPanel: document.querySelector("#logPanel"),
+  transactionsPanel: document.querySelector("#transactionsPanel"),
   panelTabBar: document.querySelector("#panelTabBar"),
   panelContainer: document.querySelector("#panelContainer"),
   iterationsInput: document.querySelector("#iterations"),
@@ -151,6 +153,7 @@ const panelTabs = [
   { id: "snapshot", label: "Snapshot", el: els.snapshotPanel },
   { id: "parameter", label: "Parameter", el: els.parameterPanel },
   { id: "log", label: "Log", el: els.logPanel },
+  { id: "transactions", label: "Transaksi", el: els.transactionsPanel },
 ];
 let activePanelId = "snapshot";
 
@@ -194,6 +197,7 @@ createStepList(els.stepList, { onSelect: (step) => void revealStep(step) });
 createSnapshotPanel(els.snapshotPanel);
 createParameterPanel(els.parameterPanel);
 createLogPanel(els.logPanel);
+createTransactionsPanel(els.transactionsPanel);
 
 void checkHealth();
 

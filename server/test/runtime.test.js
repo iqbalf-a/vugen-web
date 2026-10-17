@@ -709,3 +709,40 @@ describe("lr_save_int", () => {
     expect(api.lr_eval_string("halaman={page}")).toBe("halaman=10");
   });
 });
+
+describe("lr_paramarr_*", () => {
+  beforeEach(() => { env = bindContext(); });
+
+  it("lr_paramarr_len: kembalikan count dari {name}_count", () => {
+    api.lr_save_string("3", "items_count");
+    expect(api.lr_paramarr_len("items")).toBe(3);
+  });
+
+  it("lr_paramarr_len: 0 bila tidak ada count", () => {
+    expect(api.lr_paramarr_len("missing")).toBe(0);
+  });
+
+  it("lr_paramarr_idx: kembalikan nilai elemen ke-i (1-based)", () => {
+    api.lr_save_string("alpha", "arr_1");
+    api.lr_save_string("beta", "arr_2");
+    expect(api.lr_paramarr_idx("arr", 1)).toBe("alpha");
+    expect(api.lr_paramarr_idx("arr", 2)).toBe("beta");
+  });
+
+  it("lr_paramarr_idx: string kosong bila index tidak ada", () => {
+    expect(api.lr_paramarr_idx("arr", 99)).toBe("");
+  });
+
+  it("lr_paramarr_random: kembalikan indeks 1..count", () => {
+    api.lr_save_string("5", "arr_count");
+    for (let i = 0; i < 20; i++) {
+      const idx = api.lr_paramarr_random("arr");
+      expect(idx).toBeGreaterThanOrEqual(1);
+      expect(idx).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it("lr_paramarr_random: 0 bila count 0 atau tidak ada", () => {
+    expect(api.lr_paramarr_random("empty")).toBe(0);
+  });
+});

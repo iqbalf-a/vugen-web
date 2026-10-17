@@ -78,6 +78,26 @@ export function lr_save_int(value, name) {
   return 0;
 }
 
+/** Jumlah elemen array parameter: baca {name}_count */
+export function lr_paramarr_len(name) {
+  const { params } = needCtx();
+  return Number(params.get(`${name}_count`)) || 0;
+}
+
+/** Nilai elemen ke-i (1-based): baca {name}_i */
+export function lr_paramarr_idx(name, index) {
+  const { params } = needCtx();
+  return params.get(`${name}_${index}`) ?? "";
+}
+
+/** Indeks acak 1..count; 0 bila array kosong */
+export function lr_paramarr_random(name) {
+  const { params } = needCtx();
+  const count = Number(params.get(`${name}_count`)) || 0;
+  if (count <= 0) return 0;
+  return Math.floor(Math.random() * count) + 1;
+}
+
 /** Evaluasi parameter (lr_eval_string) — substitusi {param} */
 export function lr_eval_string(str) {
   const { params } = needCtx();
@@ -1156,6 +1176,20 @@ export function web_set_max_html_param_len(len) {
 export function web_set_sockets_option(option, value) {
   const { log } = needCtx();
   log("info", `web_set_sockets_option: ${option} = ${value}`);
+  return 0;
+}
+
+/** web_reg_async_attributes — no-op (async request attribution tidak dipakai di runtime ini) */
+export function web_reg_async_attributes(..._args) {
+  const { log } = needCtx();
+  log("info", "web_reg_async_attributes: no-op");
+  return 0;
+}
+
+/** web_stop_async — no-op */
+export function web_stop_async(..._args) {
+  const { log } = needCtx();
+  log("info", "web_stop_async: no-op");
   return 0;
 }
 

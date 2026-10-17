@@ -127,6 +127,35 @@ describe("R1 web_js_run", () => {
     await api.web_js_run("Code= LR.setParam('t', typeof process + '/' + typeof require);", "LAST");
     expect(env.ctx.params.get("t")).toBe("undefined/undefined");
   });
+
+  it("File= di SOURCES: load file JS dari scriptDir dan jalankan sebelum Code= utama", async () => {
+    const jsFile = path.join(tmpDir, "helper.js");
+    await fs.writeFile(jsFile, "function greet(name) { LR.setParam('greeting', 'hello ' + name); }");
+    env = bindContext({ scriptDir: tmpDir });
+    env.ctx.params.set("who", "world");
+    await api.web_js_run(
+      "Code= greet(LR.getParam('who'));",
+      "SOURCES",
+      "File=helper.js",
+      "ENDITEM",
+      "LAST",
+    );
+    expect(env.ctx.params.get("greeting")).toBe("hello world");
+  });
+
+  it("File= tidak ditemukan: warn dan lanjut tanpa crash", async () => {
+    env = bindContext({ scriptDir: tmpDir });
+    const result = await api.web_js_run(
+      "Code= LR.setParam('r', '1');",
+      "SOURCES",
+      "File=tidakada.js",
+      "ENDITEM",
+      "LAST",
+    );
+    expect(result).toBe(0);
+    expect(env.logs.some(([l, m]) => l === "warn" && /tidakada\.js/.test(m))).toBe(true);
+    expect(env.ctx.params.get("r")).toBe("1");
+  });
 });
 
 describe("R2 header: auto vs sekali pakai", () => {

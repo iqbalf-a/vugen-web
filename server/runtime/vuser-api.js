@@ -10,6 +10,8 @@
  * Fungsi yang belum didukung diarahkan ke `__unsupportedCall` oleh transpiler.
  */
 
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import vm from "node:vm";
 
 import { decodeBody, saveStepBody } from "../runs/store.js";
@@ -1198,16 +1200,17 @@ const JS_RUN_TIMEOUT_MS = 1000;
 
 /**
  * web_js_run — jalankan JavaScript.
- * Argumen: "Code=<kode utama>", SOURCES, "Code=<definisi>", ..., ENDITEM, LAST
- * Semua `Code=` di blok SOURCES...ENDITEM dijalankan lebih dulu, lalu kode utama,
+ * Argumen: "Code=<kode utama>", SOURCES, "Code=<definisi>"|"File=<nama.js>", ..., ENDITEM, LAST
+ * Semua Code=/File= di blok SOURCES...ENDITEM dijalankan lebih dulu, lalu kode utama,
  * dalam satu context `node:vm` (timeout 1 detik). `LR.getParam/setParam` tersedia.
- * Catatan: `vm` memisahkan scope global, bukan sandbox keamanan penuh.
+ * File= dicari relatif terhadap scriptDir (folder script aktif).
  */
 export async function web_js_run(...args) {
-  const { log, params } = needCtx();
+  const { log, params, scriptDir } = needCtx();
 
   let mainCode = "";
-  const sources = [];
+  /** @type {Array<{type:"code"|"file", value:string}>} */
+  const sourceItems = [];
   let inSources = false;
   for (const arg of args) {
     if (arg === "LAST") break;
@@ -1217,10 +1220,27 @@ export async function web_js_run(...args) {
 
     if (arg.startsWith("Code=")) {
       const code = arg.slice(5);
-      if (inSources) sources.push(code);
+      if (inSources) sourceItems.push({ type: "code", value: code });
       else mainCode = code;
-    } else if (arg.startsWith("File=")) {
-      log("warn", `web_js_run: File= belum didukung (${arg.slice(5)})`);
+    } else if (arg.startsWith("File=") && inSources) {
+      sourceItems.push({ type: "file", value: arg.slice(5) });
+    }
+  }
+
+  // Muat semua File= dari scriptDir
+  const sources = [];
+  for (const item of sourceItems) {
+    if (item.type === "code") {
+      sources.push(item.value);
+    } else {
+      const filePath = path.join(scriptDir || ".", item.value);
+      try {
+        const code = await fs.readFile(filePath, "utf8");
+        sources.push(code);
+        log("debug", `web_js_run: loaded File=${item.value}`);
+      } catch (err) {
+        log("warn", `web_js_run: File=${item.value} tidak bisa dibaca: ${err.message}`);
+      }
     }
   }
 
@@ -1238,7 +1258,6 @@ export async function web_js_run(...args) {
     }
     return 0;
   } catch (error) {
-    // Seperti error web_* lain, tetapi bukan step HTTP: tidak ada entri step
     return concludeFailure("web_js_run", "", error.message);
   }
 }

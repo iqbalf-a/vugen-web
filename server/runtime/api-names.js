@@ -18,6 +18,7 @@ export const SUPPORTED_FUNCTIONS = Object.freeze([
   "lr_exit",
   "lr_get_transaction_status",
   "lr_output_message",
+  "lr_unmask",
   "lr_param_sprintf",
   "lr_save_string",
   "lr_set_transaction",

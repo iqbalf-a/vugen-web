@@ -629,3 +629,48 @@ describe("F7d web_concurrent_start / web_concurrent_end (no-op berurutan)", () =
     expect(api.lr_get_transaction_status("T_C")).toBe(1);
   });
 });
+
+describe("lr_unmask", () => {
+  // Vektor uji: "hello" dienkode dengan algoritme XOR posisi+1
+  // h(0x68)^1=0x69  e(0x65)^2=0x67  l(0x6c)^3=0x6f  l(0x6c)^4=0x68  o(0x6f)^5=0x6a
+  const HELLO_MASKED = "69676f686a";
+
+  it("dekode berhasil jika hasil printable ASCII", () => {
+    env = bindContext();
+    expect(api.lr_unmask(HELLO_MASKED)).toBe("hello");
+    expect(env.logs.some(([lvl]) => lvl === "debug")).toBe(true);
+  });
+
+  it("string kosong dan non-string mengembalikan string kosong", () => {
+    env = bindContext();
+    expect(api.lr_unmask("")).toBe("");
+    expect(api.lr_unmask(null)).toBe("");
+    expect(api.lr_unmask(undefined)).toBe("");
+  });
+
+  it("hex yang tidak valid (odd length) mengembalikan string kosong + warn", () => {
+    env = bindContext();
+    expect(api.lr_unmask("69676")).toBe("");
+    expect(env.logs.some(([lvl, msg]) => lvl === "warn" && /format tidak dikenal/.test(msg))).toBe(true);
+  });
+
+  it("hasil non-ASCII mengembalikan string kosong + warn", () => {
+    // Byte yang menghasilkan karakter di luar printable range setelah XOR
+    // 0xff ^ 1 = 0xfe (non-ASCII)
+    env = bindContext();
+    const result = api.lr_unmask("ff");
+    expect(result).toBe("");
+    expect(env.logs.some(([lvl]) => lvl === "warn")).toBe(true);
+  });
+
+  it("override dari unmaskMap dipakai tanpa mencoba algoritme", () => {
+    env = bindContext({ unmaskMap: { [HELLO_MASKED]: "override_password" } });
+    expect(api.lr_unmask(HELLO_MASKED)).toBe("override_password");
+    expect(env.logs.some(([, msg]) => /override/.test(msg))).toBe(true);
+  });
+
+  it("unmaskMap null (tidak ada file) -> lanjut ke algoritme", () => {
+    env = bindContext({ unmaskMap: null });
+    expect(api.lr_unmask(HELLO_MASKED)).toBe("hello");
+  });
+});

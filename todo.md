@@ -68,7 +68,7 @@ Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` setelah F7d. Semua 9 folde
 ## Known limitations
 
 - **Script KOPRA nyata belum pernah dijalankan ke server target.** Semua uji run memakai mock lokal.
-- **Fungsi yang dipakai script KOPRA tapi belum ada** (dipanggil sebagai *unsupported*: warning, lalu dilewati): `lr_unmask` (algoritme mask milik LoadRunner), `web_reg_async_attributes`/`web_stop_async` (polling async), `lr_save_int`, `lr_paramarr_*`. Dampak: password yang dibungkus `lr_unmask` (untuk `web_set_user`) tidak ter-unmask.
+- **Fungsi yang dipakai script KOPRA tapi belum ada** (dipanggil sebagai *unsupported*: warning, lalu dilewati): `web_reg_async_attributes`/`web_stop_async` (polling async), `lr_save_int`, `lr_paramarr_*`. `lr_unmask` sudah ada dengan algoritme XOR+posisi dan fallback `lr_unmask.json`; jika algoritme tidak cocok dengan versi LoadRunner yang dipakai, buat file `lr_unmask.json` di folder script.
 - **`web_concurrent_start/end` hanya penanda:** request di antaranya dijalankan **berurutan**, bukan paralel, jadi waktu per blok lebih lama daripada di VuGen dan pola timing berbeda.
 - **JSONPath (`web_reg_save_param_json`)** hanya subset: `$`, `.nama`, `..nama`, `[n]`, `[*]`, `['nama']`. Filter `?()`, slice, indeks negatif, dan `.*` memberi error registrasi. `Scope=ALL` diperlakukan sebagai BODY. Objek/array disimpan sebagai JSON ringkas (`JSON.stringify`), bukan teks asli response.
 - **`web_convert_from_formatted`** hanya `Extensions=Base64` (encode UTF-8); extension lain: warning dan parameter tidak diisi.
@@ -88,7 +88,7 @@ Dihitung ulang dengan smoke test `VUGEN_REAL_SCRIPTS` setelah F7d. Semua 9 folde
 ## Backlog fitur (salinan `plan-stabilisasi.md` §9 — JANGAN dikerjakan di plan stabilisasi)
 
 Fungsi/fitur yang dipakai script KOPRA tapi belum ada — kerjakan nanti dengan plan terpisah:
-- (sudah dikerjakan di F7: `lr_exit`, `web_reg_save_param_json`, `web_remove/revert_auto_header`, `web_concurrent_start/end`, `lr_param_sprintf`, `web_convert_from_formatted`) Sisa: `lr_unmask`, `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_rest` dengan header kompleks.
+- (sudah dikerjakan di F7: `lr_exit`, `web_reg_save_param_json`, `web_remove/revert_auto_header`, `web_concurrent_start/end`, `lr_param_sprintf`, `web_convert_from_formatted`; `lr_unmask`: algoritme XOR+posisi, fallback `lr_unmask.json`, test vektor "hello") Sisa: `lr_save_int`, `lr_paramarr_*`, `web_reg_async_attributes`/`web_stop_async`, `web_rest` dengan header kompleks.
 - Mesin parameter `.prm` lengkap (Type Table/Time/Userid, `SelectNextRow`, `GenerateNewVal`, `OutOfRangePolicy`).
 - Tab Transactions, ringkasan transaksi, `npm run check:script`, README, multipart upload, HTTP/2.
 - Semua item `plan.md` §2/§10 (recording, multi-VU/k6, Step Toolbox).

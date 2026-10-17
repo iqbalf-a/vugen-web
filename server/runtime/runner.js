@@ -8,6 +8,8 @@
  * Plan §7.3: hasil run disimpan ke cache oleh parent; runner hanya kirim event.
  */
 
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { HttpClient } from "./http-client.js";
@@ -31,6 +33,8 @@ const vu = {
   runStartMs: 0,     // epoch ms awal run (untuk timing.startMs)
   cacheDir: "",
   runId: "",
+  scriptDir: "",
+  unmaskMap: null,   // pemetaan override dari lr_unmask.json (null = belum dicoba, {} = tidak ada file)
   log: (level, msg) => {
     sendEvent("log", { level, msg, file: vu.currentFile, line: vu.currentLine, iteration: vu.currentIteration });
   },
@@ -144,12 +148,21 @@ function advanceParameterFiles() {
 async function run(payload) {
 
   try {
-    const { modulePath, options, runId, cacheDir, parameters } = payload;
+    const { modulePath, options, runId, cacheDir, parameters, scriptDir } = payload;
 
     vu.runId = runId;
     vu.cacheDir = cacheDir;
+    vu.scriptDir = scriptDir || "";
     vu.seq = 0;
     vu.runStartMs = Date.now();
+
+    // Muat lr_unmask.json jika ada (pemetaan override masked → plaintext)
+    try {
+      const mapText = await fs.readFile(path.join(vu.scriptDir, "lr_unmask.json"), "utf8");
+      vu.unmaskMap = JSON.parse(mapText);
+    } catch {
+      vu.unmaskMap = {};
+    }
 
     vu.runOptions = {
       thinkTime: options.thinkTime || "ignore",

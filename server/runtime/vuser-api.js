@@ -89,6 +89,50 @@ export function lr_error_message(fmt, ...args) {
   return 0;
 }
 
+/**
+ * lr_unmask — dekode string yang dimasking oleh VuGen (dipakai untuk password web_set_user).
+ *
+ * Algoritme: setiap pasangan hex → byte, XOR dengan (posisi + 1), stop di null byte.
+ * Ini adalah pendekatan yang paling umum dilaporkan; jika hasil tidak terbaca (karakter
+ * di luar printable ASCII), fungsi mengembalikan string kosong dan mencatat warning.
+ *
+ * Jika algoritme ini tidak cocok dengan versi LoadRunner yang dipakai untuk membuat script,
+ * buat file `lr_unmask.json` di folder script dengan pemetaan:
+ *   { "<masked_value>": "<password_asli>" }
+ */
+export function lr_unmask(masked) {
+  const { log, unmaskMap } = needCtx();
+  if (typeof masked !== "string" || masked.length === 0) return "";
+
+  // Override dari lr_unmask.json (dimuat runner saat start, null = tidak ada file)
+  if (unmaskMap && Object.prototype.hasOwnProperty.call(unmaskMap, masked)) {
+    log("debug", `lr_unmask: override dari lr_unmask.json`);
+    return String(unmaskMap[masked]);
+  }
+
+  // Algoritme dekode: hex pairs XOR posisi+1
+  if (!/^[0-9a-fA-F]+$/.test(masked) || masked.length % 2 !== 0) {
+    log("warn", `lr_unmask: format tidak dikenal (bukan hex genap): "${masked.substring(0, 20)}"`);
+    return "";
+  }
+  let result = "";
+  for (let i = 0; i < masked.length; i += 2) {
+    const byte = parseInt(masked.substring(i, i + 2), 16);
+    const key = (i / 2 + 1) & 0xFF;
+    const c = byte ^ key;
+    if (c === 0) break; // null terminator
+    result += String.fromCharCode(c);
+  }
+
+  if (result && /^[\x20-\x7E]+$/.test(result)) {
+    log("debug", `lr_unmask: dekode berhasil`);
+    return result;
+  }
+
+  log("warn", `lr_unmask: tidak bisa mendekode — algoritme mungkin berbeda dari versi LoadRunner yang dipakai. Sediakan lr_unmask.json di folder script: {"${masked}": "<password_asli>"}`);
+  return "";
+}
+
 /** lr_param_sprintf(paramName, format, ...args) — simpan hasil format printf ke parameter */
 export function lr_param_sprintf(paramName, format, ...args) {
   const { params, log } = needCtx();

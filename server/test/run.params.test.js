@@ -74,6 +74,38 @@ describe(".dat yang tidak dipakai script", () => {
   }, 30000);
 });
 
+describe("substitusi {param}: kurung kurawal JSON tidak memicu warning", () => {
+  it('Body={"key":1} tidak menghasilkan warn Parameter not found', async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vugen-json-body-"));
+    try {
+      await fs.writeFile(path.join(tmpDir, "vuser_init.c"), "vuser_init()\n{\n    return 0;\n}\n", "utf8");
+      await fs.writeFile(path.join(tmpDir, "vuser_end.c"), "vuser_end()\n{\n    return 0;\n}\n", "utf8");
+      const mockServer = await new Promise((resolve) => {
+        const s = createServer((req, res) => { req.resume(); req.on("end", () => { res.writeHead(200); res.end("{}"); }); });
+        s.listen(0, "127.0.0.1", () => resolve(s));
+      });
+      const mockPort = mockServer.address().port;
+      // Tulis ulang Action.c dengan port dinamis
+      await fs.writeFile(
+        path.join(tmpDir, "Action.c"),
+        `Action()\n{\n    web_custom_request("step",\n        "URL=http://127.0.0.1:${mockPort}/",\n        "Method=POST",\n        "EncType=application/json",\n        "Body={\\"a\\":1,\\"b\\":\\"hello\\"}",\n        LAST);\n    return 0;\n}\n`,
+        "utf8"
+      );
+      try {
+        const run = await startRun({ scriptDir: tmpDir, options: { iterations: 1 } });
+        const result = await run.done;
+        const warnMsgs = result.log.filter((e) => e.level === "warn" && /Parameter.*not found/.test(e.msg));
+        expect(warnMsgs).toHaveLength(0);
+      } finally {
+        mockServer.closeAllConnections?.();
+        await new Promise((resolve) => mockServer.close(resolve));
+      }
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  }, 30000);
+});
+
 describe("GET /api/project: parameters", () => {
   it("array biasa { name, file, rows } tanpa nilai; tidak ada parameterFiles", async () => {
     const server = createServer(apiRouter);

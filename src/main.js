@@ -421,12 +421,12 @@ function handleRunEvent(event, runId, scriptPath) {
 
     case "done":
       store.set({ isRunning: false, health: data.status === "passed" ? "ok" : data.status === "failed" ? "error" : "warn", status: `Run selesai: ${data.status}` });
-      // Fetch full run result (event done baru dikirim setelah run.json tersimpan)
-      void fetchRunResult(runId, scriptPath);
+      // Tutup SSE dulu, baru fetch run.json — hindari race di beberapa browser
       if (eventSource) {
         eventSource.close();
         eventSource = null;
       }
+      void fetchRunResult(runId, scriptPath);
       break;
 
     case "stopped":

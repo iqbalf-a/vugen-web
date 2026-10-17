@@ -731,11 +731,11 @@ function parseWebArgs(args) {
 function substituteParams(str) {
   if (typeof str !== "string") return str;
   const { params } = needCtx();
-  return str.replace(/\{([^}]+)\}/g, (_, key) => {
+  return str.replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, key) => {
     const val = params.get(key);
     if (val === undefined) {
       needCtx().log("warn", `Parameter "{${key}}" not found, leaving as-is`);
-      return `{${key}}`;
+      return match;
     }
     return val;
   });

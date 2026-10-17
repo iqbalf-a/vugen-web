@@ -24,6 +24,8 @@ let currentStep = null;
 let currentRun = null;
 /** @type {string} */
 let activeTab = 'response';
+/** Render token untuk membatalkan render async yang sudah basi */
+let renderToken = 0;
 
 /** Determine content type category */
 function getContentCategory(contentType) {
@@ -301,8 +303,9 @@ function renderRawTab(snapReq, bodyText) {
 /** Render snapshot panel */
 async function renderSnapshot() {
   if (!root) return;
+  const token = ++renderToken;
   copyTexts.clear();
-  
+
   if (!currentStep || !currentRun) {
     root.innerHTML = getEmptyStateHtml();
     return;
@@ -325,6 +328,9 @@ async function renderSnapshot() {
       console.warn("Failed to fetch step body:", error);
     }
   }
+
+  // Batalkan jika ada render yang lebih baru (currentRun/selectedStep berubah saat fetch)
+  if (token !== renderToken || !root) return;
 
   category = getContentCategory(contentType);
   const text = body ? new TextDecoder("utf-8").decode(body) : '';
@@ -423,13 +429,8 @@ async function copyToClipboard(text, button) {
 /** Empty state HTML */
 function getEmptyStateHtml() {
   return `
-    <div class="flex flex-col h-full bg-gray-900">
-      <div class="p-3 border-b border-gray-700 flex items-center justify-between">
-        <span class="font-medium text-gray-300">Snapshot</span>
-      </div>
-      <div class="flex-1 overflow-auto flex items-center justify-center">
-        <div class="p-4 text-gray-500 text-center">Pilih step dari daftar kiri</div>
-      </div>
+    <div class="flex h-full items-center justify-center bg-[#141922]">
+      <p class="text-[12px] text-[#5b6572] text-center">Pilih step di kiri untuk melihat snapshot</p>
     </div>
   `;
 }
@@ -438,9 +439,11 @@ function getEmptyStateHtml() {
 function onStateChange() {
   const state = getState();
   if (state.selectedStep && state.currentRun) {
+    const stepChanged = state.selectedStep !== currentStep;
+    const runChanged = state.currentRun !== currentRun;
     currentStep = state.selectedStep;
     currentRun = state.currentRun;
-    renderSnapshot();
+    if (stepChanged || runChanged) renderSnapshot();
   }
 }
 

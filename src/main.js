@@ -7,6 +7,7 @@ import {
   openProject,
   readFile,
   saveFile,
+  saveParameterSetting,
   startRun,
   stopRun,
   resumeRun,
@@ -23,7 +24,11 @@ import { createSnapshotPanel } from "./components/snapshotPanel.js";
 import { createParameterPanel } from "./components/parameterPanel.js";
 import { createLogPanel } from "./components/logPanel.js";
 import { createTransactionsPanel } from "./components/transactionsPanel.js";
+import { createParamBar } from "./components/paramBar.js";
+import { createToolboxPanel } from "./components/toolboxPanel.js";
+import { createRunSettings } from "./components/runSettings.js";
 import { initStore } from "./store.js";
+import { extractSymbols } from "./utils/vugenComplete.js";
 
 const els = {
   scriptPath: document.querySelector("#scriptPath"),
@@ -35,12 +40,14 @@ const els = {
   status: document.querySelector("#status"),
   fileTree: document.querySelector("#fileTree"),
   tabBar: document.querySelector("#tabBar"),
+  paramBar: document.querySelector("#paramBar"),
   editor: document.querySelector("#editor"),
   stepList: document.querySelector("#stepList"),
   snapshotPanel: document.querySelector("#snapshotPanel"),
   parameterPanel: document.querySelector("#parameterPanel"),
   logPanel: document.querySelector("#logPanel"),
   transactionsPanel: document.querySelector("#transactionsPanel"),
+  toolboxPanel: document.querySelector("#toolboxPanel"),
   panelTabBar: document.querySelector("#panelTabBar"),
   panelContainer: document.querySelector("#panelContainer"),
   iterationsInput: document.querySelector("#iterations"),
@@ -49,13 +56,30 @@ const els = {
   newUserEachIterationCheckbox: document.querySelector("#newUserEachIteration"),
   insecureTLSCheckbox: document.querySelector("#insecureTLS"),
   thinkTimeSelect: document.querySelector("#thinkTime"),
-  runOptions: document.querySelector("#runOptionsControls"),
-  toggleOptions: document.querySelector("#toggleOptions"),
+  runSettingsBtn: document.querySelector("#runSettingsBtn"),
+  runSettingsPanel: document.querySelector("#runSettingsPanel"),
+  runSettingsSummary: document.querySelector("#runSettingsSummary"),
+  runSettingsLock: document.querySelector("#runSettingsLock"),
 };
 
 if (Object.values(els).some((element) => element === null)) {
   throw new Error("Shell HTML tidak lengkap: ada elemen yang tidak ditemukan.");
 }
+
+const runSettings = createRunSettings({
+  button: els.runSettingsBtn,
+  panel: els.runSettingsPanel,
+  summary: els.runSettingsSummary,
+  lockNote: els.runSettingsLock,
+  fields: {
+    iterations: els.iterationsInput,
+    delay: els.iterationDelayInput,
+    newUser: els.newUserEachIterationCheckbox,
+    continueOnError: els.continueOnErrorCheckbox,
+    insecureTLS: els.insecureTLSCheckbox,
+    thinkTime: els.thinkTimeSelect,
+  },
+});
 
 /** @type {Map<string, { text: string, saved: string }>} */
 const docs = new Map();
@@ -84,13 +108,17 @@ const store = initStore({
   pendingStep: null,
   /** Live position from lineAt event — for non-HTTP line highlight */
   liveAt: null,
+  /** Counter log entries — naik 1 tiap log baru; logPanel baca langsung dari currentRun.log */
+  logCount: 0,
 });
+
+const renderParamBar = createParamBar(els.paramBar, { onChange: changeParameter });
 
 /** @type {EventSource | null} */
 let eventSource = null;
 
 /** Word wrap state (persists across tab switches) */
-let wordWrapEnabled = false;
+let wordWrapEnabled = true;
 
 /** Breakpoints per file path: Map<path, Set<lineNumber>> */
 const breakpoints = new Map();
@@ -115,6 +143,8 @@ store.subscribe((state) => {
   els.stopBtn.disabled = !state.isRunning;
   els.resumeBtn.disabled = !state.isPaused;
   editor.setRunning(state.isRunning);
+  runSettings.setLocked(state.isRunning);
+  renderParamBar(state);
 
   // Highlight pending line (HTTP step) or live position (non-HTTP line) in editor
   const pending = state.pendingStep;
@@ -198,6 +228,7 @@ const panelTabs = [
   { id: "parameter", label: "Parameter", el: els.parameterPanel },
   { id: "log", label: "Log", el: els.logPanel },
   { id: "transactions", label: "Transactions", el: els.transactionsPanel },
+  { id: "toolbox", label: "Toolbox", el: els.toolboxPanel },
 ];
 let activePanelId = "snapshot";
 
@@ -223,15 +254,6 @@ function switchPanel(panelId) {
   renderPanelTabs();
 }
 
-// Toggle run options - show by default so users see Insecure TLS option
-let optionsVisible = true;
-els.runOptions.classList.remove("hidden"); // Show initially
-els.toggleOptions?.addEventListener("click", () => {
-  optionsVisible = !optionsVisible;
-  els.runOptions.classList.toggle("hidden", !optionsVisible);
-  els.toggleOptions.textContent = optionsVisible ? "▲ Hide options" : "▼ Show options";
-});
-
 renderFileTree(els.fileTree, null, { activePath: null, onOpenFile: openDoc });
 renderTabs();
 renderPanelTabs();
@@ -242,6 +264,7 @@ createSnapshotPanel(els.snapshotPanel);
 createParameterPanel(els.parameterPanel);
 createLogPanel(els.logPanel);
 createTransactionsPanel(els.transactionsPanel);
+createToolboxPanel(els.toolboxPanel);
 
 void checkHealth();
 
@@ -265,6 +288,13 @@ async function checkHealth() {
 /**
  * @param {string} path
  */
+function refreshCompletions() {
+  const project = store.get().project;
+  const paramNames = project ? project.parameters.map((p) => p.name) : [];
+  const varNames = extractSymbols([...docs.values()].map((d) => d.text));
+  editor.setCompletions(paramNames, varNames);
+}
+
 async function openProjectPath(path) {
   store.set({ health: "checking", status: `Opening ${path}…` });
 
@@ -281,6 +311,7 @@ async function openProjectPath(path) {
     });
 
     editor.setDoc("");
+    refreshCompletions();
     renderFileTree(els.fileTree, project, { activePath: null, onOpenFile: openDoc });
     renderTabs();
 
@@ -321,6 +352,7 @@ function activateDoc(path) {
   store.set({ activePath: path });
   editor.setDoc(doc.text);
   editor.setBreakpoints(breakpoints.get(path) ?? new Set());
+  refreshCompletions();
   editor.focus();
   renderTabs();
   renderFileTree(els.fileTree, store.get().project, { activePath: path, onOpenFile: openDoc });
@@ -333,6 +365,20 @@ function activateDoc(path) {
     editor.highlightPendingLine(live.line);
   } else {
     editor.highlightPendingLine(null);
+  }
+}
+
+/** Simpan pengaturan parameter ke .prm lalu muat ulang project (nilai terbaru dibaca dari disk). */
+async function changeParameter(name, changes) {
+  const { project } = store.get();
+  if (!project) return;
+  try {
+    await saveParameterSetting({ path: project.path, name, changes });
+    const fresh = await openProject(project.path);
+    store.set({ project: fresh, health: "ok", status: `Saved settings for {${name}}` });
+  } catch (error) {
+    store.set({ health: "error", status: `Failed to update {${name}}: ${messageOf(error)}` });
+    throw error;
   }
 }
 
@@ -402,9 +448,14 @@ function renderTabs() {
     return item;
   });
 
-  // Editor action buttons pinned to the right
-  const separator = document.createElement("div");
-  separator.className = "flex-1";
+  // Container kiri: tabs scrollable
+  const tabsArea = document.createElement("div");
+  tabsArea.className = "flex min-w-0 flex-1 items-center gap-1 overflow-x-auto";
+  tabsArea.append(...tabItems);
+
+  // Container kanan: action buttons — selalu terlihat
+  const actionsArea = document.createElement("div");
+  actionsArea.className = "flex shrink-0 items-center border-l border-[#232a33] pl-1";
 
   const wrapBtn = document.createElement("button");
   wrapBtn.type = "button";
@@ -429,7 +480,41 @@ function renderTabs() {
     syncActiveDoc();
   });
 
-  els.tabBar.replaceChildren(...tabItems, separator, wrapBtn, beautifyBtn);
+  // Menu ⋯ — Close All / Close All But This
+  const menuBtn = document.createElement("button");
+  menuBtn.type = "button";
+  menuBtn.title = "Tab actions";
+  menuBtn.className = "flex items-center justify-center w-6 h-6 rounded text-[#5b6572] hover:text-[#9aa7b8] hover:bg-[#1b212b] shrink-0";
+  menuBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="2.5" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13.5" r="1.3"/></svg>`;
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.querySelector("#tabMenu")?.remove();
+    const activePath = store.get().activePath;
+    const menu = document.createElement("div");
+    menu.id = "tabMenu";
+    menu.className = "absolute z-50 min-w-[160px] rounded-[4px] border border-[#2a3644] bg-[#141922] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.5)] text-[12px]";
+    const rect = menuBtn.getBoundingClientRect();
+    menu.style.cssText = `top:${rect.bottom + 4}px;right:${document.documentElement.clientWidth - rect.right}px;position:fixed`;
+    const item = (label, disabled, fn) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.textContent = label;
+      el.disabled = disabled;
+      el.className = "w-full text-left px-3 py-1.5 hover:bg-[#1b212b] text-[#e6edf3] disabled:opacity-40 disabled:cursor-not-allowed";
+      if (!disabled) el.addEventListener("click", () => { menu.remove(); fn(); });
+      return el;
+    };
+    menu.append(
+      item("Close All", docs.size === 0, closeAllDocs),
+      item("Close All But This", !activePath || docs.size <= 1, () => closeAllButDoc(activePath)),
+    );
+    document.body.append(menu);
+    const close = (ev) => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener("click", close, true); } };
+    document.addEventListener("click", close, true);
+  });
+
+  actionsArea.append(wrapBtn, beautifyBtn, menuBtn);
+  els.tabBar.replaceChildren(tabsArea, actionsArea);
 }
 
 /** Tutup tab. Konfirmasi bila ada perubahan yang belum disimpan. */
@@ -449,6 +534,26 @@ function closeDoc(path) {
     editor.setDoc("");
     renderTabs();
   }
+}
+
+/** Tutup semua tab (konfirmasi jika ada yang belum disimpan). */
+function closeAllDocs() {
+  const unsaved = [...docs.entries()].filter(([, d]) => d.text !== d.saved).map(([p]) => p.split("/").pop());
+  if (unsaved.length > 0 && !confirm(`${unsaved.length} file(s) have unsaved changes:\n${unsaved.join(", ")}\n\nClose all without saving?`)) return;
+  docs.clear();
+  store.set({ activePath: null });
+  editor.setDoc("");
+  renderTabs();
+}
+
+/** Tutup semua tab kecuali `keepPath`. */
+function closeAllButDoc(keepPath) {
+  const unsaved = [...docs.entries()].filter(([p, d]) => p !== keepPath && d.text !== d.saved).map(([p]) => p.split("/").pop());
+  if (unsaved.length > 0 && !confirm(`${unsaved.length} file(s) have unsaved changes:\n${unsaved.join(", ")}\n\nClose without saving?`)) return;
+  for (const path of [...docs.keys()]) {
+    if (path !== keepPath) docs.delete(path);
+  }
+  activateDoc(keepPath);
 }
 
 function syncActiveDoc() {
@@ -555,9 +660,11 @@ function handleRunEvent(event, runId, scriptPath) {
     }
 
     case "log": {
-      const logs = state.currentRun?.log ? [...state.currentRun.log] : [];
-      logs.push({ ...data, ts: data.ts || ts });
-      store.set({ currentRun: { ...state.currentRun, log: logs } });
+      // Mutate log array langsung (hindari O(n²) spread); sinyal murah via logCount
+      if (state.currentRun) {
+        (state.currentRun.log ??= []).push({ ...data, ts: data.ts || ts });
+        store.set({ logCount: state.currentRun.log.length });
+      }
       break;
     }
 

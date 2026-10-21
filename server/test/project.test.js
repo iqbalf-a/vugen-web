@@ -122,8 +122,8 @@ describe("saveScriptFile", () => {
     expect(backups.length).toBeGreaterThan(0);
   });
 
-  it("menolak ekstensi selain .c/.h", async () => {
-    await expect(saveScriptFile(scriptDir, "data/users.dat", "x")).rejects.toBeInstanceOf(HttpError);
+  it("menolak ekstensi selain .c/.h/.dat", async () => {
+    await expect(saveScriptFile(scriptDir, "data/users.prm", "x")).rejects.toBeInstanceOf(HttpError);
   });
 
   it("tidak mengubah file lain di folder script", async () => {

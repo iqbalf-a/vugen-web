@@ -23,6 +23,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { beautifyC } from "../utils/beautify.js";
+import { makeCompletionExtension } from "../utils/vugenComplete.js";
 
 // ── Pending-line highlight ────────────────────────────────────────────────────
 /** Set pending line (1-based) or null to clear */
@@ -228,6 +229,7 @@ export function createEditor(root, { onChange, onBreakpointsChange } = {}) {
 
   const wrapCompartment = new Compartment();
   const idleCompartment = new Compartment();
+  const completionsCompartment = new Compartment();
   const idleExtensions = [highlightActiveLine(), highlightSelectionMatches(), EditorState.readOnly.of(false)];
   const runningExtensions = [EditorState.readOnly.of(true)];
 
@@ -246,6 +248,7 @@ export function createEditor(root, { onChange, onBreakpointsChange } = {}) {
       THEME,
       EditorView.editable.of(true),
       wrapCompartment.of([]), // word wrap off by default
+      completionsCompartment.of([]),
       pendingLineField,
       PENDING_THEME,
       bpField,
@@ -354,6 +357,17 @@ export function createEditor(root, { onChange, onBreakpointsChange } = {}) {
     setWordWrap(enabled) {
       view.dispatch({
         effects: wrapCompartment.reconfigure(enabled ? EditorView.lineWrapping : []),
+      });
+    },
+
+    /**
+     * Update sumber autocomplete.
+     * @param {string[]} paramNames - nama parameter dari .prm/.dat
+     * @param {string[]} varNames   - variabel lokal + nama lr_save_string
+     */
+    setCompletions(paramNames = [], varNames = []) {
+      view.dispatch({
+        effects: completionsCompartment.reconfigure(makeCompletionExtension(paramNames, varNames)),
       });
     },
 

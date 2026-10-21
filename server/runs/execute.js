@@ -19,7 +19,7 @@ import { compileScript } from "../compiler/transpile.js";
 import { loadProject } from "../project/loader.js";
 import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
 import { KEEP_AFTER_DONE_MS, registerRun, retireRun } from "./registry.js";
-import { addLog, addStep, addTransaction, createRunResult, finalizeRun, saveRun } from "./store.js";
+import { addLog, addStep, addTransaction, createRunResult, finalizeRun, pruneOldRuns, saveRun } from "./store.js";
 
 const RUNNER_PATH = fileURLToPath(new URL("../runtime/runner.js", import.meta.url));
 
@@ -69,6 +69,10 @@ export async function startRun({ scriptDir, options = {} }) {
   // File .dat bisa berisi parameter yang tidak dipakai script ini (sisa/tidak dideklarasikan di .prm):
   // hanya yang dirujuk script (`{nama}`) yang dimuat sebagai parameter.
   const referenced = new Set(compileResult.referencedParams);
+  // Induk dari "Same line as" ikut dimuat walau tidak dirujuk langsung, supaya pengikutnya bisa mengikuti barisnya.
+  for (const parameter of project.parameters) {
+    if (referenced.has(parameter.name) && parameter.sameLineAs) referenced.add(parameter.sameLineAs);
+  }
   const usedParameters = project.parameters.filter((parameter) => referenced.has(parameter.name));
   const unusedParameters = project.parameters.filter((parameter) => !referenced.has(parameter.name));
 
@@ -84,7 +88,8 @@ export async function startRun({ scriptDir, options = {} }) {
   /** @param {string} type @param {any} data @param {number} [ts] */
   const emit = (type, data, ts = Date.now()) => {
     const event = { type, data, ts };
-    history.push(event);
+    // lineAt adalah posisi transien — tidak perlu disimpan di history (replay tidak berguna)
+    if (type !== "lineAt") history.push(event);
     events.emit("event", event);
   };
 
@@ -109,6 +114,7 @@ export async function startRun({ scriptDir, options = {} }) {
     if (params) runResult.params = params;
     try {
       await saveRun(cacheDir, runId, runResult);
+      await pruneOldRuns(cacheDir, runId);
     } catch (error) {
       addLog(runResult, { level: "error", msg: `Gagal menyimpan run: ${error.message}` });
       emit("log", { level: "error", msg: `Gagal menyimpan run: ${error.message}` });

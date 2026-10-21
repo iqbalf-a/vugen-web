@@ -157,6 +157,26 @@ export async function saveStepBody(cacheDir, runId, seq, body) {
 }
 
 /**
+ * Hapus semua folder run lama kecuali runId yang baru disimpan.
+ * @param {string} cacheDir
+ * @param {string} keepRunId
+ */
+export async function pruneOldRuns(cacheDir, keepRunId) {
+  const runsDir = path.join(cacheDir, "runs");
+  let entries;
+  try {
+    entries = await fs.readdir(runsDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  await Promise.all(
+    entries
+      .filter((e) => e.isDirectory() && e.name !== keepRunId)
+      .map((e) => fs.rm(path.join(runsDir, e.name), { recursive: true, force: true }).catch(() => {})),
+  );
+}
+
+/**
  * Baca run.json
  * @param {string} cacheDir
  * @param {string} runId

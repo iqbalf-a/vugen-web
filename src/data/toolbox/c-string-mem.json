@@ -1,0 +1,445 @@
+[
+  {
+    "name": "strcat",
+    "category": "C: String",
+    "signature": "char *strcat(char *to, const char *from);",
+    "description": "Appends the string from to the end of the string to. Returns a pointer to the resulting null-terminated string. The to buffer must be large enough.",
+    "args": [
+      { "name": "to", "desc": "Destination string; from is appended to its end" },
+      { "name": "from", "desc": "String appended to the end of to" }
+    ],
+    "example": "#include <string.h>\n\nchar fullpath[1024], * filename = \"logfile.txt\";\nstrcpy(fullpath, \"c:\\\\tmp\");\nstrcat(fullpath, \"\\\\\");\nstrcat(fullpath, filename);\nlr_output_message (\"Full path of file is %s\", fullpath);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strcat.htm"
+  },
+  {
+    "name": "strchr",
+    "category": "C: String",
+    "signature": "char *strchr(const char *string, int c);",
+    "description": "Finds the first occurrence of character c in string. Returns a pointer to that character, or NULL if not found. In VuGen, the result should be cast to (char *).",
+    "args": [
+      { "name": "string", "desc": "String to search" },
+      { "name": "c", "desc": "Character to search for" }
+    ],
+    "example": "#include <string.h>\n\nchar * string = \"His Excellency the Duke of Exeter\";\nchar * first_x, * last_x;\nfirst_x = (char *)strchr(string, 'x');\nlr_output_message (\"The first occurrence of x: %s\", first_x);\nlast_x = (char *)strrchr(string, 'x');\nlr_output_message (\"The last occurrence of x: %s\", last_x);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strchr.htm"
+  },
+  {
+    "name": "strcmp",
+    "category": "C: String",
+    "signature": "int strcmp(const char *string1, const char *string2);",
+    "description": "Compares two strings case-sensitively to determine their alphabetical order. Returns <0 if string1 is less than string2, 0 if they are equal, and >0 if string1 is greater.",
+    "args": [
+      { "name": "string1", "desc": "First string to compare" },
+      { "name": "string2", "desc": "Second string to compare" }
+    ],
+    "example": "int result;\nchar tmp[20];\nchar string1[] = \"The quick brown dog jumps over the lazy fox\";\nchar string2[] = \"The QUICK brown dog jumps over the lazy fox\";\n\n// Case-sensitive comparison\nresult = strcmp( string1, string2);\nif(result > 0)\n    strcpy(tmp, \"greater than\");\nelse if(result < 0)\n    strcpy(tmp, \"less than\");\nelse\n    strcpy(tmp, \"equal to\");\n\nlr_output_message (\"strcmp: String 1 is %s string 2\", tmp);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strcmp.htm"
+  },
+  {
+    "name": "strcpy",
+    "category": "C: String",
+    "signature": "char *strcpy(char *dest, const char *source);",
+    "description": "Copies the string source to dest, including the null terminator. Returns the destination string. Make sure the dest buffer is large enough.",
+    "args": [
+      { "name": "dest", "desc": "Destination string/buffer" },
+      { "name": "source", "desc": "String to copy" }
+    ],
+    "example": "#include <string.h>\n\nchar fullpath[1024], * filename = \"logfile.txt\";\nstrcpy(fullpath, \"c:\\\\tmp\");\nlr_output_message (\"fullpath after strcpy: %s\", fullpath);\nstrcat(fullpath, \"\\\\\");\nstrcat(fullpath, filename);\nlr_output_message (\"Full path of file is %s\", fullpath);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strcpy.htm"
+  },
+  {
+    "name": "strdup",
+    "category": "C: String",
+    "signature": "char **strdup( const char *string );",
+    "description": "Duplicates a string into newly allocated memory and returns it. Useful for making a modifiable copy of a static buffer (for example the result of lr_whoami); the copy must be released with free().",
+    "args": [
+      { "name": "string", "desc": "String to duplicate" }
+    ],
+    "example": "#include <string.h>\n\nint id;\nchar * groupname_static, * groupname;\n\n// Get the group name from VuGen\nlr_whoami (&id, &groupname_static, NULL);\nlr_output_message (\"groupname=%s\", groupname_static);\n\n// Make a copy of groupname_static so we can change it\ngroupname = (char *)strdup(groupname_static);\ngroupname = (char *)strlwr(groupname);\nlr_output_message (\"lower case groupname=%s\", groupname);\nfree(groupname);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strdup.htm"
+  },
+  {
+    "name": "stricmp",
+    "category": "C: String",
+    "signature": "int stricmp(const char *string1, const char *string2);",
+    "description": "Compares two strings case-insensitively. Returns <0, 0, or >0 according to the alphabetical order of string1 relative to string2.",
+    "args": [
+      { "name": "string1", "desc": "First string to compare" },
+      { "name": "string2", "desc": "Second string to compare" }
+    ],
+    "example": "#include <string.h>\n\nint result;\nchar tmp[20];\nchar string1[] = \"The quick brown dog jumps over the lazy fox\";\nchar string2[] = \"The QUICK brown dog jumps over the lazy fox\";\n\n// Case-insensitive comparison\nresult = stricmp(string1, string2);\n\nif (result > 0)\n    strcpy(tmp, \"greater than\");\nelse if (result < 0)\n    strcpy(tmp, \"less than\");\nelse\n    strcpy(tmp, \"equal to\");\n\nlr_output_message (\"stricmp: String 1 is %s string 2\", tmp);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_stricmp.htm"
+  },
+  {
+    "name": "strlen",
+    "category": "C: String",
+    "signature": "size_t strlen(const char *string);",
+    "description": "Returns the length of the string in bytes, excluding the null terminator.",
+    "args": [
+      { "name": "string", "desc": "String whose length is measured" }
+    ],
+    "example": "#include <string.h>\n\nint is_digit, i = 0;\nchar * str = \"1234567k89\";\nunsigned int len = strlen(str);\n\ndo {\n    if (i == len) {\n        lr_output_message (\"No letters found in string\");\n        return -1;\n    }\n    is_digit = isdigit(str[i++]);\n}\nwhile (is_digit);\n    lr_output_message (\"The first letter appears in character %d of string\", i);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strlen.htm"
+  },
+  {
+    "name": "strncat",
+    "category": "C: String",
+    "signature": "char *strncat(char *to_string, const char *from_string, size_t n);",
+    "description": "Appends at most n characters from from_string to the end of to_string. Returns a pointer to the resulting null-terminated string.",
+    "args": [
+      { "name": "to_string", "desc": "Destination string" },
+      { "name": "from_string", "desc": "Source string of the characters to append" },
+      { "name": "n", "desc": "Number of characters to append" }
+    ],
+    "example": "#include <string.h>\n\nint id, length, chars_remaining;\n\n// 8 characters + full stop + 3 characters + null\nchar filename[13];\nlr_whoami (&id, NULL, NULL);\nsprintf (filename, \"%d_\", id);\nlr_output_message (\"filename so far=%s\", filename);\nlength = strlen(filename);\nlr_output_message (\"length so far=%d\", length);\nchars_remaining = 8 - length;\nlr_output_message (\"chars remaining=%d\", chars_remaining);\nstrncat(filename, \"apptest\", chars_remaining);\nlr_output_message (\"filename without suffix=%s\", filename);\nstrcat(filename, \".log\");\nlr_output_message (\"final filename=%s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strncat.htm"
+  },
+  {
+    "name": "strncmp",
+    "category": "C: String",
+    "signature": "int strncmp(const char *string1, const char *string2, size_t n);",
+    "description": "Compares the first n characters of two strings (case-sensitive). Returns <0, 0, or >0 according to alphabetical order.",
+    "args": [
+      { "name": "string1", "desc": "First string" },
+      { "name": "string2", "desc": "Second string" },
+      { "name": "n", "desc": "Number of characters to compare" }
+    ],
+    "example": "int result;\nchar tmp[20];\nchar string1[] = \"The quick brown dog jumps over the lazy fox\";\nchar string2[] = \"The quick brown dog jumps over one lazy fox\";\n\n// Compare 30 chars\nresult = strncmp( string1, string2 , 30);\nif (result > 0 )\n    strcpy(tmp, \"greater than\");\nelse if (result < 0)\n    strcpy(tmp, \"less than\");\nelse\n    strcpy(tmp, \"equal to\");\n\nlr_output_message (\"strncmp: String 1 is %s string 2\", tmp);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strncmp.htm"
+  },
+  {
+    "name": "strncpy",
+    "category": "C: String",
+    "signature": "char *strncpy(char *dest, const char *source, size_t n);",
+    "description": "Copies the first n characters of source to dest and returns a pointer to dest. Note: a null terminator is not added automatically if source is longer than n.",
+    "args": [
+      { "name": "dest", "desc": "Destination string" },
+      { "name": "source", "desc": "Source string" },
+      { "name": "n", "desc": "Number of characters to copy" }
+    ],
+    "example": "#include <string.h>\n\nint id, length;\nchar tmp[1024];\n\n// 8 characters + period + 3 characters + null\nchar filename[13];\nlr_whoami (&id, NULL, NULL);\nsprintf(tmp, \"%d_apptest\", id);\nlength = strlen(tmp);\nlr_output_message (\"name=%s length=%d\", tmp, length);\n\n// Copy 8 characters only\nstrncpy(filename, tmp, 8);\nlr_output_message (\"filename without suffix=%s\", filename);\nstrcat(filename, \".log\");\nlr_output_message (\"final filename=%s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strncpy.htm"
+  },
+  {
+    "name": "strnicmp",
+    "category": "C: String",
+    "signature": "int strnicmp(const char *string1, const char *string2, size_t num);",
+    "description": "Compares the first num characters of two strings case-insensitively. Returns <0, 0, or >0 according to alphabetical order.",
+    "args": [
+      { "name": "string1", "desc": "First string" },
+      { "name": "string2", "desc": "Second string" },
+      { "name": "num", "desc": "Number of characters to compare" }
+    ],
+    "example": "int result;\nchar tmp[20];\nchar string1[] = \"The quick brown dog jumps over the lazy fox\";\nchar string2[] = \"The quick brown DOG jumps over one lazy fox\";\n\n// Compare 30 chars, ignoring case\nresult = strnicmp( string1, string2 , 30);\nif (result > 0 )\n    strcpy( tmp, \"greater than\");\nelse if (result < 0)\n    strcpy(tmp, \"less than\");\nelse\n    strcpy(tmp, \"equal to\");\n\nlr_output_message (\"strnicmp: String 1 is %s string 2\", tmp);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strnicmp.htm"
+  },
+  {
+    "name": "strrchr",
+    "category": "C: String",
+    "signature": "char *strrchr(const char *string, int c);",
+    "description": "Finds the last occurrence of character c in string. Returns a pointer to that character, or NULL if not found. In VuGen, the result should be cast to (char *).",
+    "args": [
+      { "name": "string", "desc": "String to search" },
+      { "name": "c", "desc": "Character to search for" }
+    ],
+    "example": "#include <string.h>\n\nchar * string = \"His Excellency the Duke of Exeter\";\nchar * first_x, * last_x;\nfirst_x = (char *)strchr(string, 'x');\nlr_output_message (\"The first occurrence of x: %s\", first_x);\nlast_x = (char *)strrchr(string, 'x');\nlr_output_message (\"The last occurrence of x: %s\", last_x);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strrchr.htm"
+  },
+  {
+    "name": "strspn",
+    "category": "C: String",
+    "signature": "size_t *strspn(const char *string, const char *skipset);",
+    "description": "Returns the length of the initial segment of string that consists entirely of characters in skipset. Counting stops at the first character not in skipset.",
+    "args": [
+      { "name": "string", "desc": "String to examine (null-terminated)" },
+      { "name": "skipset", "desc": "Set of characters to match" }
+    ],
+    "example": "#include <string.h>\n\nchar * str = \"corroborative\";\nint rc;\nif ((rc = strspn(str, \"ro\")) == 0)\n    lr_output_message (\"No o's or r's found\");\nelse\n    lr_output_message (\"%d of %d characters are an o or an r\", rc, strlen(str));\n\nif ((rc = strspn(str + 1, \"ro\")) == 0)\n    lr_output_message (\"No o's or r's found\");\nelse\n    lr_output_message (\"%d of %d characters are an o or an r\", rc, strlen(str));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strspn.htm"
+  },
+  {
+    "name": "strstr",
+    "category": "C: String",
+    "signature": "char *strstr(const char *string1, const char *string2);",
+    "description": "Finds the first occurrence of string2 within string1. Returns a pointer to that position, or NULL if not found. In VuGen, the result should be cast to (char *).",
+    "args": [
+      { "name": "string1", "desc": "String to search" },
+      { "name": "string2", "desc": "String to search for within string1" }
+    ],
+    "example": "#include <string.h>\n\nint offset;\nchar * position;\nchar * str = \"The quick brown dog jumps over the lazy fox\";\nchar * search_str = \"dog\";\nposition = (char *)strstr(str, search_str);\n\n// strstr has returned the address. Now calculate the offset from the beginning of str\noffset = (int)(position - str + 1);\nlr_output_message (\"The string \\\"%s\\\" was found at position %d\", search_str, offset);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strstr.htm"
+  },
+  {
+    "name": "strtok",
+    "category": "C: String",
+    "signature": "char *strtok(char *string, const char *delimiters);",
+    "description": "Returns the next token from string, separated by any of the characters in delimiters. After the first call, pass NULL as string to get subsequent tokens; returns NULL when no tokens remain. VuGen note: declare \"extern char* strtok(char *token, const char *delimiter);\" at the top of the script and cast the result to (char *).",
+    "args": [
+      { "name": "string", "desc": "String to split into tokens (NULL to continue)" },
+      { "name": "delimiters", "desc": "Token delimiter characters" }
+    ],
+    "example": "#include <string.h>\nchar path[] = \"c:\\\\mycomp\\\\lrun\\\\bin\\\\wlrun.exe\";\nchar separators[] = \".\\\\\";\nchar * token;\n\n// Get the first token\ntoken = (char *)strtok(path, separators);\nif (!token) {\n    lr_output_message (\"No tokens found in string!\");\n    return( -1 );\n}\n\n// While valid tokens are returned\nwhile (token != NULL ) {\n    lr_output_message (\"%s\", token );\n\n    // Get the next token\n    token = (char *)strtok(NULL, separators);\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strtok.htm"
+  },
+  {
+    "name": "memchr",
+    "category": "C: Memory",
+    "signature": "void *memchr(const void *s, int c, size_t n);",
+    "description": "Searches the first n bytes of buffer s for character c. Returns a pointer to the first occurrence, or NULL if not found.",
+    "args": [
+      { "name": "s", "desc": "Buffer to search" },
+      { "name": "c", "desc": "Character to search for" },
+      { "name": "n", "desc": "Number of leading bytes of the buffer to examine" }
+    ],
+    "example": "#include <string.h>\n\nchar * p;\nchar str[] = \"Example string\";\np = (char *)memchr(str, 'x', strlen(str));\nif (p)\n    lr_output_message (\"Character x is at position %d\\n\", p - str + 1);\nelse\n    lr_output_message (\"Character x was not found\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_memchr.htm"
+  },
+  {
+    "name": "memcmp",
+    "category": "C: Memory",
+    "signature": "int memcmp(const void *s1, const void *s2, size_t n);",
+    "description": "Compares the first n bytes of two buffers. Returns <0 if s1 is less than s2, 0 if they are identical, and >0 if s1 is greater.",
+    "args": [
+      { "name": "s1", "desc": "First buffer" },
+      { "name": "s2", "desc": "Second buffer" },
+      { "name": "n", "desc": "Number of bytes to compare" }
+    ],
+    "example": "char* s1 = \"access to shared transmission\";\nchar* s2 = \"access to transmission\";\nint rc;\nrc = memcmp( s1, s2, strlen(s1));\nif (rc > 0)\n     lr_output_message(\"'%s' is greater than '%s'\", s1, s2);\nelse if (rc < 0)\n     lr_output_message(\"'%s' is less than '%s'\", s1, s2);\nelse\n     lr_output_message(\"'%s' is the same as '%s'\\n\", s1, s2);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_memcmp.htm"
+  },
+  {
+    "name": "memcpy",
+    "category": "C: Memory",
+    "signature": "void *memcpy( void *dest, const void *src, size_t n );",
+    "description": "Copies n bytes from buffer src to buffer dest and returns the dest pointer. The src and dest areas must not overlap (use memmove in that case).",
+    "args": [
+      { "name": "dest", "desc": "Destination buffer" },
+      { "name": "src", "desc": "Source buffer" },
+      { "name": "n", "desc": "Number of bytes to copy" }
+    ],
+    "example": "#include <string.h>\n\nchar s1[] = \"Sample string\";\nchar s2[40];\n\n/* +1 to include NULL terminator */\nmemcpy(s2, s1, strlen(s1) + 1);\nlr_output_message(\"s1=%s s2=%s\", s1, s2);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_memcpy.htm"
+  },
+  {
+    "name": "memmove",
+    "category": "C: Memory",
+    "signature": "void *memmove( void *dest, const void *src, size_t n );",
+    "description": "Moves n bytes from buffer src to dest and returns the dest pointer. Safe to use when the source and destination areas overlap.",
+    "args": [
+      { "name": "dest", "desc": "Destination buffer" },
+      { "name": "src", "desc": "Source buffer" },
+      { "name": "n", "desc": "Number of bytes to move" }
+    ],
+    "example": "#include <string.h>\n\nchar buffer[80];\nstrcpy( buffer, \"abcde\");\nmemmove(buffer+1, buffer, 4 );\nlr_output_message (\"New string: %s\\n\", buffer);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_memmove.htm"
+  },
+  {
+    "name": "memset",
+    "category": "C: Memory",
+    "signature": "void *memset( void *buffer, int c, size_t n);",
+    "description": "Fills the first n bytes of buffer with character c and returns the buffer pointer. Commonly used to zero out a buffer or struct.",
+    "args": [
+      { "name": "buffer", "desc": "Block of data to fill" },
+      { "name": "c", "desc": "Fill character value" },
+      { "name": "n", "desc": "Number of bytes to fill" }
+    ],
+    "example": "#include <string.h>\n\nstruct about_app {\n     char *version;\n     int field1;\n     int field2;\n};\n\nstruct about_app a;\na.field1 = 12;\na.field2 = 13;\n\n// Set all fields to 0\nmemset(&a, 0, sizeof(struct about_app));\n\n// Show that fields are set to 0\nlr_output_message(\"After memset field1=%d field2=%d\", a.field1, a.field2);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_memset.htm"
+  },
+  {
+    "name": "calloc",
+    "category": "C: Memory",
+    "signature": "void *calloc(size_t num_elems, size_t elem_size);",
+    "description": "Allocates an array and initializes all its elements to zero. Returns a pointer to the memory, or NULL if allocation fails or either argument is 0. Release with free().",
+    "args": [
+      { "name": "num_elems", "desc": "Number of array elements" },
+      { "name": "elem_size", "desc": "Size of each element in bytes" }
+    ],
+    "example": "#include <malloc.h>\n    char * buf;\n\n    if ((buf = (char *)calloc(1024, sizeof(char))) == NULL) {\n        lr_output_message (\"Insufficient memory available\");\n        return -1;\n    }\n\n    lr_output_message (\"Memory allocated. Buffer address = %.8x\", buf);\n\n    // Do something with the buffer here ...\n\n    // Now free the buffer\n    free(buf);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_calloc.htm"
+  },
+  {
+    "name": "free",
+    "category": "C: Memory",
+    "signature": "void free(void *mem_address);",
+    "description": "Frees a block of heap memory allocated by calloc or malloc. Returns no value.",
+    "args": [
+      { "name": "mem_address", "desc": "Memory block (array) to free" }
+    ],
+    "example": "char * buf;\nif ((buf = (char *)calloc(1024, sizeof(char))) == NULL) {\n    lr_output_message (\"Insufficient memory available\");\n    return -1;\n}\nlr_output_message (\"Memory allocated. Buffer address = %.8x\", buf);\n\n// Do something with the buffer here ...\n\n// Now free the buffer\nfree(buf);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_free.htm"
+  },
+  {
+    "name": "malloc",
+    "category": "C: Memory",
+    "signature": "void *malloc(size_t num_bytes);",
+    "description": "Allocates a block of memory of num_bytes bytes. Returns NULL on failure or if num_bytes is 0; the block must be released with free(). VuGen note: very large local variables (e.g. char buffer[4096*8]) trigger a \"Too many local variables\" error, so use malloc() for large buffers.",
+    "args": [
+      { "name": "num_bytes", "desc": "Size of the memory block in bytes" }
+    ],
+    "example": "#include <malloc.h>\n    char * buf;\n    if ((buf = (char *)malloc(1024 * sizeof(char))) == NULL) {\n        lr_output_message (\"Insufficient memory available\");\n        return -1;\n    }\n\n    lr_output_message (\"Memory allocated . Buffer address = %.8x\", buf);\n\n    // Do something with the buffer here ...\n\n    // Now free the buffer\n    free(buf);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_malloc.htm"
+  },
+  {
+    "name": "realloc",
+    "category": "C: Memory",
+    "signature": "void *realloc(void *mem_address, size_t size);",
+    "description": "Resizes a previously allocated memory block. Returns a pointer to the allocated space, or NULL if it fails or any argument is 0.",
+    "args": [
+      { "name": "mem_address", "desc": "Memory block to resize" },
+      { "name": "size", "desc": "New size in bytes" }
+    ],
+    "example": "#include <malloc.h>\n    char * buf, * biggerbuf;\n    if ((buf = (char *)malloc(1024)) == NULL) {\n        lr_output_message (\"Insufficient memory available\");\n        return -1;\n    }\n\n    // Now reallocate buf to size of 2048 bytes\n    if ((biggerbuf = (char *)realloc(buf, 2048)) == NULL) {\n        lr_output_message (\"Unable to re-allocate memory\");\n        return -1;\n    }\n\n    buf = biggerbuf;\n    lr_output_message (\"Memory reallocated. Buffer address = %.8x\", buf);\n\n    // Now free the buffer\n    free(buf);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_realloc.htm"
+  },
+  {
+    "name": "atof",
+    "category": "C: Conversion",
+    "signature": "double atof(const char *string);",
+    "description": "Converts a string to a floating-point value by reading the leading portion of the string up to the first non-numeric character. Returns 0.0 on error; the result is undefined on overflow.",
+    "args": [
+      { "name": "string", "desc": "String to convert" }
+    ],
+    "example": "float x;\nchar *s = \"7.2339 by these hilts or I am a villain else\";\nx = atof(s);\n\n/* The %.2f formatting string limits the output to 2 decimal places */\nlr_output_message(\"%.2f\", x);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_atof.htm"
+  },
+  {
+    "name": "atoi",
+    "category": "C: Conversion",
+    "signature": "int atoi(const char *string);",
+    "description": "Converts a string to an integer by reading the leading portion of the string up to the first non-numeric character. Returns 0 on error; the result is undefined on overflow.",
+    "args": [
+      { "name": "string", "desc": "String to convert" }
+    ],
+    "example": "int i;\nchar * s = \"7 dollars\";\ni = atoi(s);\nlr_output_message (\"Price $%d\", i);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_atoi.htm"
+  },
+  {
+    "name": "atol",
+    "category": "C: Conversion",
+    "signature": "long atol(const char *string);",
+    "description": "Converts a string to a long integer by reading the leading portion of the string up to the first non-numeric character. Returns 0 on error; the result is undefined on overflow.",
+    "args": [
+      { "name": "string", "desc": "String to convert" }
+    ],
+    "example": "long i;\nchar * s = \"2147483647 dollars\";\ni = atol(s);\nlr_output_message (\"Price $%ld\", i);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_atol.htm"
+  },
+  {
+    "name": "strtol",
+    "category": "C: Conversion",
+    "signature": "long strtol(const char *string, char **endptr, int radix);",
+    "description": "Converts a string to a long integer using the given radix; leading whitespace is ignored and scanning stops at the first non-numeric character. Returns LONG_MAX/LONG_MIN on overflow and 0 if no conversion could be performed.",
+    "args": [
+      { "name": "string", "desc": "String in the format [whitespace][+|-][0|0x][nnnnn]" },
+      { "name": "endptr", "desc": "Address of a pointer set to the position where scanning stopped" },
+      { "name": "radix", "desc": "Number base (0 or 2-36); 0 = determined from the prefix (0x hex, 0 octal, 1-9 decimal)" }
+    ],
+    "example": "#include <string.h>\nlong l;\nchar * end_string, * str = \"-569357608END HERE\";\nl = strtol(str, &end_string, 10);\nlr_output_message (\"long=%ld followed by %s\", l, end_string);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strtol.htm"
+  },
+  {
+    "name": "sprintf",
+    "category": "C: Input/Output",
+    "signature": "int sprintf(char *string_buffer, const char *format_string[, args]);",
+    "description": "Writes formatted output to a string. Returns the number of characters written, or a negative value on failure. The destination buffer must be large enough; a buffer overflow can cause the script to behave unpredictably.",
+    "args": [
+      { "name": "string_buffer", "desc": "Destination buffer for the formatted result" },
+      { "name": "format_string", "desc": "Format string (format characters)" },
+      { "name": "args", "desc": "Optional arguments to print" }
+    ],
+    "example": "int index = 56;\nchar filename[64], * suffix = \"txt\";\nsprintf(filename, \"log_%d.%s\", index, suffix);\nlr_output_message (\"The new file name is %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_sprintf.htm"
+  },
+  {
+    "name": "sscanf",
+    "category": "C: Input/Output",
+    "signature": "int sscanf(const char *buffer, const char *format_string, args);",
+    "description": "Reads formatted input from a string. Returns the number of items successfully read (not counting ignored fields).",
+    "args": [
+      { "name": "buffer", "desc": "Source string to read from" },
+      { "name": "format_string", "desc": "Format string that controls how the input is parsed" },
+      { "name": "args", "desc": "Addresses of the variables that receive the parsed values" }
+    ],
+    "example": "char sentence[] = \"After 7 years' siege yet Troy walls stand\";\nchar s1[32], s2[32];\nint num_of_years;\nsscanf(sentence,\"%s %d %s\", s1, &num_of_years, s2);\nlr_output_message (\"Number of years=%d s2=\\\"%s\\\"\", num_of_years, s2);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_sscanf.htm"
+  },
+  {
+    "name": "tolower",
+    "category": "C: Character",
+    "signature": "int tolower(int c);",
+    "description": "Converts a character to lowercase and returns the result. Non-alphabetic characters are unchanged.",
+    "args": [
+      { "name": "c", "desc": "Character to convert" }
+    ],
+    "example": "char character_set[] = {'A', '5', '$', 'Z'};\nint i;\nfor( i=0; i<4; i++ )\n     lr_output_message(\"%c \", tolower(character_set[i]));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_tolower.htm"
+  },
+  {
+    "name": "toupper",
+    "category": "C: Character",
+    "signature": "int toupper(int c);",
+    "description": "Converts a character to uppercase and returns the result. Non-alphabetic characters are unchanged.",
+    "args": [
+      { "name": "c", "desc": "Character to convert" }
+    ],
+    "example": "char character_set[] = {'a', '5', '$', 'z'};\nint i;\nfor( i=0; i<4; i++ )\n     lr_output_message(\"%c \", toupper(character_set[i]));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_toupper.htm"
+  },
+  {
+    "name": "isdigit",
+    "category": "C: Character",
+    "signature": "int isdigit(int c);",
+    "description": "Checks whether a character is a decimal digit ('0' to '9'). Returns a nonzero value (true) if it is, zero (false) otherwise.",
+    "args": [
+      { "name": "c", "desc": "Character to check" }
+    ],
+    "example": "if (isdigit(55))\n     lr_output_message(\"The value 55 is the digit %c\", 55);\nelse\n     lr_output_message(\"Value 55 is not a digit. It's the character %c.\", 55);\nif (isdigit(109))\n     lr_output_message(\"The value 109 is the digit %c\", 109);\nelse\n     lr_output_message(\"Value 109 is not a digit. It's the character %c.\", 109);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_isdigit.htm"
+  },
+  {
+    "name": "isalpha",
+    "category": "C: Character",
+    "signature": "int isalpha(int c);",
+    "description": "Checks whether a character is a letter (A-Z or a-z). Returns a nonzero value (true) if it is, zero (false) otherwise.",
+    "args": [
+      { "name": "c", "desc": "Character to check" }
+    ],
+    "example": "if (isalpha(107))\n     lr_output_message (\"The value 107 is %c\", 107);\nelse\n     lr_output_message (\"The value 107 is not alphabetic\");\n\nif (isalpha(22))\n     lr_output_message (\"The value 22 is %c\", 22);\nelse\n     lr_output_message (\"The value 22 is not alphabetic\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_isalpha.htm"
+  }
+]

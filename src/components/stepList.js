@@ -21,8 +21,12 @@ let root = null;
 let groupSelect = null;
 /** @type {HTMLElement|null} */
 let stepListEl = null;
-/** @type {Set<string>} nama transaksi yang ditutup user (default semua terbuka; state tampilan lokal) */
+/** @type {Set<string>} nama transaksi yang ditutup user (default semua tertutup; state tampilan lokal) */
 const collapsedTransactions = new Set();
+/** @type {Set<string>} transaksi yang sudah pernah muncul di run ini; baru → auto-collapse */
+const seenTransactions = new Set();
+/** runId run terakhir yang dirender; berubah = reset seenTransactions */
+let seenRunId = "";
 /** @type {Function|null} */
 let unsubscribe = null;
 /** @type {((step: Object) => void)|null} */
@@ -130,6 +134,16 @@ function renderSteps(state) {
     txMap.get(tx).push(step);
   }
 
+  // Transaksi baru yang belum pernah muncul di run ini → auto-collapse (default tertutup)
+  const runId = run.runId ?? "";
+  if (runId !== seenRunId) { seenRunId = runId; seenTransactions.clear(); }
+  for (const txName of txMap.keys()) {
+    if (!seenTransactions.has(txName)) {
+      seenTransactions.add(txName);
+      collapsedTransactions.add(txName);
+    }
+  }
+
   const selectedSeq = state.selectedStep?.seq;
 
   // Header transaksi: "▼ nama (diprioritaskan)  1/2 OK  58ms". Baris API: "✓ #1 [POST] …/content/inquiry  30ms".
@@ -226,7 +240,7 @@ function render() {
   const selectionChanged = (state.selectedStep?.seq ?? null) !== lastSelectedSeq;
   lastSelectedSeq = state.selectedStep?.seq ?? null;
   // Step dipilih dari editor: pastikan transaksinya terbuka agar barisnya terlihat
-  if (selectionChanged && state.selectedStep) collapsedTransactions.delete(state.selectedStep.transaction || "Tanpa Transaksi");
+  if (selectionChanged && state.selectedStep) collapsedTransactions.delete(state.selectedStep.transaction || "No Transaction");
 
   const key = [
     run?.runId ?? "",
@@ -275,6 +289,7 @@ export function createStepList(container, { onSelect } = {}) {
   groupSelect.addEventListener("change", () => {
     const value = groupSelect.value;
     collapsedTransactions.clear();
+    seenTransactions.clear();
     getStore().set({ selectedIteration: value === "init" || value === "end" ? value : Number(value), selectedStep: null });
   });
 

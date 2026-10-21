@@ -846,9 +846,9 @@ function drainParamChanges(c) {
 }
 
 /** Batas bodyPreview request (karakter) */
-const BODY_PREVIEW_MAX = 2048;
+const BODY_PREVIEW_MAX = 100_000;
 
-/** Ringkas body request untuk ditampilkan (≤ 2 KB) */
+/** Ringkas body request untuk ditampilkan (≤ 100 KB) */
 function previewBody(body) {
   if (body === undefined || body === null) return "";
   const text = Buffer.isBuffer(body) ? body.toString("utf8") : String(body);

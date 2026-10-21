@@ -112,7 +112,10 @@ describe("parsePrm", () => {
       type: "Table",
       table: "hosts.dat",
       columnName: null,
+      format: null,
+      offset: 0,
       selectNextRow: "Sequential",
+      sameLineAs: null,
       updateValueOn: "EachIteration",
       outOfRangePolicy: "Cycle",
     }]);
@@ -129,6 +132,20 @@ describe("parsePrm", () => {
   it("WhenOutOfValues dan OutOfRangePolicy keduanya dipetakan ke outOfRangePolicy", () => {
     expect(parsePrm('[parameter:x]\nWhenOutOfValues="Abort"\n')[0].outOfRangePolicy).toBe("Abort");
     expect(parsePrm('[parameter:y]\nOutOfRangePolicy="Continue"\n')[0].outOfRangePolicy).toBe("Continue");
+  });
+
+  it("token VuGen untuk When out of values dipetakan ke nama internal", () => {
+    const policy = (token) => parsePrm(`[parameter:x]
+OutOfRangePolicy="${token}"
+`)[0].outOfRangePolicy;
+    expect([policy("ContinueWithLast"), policy("AbortVuser"), policy("CycleInSequence")]).toEqual(["Continue", "Abort", "Cycle"]);
+  });
+
+  it('"Same line as X" menyimpan nama induk', () => {
+    expect(parsePrm('[parameter:a]\nSelectNextRow="Same line as userMaker"\n')[0]).toMatchObject({
+      selectNextRow: "SameLine", sameLineAs: "userMaker",
+    });
+    expect(parsePrm('[parameter:a]\nSelectNextRow="Unique"\n')[0]).toMatchObject({ selectNextRow: "Unique", sameLineAs: null });
   });
 
   it("BOM dibuang; komentar (;) dilewati; baris kosong dilewati", () => {
@@ -156,6 +173,25 @@ describe("loadParameters dengan .prm", () => {
       expect(ipParam).toBeDefined();
       expect(ipParam.selectNextRow).toBe("Random");
       expect(ipParam.outOfRangePolicy).toBe("Continue");
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("Type=Time di .prm menghasilkan parameter dengan nilai waktu terhitung", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vugen-time-"));
+    try {
+      await fs.writeFile(path.join(tmpDir, "s.prm"), '[parameter:year]\nType="Time"\nFormat="%Y"\nOffset=""\n[parameter:monthBefore]\nType="Time"\nFormat="%Y/%m/%d"\nOffset="-2592000"\n', "utf8");
+      await fs.writeFile(path.join(tmpDir, "Action.c"), "Action(){return 0;}", "utf8");
+      const { loadProject } = await import("./loader.js?t=time");
+      const project = await loadProject(tmpDir);
+      const year = project.parameters.find((p) => p.name === "year");
+      const mb = project.parameters.find((p) => p.name === "monthBefore");
+      expect(year).toBeDefined();
+      expect(year.type).toBe("Time");
+      expect(year.values[0]).toMatch(/^\d{4}$/);
+      expect(mb).toBeDefined();
+      expect(mb.values[0]).toMatch(/^\d{4}\/\d{2}\/\d{2}$/);
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }

@@ -16,7 +16,7 @@ import path from "node:path";
 
 import { HttpError, cacheDirFor, resolveScriptFile } from "./paths.js";
 
-const SAVEABLE_EXTENSIONS = new Set([".c", ".h"]);
+const SAVEABLE_EXTENSIONS = new Set([".c", ".h", ".js", ".dat"]);
 
 /** Deteksi encoding dari BOM. Hanya UTF-8 dan UTF-16LE yang bisa disimpan balik. */
 function detectEncoding(buffer) {
@@ -78,7 +78,7 @@ async function renameWithRetry(source, target, attempts = 5) {
 }
 
 /** Tulis buffer lewat file temp di folder yang sama, lalu rename. */
-async function atomicWrite(target, buffer) {
+export async function atomicWrite(target, buffer) {
   const dir = path.dirname(target);
   const temp = path.join(
     dir,
@@ -93,7 +93,7 @@ async function atomicWrite(target, buffer) {
   }
 }
 
-async function writeBackup(scriptDir, relative, buffer) {
+export async function writeBackup(scriptDir, relative, buffer) {
   const dir = path.join(cacheDirFor(scriptDir), "backups");
   await fs.mkdir(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -114,7 +114,7 @@ export async function readScriptFile(scriptDir, relativePath) {
   const buffer = await fs.readFile(absolute);
 
   if (buffer.includes(0)) {
-    throw new HttpError(415, `File biner belum didukung: ${relative}`);
+    throw new HttpError(415, `Binary files can't be opened in the editor: ${relative}`);
   }
 
   const encoding = detectEncoding(buffer);
@@ -131,7 +131,7 @@ export async function readScriptFile(scriptDir, relativePath) {
 }
 
 /**
- * Simpan file script. Hanya `.c`/`.h` (plan §4.1). Encoding dan EOL diambil
+ * Simpan file script. Hanya `.c`/`.h`/`.js` (plan §4.1). Encoding dan EOL diambil
  * dari file asli di server, bukan dari klien.
  *
  * @param {string} scriptDir
@@ -145,7 +145,7 @@ export async function saveScriptFile(scriptDir, relativePath, nextText) {
 
   const extension = path.extname(String(relativePath ?? "")).toLowerCase();
   if (!SAVEABLE_EXTENSIONS.has(extension)) {
-    throw new HttpError(400, `Hanya file .c/.h yang bisa disimpan (diterima: ${extension || "tanpa ekstensi"}).`);
+    throw new HttpError(400, `Only .c/.h/.js/.dat files can be saved (got: ${extension || "no extension"}).`);
   }
 
   const { absolute, relative } = await resolveScriptFile(scriptDir, relativePath);

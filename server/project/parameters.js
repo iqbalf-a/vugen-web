@@ -13,9 +13,14 @@
  * @property {string} name - nama parameter (dari .prm atau header .dat)
  * @property {string} file - path relatif file `.dat` (POSIX)
  * @property {number} rows - jumlah baris nilai
+ * @property {string} [column] - nama kolom header di .dat
+ * @property {string|null} [prmFile] - .prm yang mendefinisikan parameter ini (null bila hanya dari header .dat)
  * @property {string[]} values - nilai per baris (hanya untuk runner; tidak dikirim ke browser)
  * @property {"Table"|"Time"|"Userid"} [type] - tipe dari .prm (default "Table")
- * @property {"Sequential"|"Random"|"Unique"|"Once"} [selectNextRow] - strategi pilih baris (default "Sequential")
+ * @property {string} [timeFormat] - format string untuk Type=Time: %Y %m %d %H %M %S
+ * @property {number} [timeOffsetSec] - offset detik untuk Type=Time (negatif = masa lalu)
+ * @property {"Sequential"|"Random"|"Unique"|"SameLine"} [selectNextRow] - strategi pilih baris (default "Sequential")
+ * @property {string|null} [sameLineAs] - parameter induk bila selectNextRow = "SameLine" (baris selalu sama dengan induk)
  * @property {"EachIteration"|"EachOccurrence"|"Once"} [updateValueOn] - kapan nilai diperbarui (default "EachIteration")
  * @property {"Cycle"|"Continue"|"Abort"} [outOfRangePolicy] - jika indeks melebihi baris (default "Cycle")
  */
@@ -45,18 +50,21 @@ export function parseDat(text) {
   return columns.filter((column) => column.name !== "");
 }
 
+/** Token VuGen di .prm → nama internal runner. */
+const OUT_OF_RANGE_TOKENS = { continuewithlast: "Continue", abortvuser: "Abort", cycleinsequence: "Cycle" };
+
 /**
  * Parse isi satu file `.prm` (format INI VuGen).
  * Menghasilkan satu entri per seksi `[parameter:NAME]`.
  *
  * @param {string} text
- * @returns {{ name: string, type: string, table: string|null, columnName: string|null, selectNextRow: string, updateValueOn: string, outOfRangePolicy: string }[]}
+ * @returns {{ name: string, type: string, table: string|null, columnName: string|null, format: string|null, offset: number, selectNextRow: string, sameLineAs: string|null, updateValueOn: string, outOfRangePolicy: string }[]}
  */
 export function parsePrm(text) {
   const withoutBom = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   const lines = withoutBom.split(/\r?\n/);
 
-  /** @type {{ name: string, type: string, table: string|null, columnName: string|null, selectNextRow: string, updateValueOn: string, outOfRangePolicy: string }[]} */
+  /** @type {ReturnType<typeof parsePrm>} */
   const sections = [];
   let current = null;
 
@@ -71,7 +79,10 @@ export function parsePrm(text) {
         type: "Table",
         table: null,
         columnName: null,
+        format: null,
+        offset: 0,
         selectNextRow: "Sequential",
+        sameLineAs: null,
         updateValueOn: "EachIteration",
         outOfRangePolicy: "Cycle",
       };
@@ -95,23 +106,49 @@ export function parsePrm(text) {
       case "columnname":
         current.columnName = val || null;
         break;
-      case "selectnextrow":
-        // "Same line as X" → Sequential (synchronized multi-param tidak didukung, fallback)
-        current.selectNextRow = val.toLowerCase().startsWith("same line") ? "Sequential" : val;
+      case "format":
+        current.format = val || null;
         break;
+      case "offset":
+        current.offset = val ? (parseInt(val, 10) || 0) : 0;
+        break;
+      case "selectnextrow": {
+        const same = val.match(/^same line as\s+(.+)$/i);
+        current.selectNextRow = same ? "SameLine" : val;
+        current.sameLineAs = same ? same[1].trim() : null;
+        break;
+      }
       case "updatevalueon":
       case "generatenewval":
         current.updateValueOn = val;
         break;
       case "whenoutofvalues":
       case "outofrangepolicy":
-        // "ContinueWithLast" → "Continue"
-        current.outOfRangePolicy = val === "ContinueWithLast" ? "Continue" : val;
+        current.outOfRangePolicy = OUT_OF_RANGE_TOKENS[val.toLowerCase()] ?? val;
         break;
     }
   }
 
   return sections;
+}
+
+/**
+ * Hitung nilai parameter Type=Time berdasarkan format strftime dan offset detik.
+ *
+ * @param {string|null} format - format string VuGen: %Y %m %d %H %M %S
+ * @param {number} [offsetSec] - detik tambah/kurang dari waktu sekarang
+ * @returns {string}
+ */
+export function computeTimeValue(format, offsetSec = 0) {
+  const d = new Date(Date.now() + offsetSec * 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (format || "%Y/%m/%d")
+    .replace(/%Y/g, String(d.getFullYear()))
+    .replace(/%m/g, pad(d.getMonth() + 1))
+    .replace(/%d/g, pad(d.getDate()))
+    .replace(/%H/g, pad(d.getHours()))
+    .replace(/%M/g, pad(d.getMinutes()))
+    .replace(/%S/g, pad(d.getSeconds()));
 }
 
 /**
@@ -195,6 +232,32 @@ export async function loadParameters(scriptDir, files) {
     }
 
     for (const section of parsePrm(prmText)) {
+      // Type=Time: nilai dihitung dari waktu saat ini + offset, tanpa file .dat
+      if (section.type === "Time") {
+        if (paramsByName.has(section.name)) {
+          warnings.push(`Parameter "${section.name}" (Time) diabaikan; sudah ada.`);
+          continue;
+        }
+        const value = computeTimeValue(section.format, section.offset);
+        paramsByName.set(section.name, "(Time)");
+        parameters.push({
+          name: section.name,
+          file: "",
+          rows: 1,
+          values: [value],
+          column: null,
+          prmFile: prmFile.path,
+          type: "Time",
+          timeFormat: section.format ?? "%Y/%m/%d",
+          timeOffsetSec: section.offset ?? 0,
+          selectNextRow: "Sequential",
+          sameLineAs: null,
+          updateValueOn: /** @type {any} */ (section.updateValueOn),
+          outOfRangePolicy: "Cycle",
+        });
+        continue;
+      }
+
       if (section.type !== "Table" || !section.table) continue; // hanya Table type dengan file
 
       // Cari file .dat yang sesuai (match case-insensitive di root dan data/)
@@ -231,8 +294,11 @@ export async function loadParameters(scriptDir, files) {
         file: datPath,
         rows: col.values.length,
         values: col.values,
+        column: col.name,
+        prmFile: prmFile.path,
         type: /** @type {any} */ (section.type),
         selectNextRow: /** @type {any} */ (section.selectNextRow),
+        sameLineAs: section.sameLineAs,
         updateValueOn: /** @type {any} */ (section.updateValueOn),
         outOfRangePolicy: /** @type {any} */ (section.outOfRangePolicy),
       };
@@ -258,7 +324,7 @@ export async function loadParameters(scriptDir, files) {
         continue;
       }
       paramsByName.set(col.name, datPath);
-      parameters.push({ name: col.name, file: datPath, rows: col.values.length, values: col.values });
+      parameters.push({ name: col.name, file: datPath, rows: col.values.length, values: col.values, column: col.name, prmFile: null });
     }
   }
 
@@ -271,12 +337,32 @@ export async function loadParameters(scriptDir, files) {
       continue; // sudah dicatat di langkah 1
     }
     for (const section of parsePrm(prmText)) {
-      if (section.table) continue; // sudah diproses di langkah 1
+      if (section.table || section.type === "Time") continue; // sudah diproses di langkah 1
       const param = parameters.find((p) => p.name === section.name);
       if (!param) continue;
+      param.prmFile = prmFile.path;
       if (section.selectNextRow) param.selectNextRow = /** @type {any} */ (section.selectNextRow);
+      param.sameLineAs = section.sameLineAs;
       if (section.updateValueOn) param.updateValueOn = /** @type {any} */ (section.updateValueOn);
       if (section.outOfRangePolicy) param.outOfRangePolicy = /** @type {any} */ (section.outOfRangePolicy);
+    }
+  }
+
+  // "Same line as X": induk harus ada dan jumlah barisnya sama, kalau tidak jatuh ke Sequential.
+  for (const param of parameters) {
+    if (param.selectNextRow !== "SameLine") continue;
+    const parent = parameters.find((p) => p.name === param.sameLineAs);
+    const problem = !parent
+      ? `parameter "${param.sameLineAs}" not found`
+      : parent === param || parent.selectNextRow === "SameLine"
+        ? `parameter "${param.sameLineAs}" can't be a parent`
+        : parent.rows !== param.rows
+          ? `row counts differ (${param.rows} vs ${parent.rows} in "${parent.name}")`
+          : null;
+    if (problem) {
+      warnings.push(`Parameter "${param.name}": ignoring "Same line as ${param.sameLineAs}" (${problem}); using Sequential.`);
+      param.selectNextRow = "Sequential";
+      param.sameLineAs = null;
     }
   }
 

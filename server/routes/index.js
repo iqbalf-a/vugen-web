@@ -13,6 +13,7 @@
 
 import { requestUrl, sendError, sendJson } from "../http-utils.js";
 import { getFile, putFile } from "./file.js";
+import { putParameter } from "./parameter.js";
 import { getProject } from "./project.js";
 import { handleRunEvents, handleRunGet, handleRunPost, handleRunResume, handleRunStepBody, handleRunStop } from "./run.js";
 
@@ -28,6 +29,7 @@ const routes = [
   { methods: ["GET"], path: "/project", handler: getProject },
   { methods: ["GET"], path: "/file", handler: getFile },
   { methods: ["PUT"], path: "/file", handler: putFile },
+  { methods: ["PUT"], path: "/parameter", handler: putParameter },
   { methods: ["POST"], path: "/run", handler: handleRunPost },
   { methods: ["GET"], path: "/run/:id/events", handler: handleRunEvents },
   { methods: ["POST"], path: "/run/:id/stop", handler: handleRunStop },

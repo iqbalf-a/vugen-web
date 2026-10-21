@@ -1,0 +1,673 @@
+[
+  {
+    "name": "fclose",
+    "category": "C: Input/Output",
+    "signature": "int fclose(FILE *file_pointer);",
+    "description": "Closes a file opened with fopen. Returns 0 if the stream was closed successfully, or EOF if an error occurred.",
+    "args": [
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the file to close."
+      }
+    ],
+    "example": "#include <stdio.h>\nint count, total = 0;\nchar buffer[1000];\nFILE* file_stream;\nchar * filename = \"c:\\\\readme.txt\";\nif ((file_stream = fopen(filename, \"r\")) == NULL) {\n    lr_error_message (\"Cannot open %s\", filename);\n    return -1;\n}\n// Read until end of file\nwhile (!feof(file_stream)) {\n    // Read 1000 bytes while maintaining a running count\n    count = fread(buffer, sizeof(char), 1000, file_stream);\n    lr_output_message (\"%3d read\", count);\n    // Check for file I/O errors\n    if (ferror(file_stream)) {\n        lr_output_message (\"Error reading file %s\", filename);\n        break;\n    }\n    total += count;\n}\nlr_output_message (\"Total number of bytes read = %d\", total);\nif (fclose(file_stream))\n    lr_error_message (\"Error closing file %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fclose.htm"
+  },
+  {
+    "name": "feof",
+    "category": "C: Input/Output",
+    "signature": "int feof(FILE *file_pointer);",
+    "description": "Tests whether the end-of-file indicator on the stream was set by the last read operation. Returns a nonzero value if EOF has been reached, 0 otherwise.",
+    "args": [
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the file to check."
+      }
+    ],
+    "example": "#include <stdio.h>\nint count, total = 0;\nchar buffer[1000];\nFILE* file_stream;\nchar * filename = \"c:\\\\readme.txt\";\nif ((file_stream = fopen(filename, \"r\")) == NULL) {\n    lr_error_message (\"Cannot open %s\", filename);\n    return -1;\n}\n// Read until end of file\nwhile (!feof(file_stream)) {\n    // Read 1000 bytes while maintaining a running count\n    count = fread(buffer, sizeof(char), 1000, file_stream);\n    lr_output_message (\"%3d read\", count);\n    // Check for file I/O errors\n    if (ferror(file_stream)) {\n        lr_output_message (\"Error reading file %s\", filename);\n        break;\n    }\n    total += count;\n}\nlr_output_message (\"Total number of bytes read = %d\", total);\nif (fclose(file_stream))\n    lr_error_message (\"Error closing file %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_feof.htm"
+  },
+  {
+    "name": "ferror",
+    "category": "C: Input/Output",
+    "signature": "int ferror(FILE *file_pointer);",
+    "description": "Tests whether an error occurred during a file I/O operation. Returns 0 if there is no error, or a nonzero value if there is one (the stream's error indicator remains set).",
+    "args": [
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to a file previously opened with fopen."
+      }
+    ],
+    "example": "#include <stdio.h>\nint count, total = 0;\nchar buffer[1000];\nFILE* file_stream;\nchar * filename = \"c:\\\\readme.txt\";\nif ((file_stream = fopen(filename, \"r\")) == NULL) {\n    lr_error_message (\"Cannot open %s\", filename);\n    return -1;\n}\n// Read until end of file\nwhile (!feof(file_stream)) {\n    // Read 1000 bytes while maintaining a running count\n    count = fread(buffer, sizeof(char), 1000, file_stream);\n    lr_output_message (\"%3d read\", count);\n    // Check for file I/O errors\n    if (ferror(file_stream)) {\n        lr_output_message (\"Error reading file %s\", filename);\n        break;\n    }\n    total += count;\n}\nlr_output_message (\"Total number of bytes read = %d\", total);\nif (fclose(file_stream))\n    lr_error_message (\"Error closing file %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_ferror.htm"
+  },
+  {
+    "name": "fgetc",
+    "category": "C: Input/Output",
+    "signature": "int fgetc(FILE *file_pointer);",
+    "description": "Reads a single character from the stream. Returns the character read, or EOF if the end of the file is reached or a read error occurs.",
+    "args": [
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the file to read from."
+      }
+    ],
+    "example": "#include <stdio.h>\n#define NUM_CHARS 3\nint i, total = 0;\nchar buffer[100], ch;\nFILE* file_stream;\nchar * filename = \"c:\\\\readme.txt\";\n\nif ((file_stream = fopen(filename, \"r\")) == NULL) {\n    lr_error_message (\"Cannot open %s\", filename);\n    return -1;\n}\n\nfor (i=0; (i<NUM_CHARS) && (feof(file_stream) == 0); i++) {\n    // Read in the next character\n    ch = fgetc(file_stream);\n    // Place the new char at the end of the buffer\n    buffer[i] = ch;\n}\n\n// Add null to end the buffer converting it to a string\nbuffer[i] = NULL;\nlr_output_message (\"First %d characters of file %s are \\\"%s\\\"\", NUM_CHARS, filename, buffer);\n\nif (fclose(file_stream))\n    lr_error_message (\"Error closing file %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fgetc.htm"
+  },
+  {
+    "name": "fgets",
+    "category": "C: Input/Output",
+    "signature": "char *fgets(char *string, int maxchar, FILE *file_pointer);",
+    "description": "Reads a line of text from a file into a buffer. Returns the string read, or a null pointer if end of file is reached or a read error occurs.",
+    "args": [
+      {
+        "name": "string",
+        "desc": "Destination buffer for the string read."
+      },
+      {
+        "name": "maxchar",
+        "desc": "Maximum number of characters to read."
+      },
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the file to read from."
+      }
+    ],
+    "example": "#include <stdio.h>\nint i, total = 0;\nchar line[100], ch;\nFILE* file_stream;\nchar *filename = \"c:\\\\readme.txt\";\n\nif ((file_stream = fopen(filename, \"r\")) == NULL ) {\n    lr_error_message(\"Cannot open %s\", filename);\n    return -1;\n}\n\n// Get the first line from the file\nif (fgets(line, 100, file_stream) == NULL)\n    lr_output_message(\"fgets error\");\nelse\n    lr_output_message( \"The first line is \\\"%s\\\"\", line);\nif (fclose(file_stream))\n    lr_error_message(\"Error closing file %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fgets.htm"
+  },
+  {
+    "name": "fopen",
+    "category": "C: Input/Output",
+    "signature": "FILE* fopen(const char *filename, const char *access_mode);",
+    "description": "Opens a file for buffered I/O and returns a FILE pointer, or NULL on failure. Access modes: r, w, a, r+, w+, a+ (the + modes require the file to exist); append t for text mode or b for binary mode.",
+    "args": [
+      {
+        "name": "filename",
+        "desc": "Name (path) of the file to open."
+      },
+      {
+        "name": "access_mode",
+        "desc": "Access mode and file type, e.g. \"r\", \"w\", \"a\", \"rb+\"."
+      }
+    ],
+    "example": "#include <stdio.h>\nint count, total = 0;\nchar buffer[1000];\nFILE* file_stream;\nchar * filename = \"c:\\\\readme.txt\";\n\n// Open the file with read access\nif ((file_stream = fopen(filename, \"r\")) == NULL) {\n    lr_error_message (\"Cannot open %s\", filename);\n    return -1;\n}\n\n// Read until end of file\nwhile (!feof(file_stream)) {\n    // Read 1000 bytes while maintaining a running count\n    count = fread(buffer, sizeof(char), 1000, file_stream);\n    lr_output_message (\"%3d read\", count);\n    // Check for file I/O errors\n    if (ferror(file_stream)) {\n        lr_output_message (\"Error reading file %s\", filename);\n        break;\n    }\n    total += count; // Add up actual bytes read\n}\nlr_output_message (\"Total number of bytes read = %d\", total );\n// Close the file stream\nif (fclose(file_stream))\n    lr_error_message (\"Error closing file %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fopen.htm"
+  },
+  {
+    "name": "fprintf",
+    "category": "C: Input/Output",
+    "signature": "int fprintf(FILE *file_pointer, const char *format_string [, args ]);",
+    "description": "Writes formatted output to a file. Returns the number of characters written, or a negative value if an error occurs.",
+    "args": [
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the destination file."
+      },
+      {
+        "name": "format_string",
+        "desc": "Format string written to the file."
+      },
+      {
+        "name": "args",
+        "desc": "Optional arguments to print (one or more)."
+      }
+    ],
+    "example": "#include <stdio.h>\n\n#ifdef unix\n    char * filename = \"/tmp/logfile.txt\";\n#else\n    char * filename = \"c:\\\\logfile.txt\";\n#endif\nFILE* file;\nint id;\nchar * groupname;\n// Create a new file\nif ((file = fopen(filename, \"w\" )) == NULL) {\n    lr_output_message(\"Unable to create %s\", filename);\n    return -1;\n}\n\n// Write the Vuser ID and group to the log file\nlr_whoami(&id, &groupname, NULL);\nfprintf(file, \"log file of virtual user ID: %d group: %s\\n\", id, groupname);\nfclose(file);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fprintf.htm"
+  },
+  {
+    "name": "fputc",
+    "category": "C: Input/Output",
+    "signature": "int fputc(int c, FILE *file_pointer);",
+    "description": "Writes a single character to the stream. Returns the character written on success, or EOF on failure.",
+    "args": [
+      {
+        "name": "c",
+        "desc": "Character to write to the stream."
+      },
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the destination file."
+      }
+    ],
+    "example": "#include <stdio.h>\n\n#ifdef unix\n    char * filename = \"/tmp/logfile.txt\";\n#else\n    char * filename = \"c:\\\\logfile.txt\";\n#endif\nFILE* file;\nchar * p, str[] = \"this is the first line of the log file\";\nint c;\n\n// Create a new file\nif ((file = fopen(filename, \"w+\" )) == NULL) {\n    lr_output_message (\"Unable to create %s\", filename);\n    return -1;\n}\n\n// p points to the first character in str\np = str;\n\n// Use -1 or EOF\nwhile ((*p != NULL) && fputc(*(p++), file) != -1);\nfclose(file);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fputc.htm"
+  },
+  {
+    "name": "fread",
+    "category": "C: Input/Output",
+    "signature": "size_t fread(void *buffer, size_t size, size_t count, FILE *file_pointer);",
+    "description": "Reads unformatted (raw) data from a stream into a buffer. Returns the number of items successfully read; if fewer than count, an error or EOF occurred (distinguish with feof or ferror).",
+    "args": [
+      {
+        "name": "buffer",
+        "desc": "Destination location for the data read."
+      },
+      {
+        "name": "size",
+        "desc": "Size of each item in bytes."
+      },
+      {
+        "name": "count",
+        "desc": "Maximum number of items to read."
+      },
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the input stream."
+      }
+    ],
+    "example": "#include <stdio.h>\nint count, total = 0;\nchar buffer[1000];\nFILE* file_stream;\nchar * filename = \"c:\\\\readme.txt\";\nif ((file_stream = fopen(filename, \"r\")) == NULL) {\n    lr_error_message (\"Cannot open %s\", filename);\n    return -1;\n}\n// Read until end of file\nwhile (!feof(file_stream)) {\n    // Read 1000 bytes while maintaining a running count\n    count = fread(buffer, sizeof(char), 1000, file_stream);\n    lr_output_message (\"%3d read\", count);\n    // Check for file I/O errors\n    if (ferror(file_stream)) {\n        lr_output_message (\"Error reading file %s\", filename);\n        break;\n    }\n    total += count;\n}\nlr_output_message (\"Total number of bytes read = %d\", total);\nif (fclose(file_stream))\n    lr_error_message (\"Error closing file %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fread.htm"
+  },
+  {
+    "name": "fscanf",
+    "category": "C: Input/Output",
+    "signature": "int fscanf(FILE *file_pointer, const char *format_string [, args]);",
+    "description": "Reads formatted input from a stream. Returns the number of fields successfully read (not counting ignored fields); if EOF is reached before the first conversion, the result indicates an error.",
+    "args": [
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the file to read from."
+      },
+      {
+        "name": "format_string",
+        "desc": "Format characters that control how the input is parsed."
+      },
+      {
+        "name": "args",
+        "desc": "Destination arguments (variable addresses), matching the format specifiers."
+      }
+    ],
+    "example": "#include <stdio.h>\n#include <time.h>\n#ifdef unix\n    char * filename = \"/tmp/logfile.txt\";\n#else\n    char * filename = \"c:\\\\logfile.txt\";\n#endif\n\nFILE* file, thetime;\nint id, id2;\ntime_t t;\nchar s[32];\n\n// Create a new file\nif ((file = fopen(filename, \"w\" )) == NULL) {\n    lr_output_message (\"Unable to create %s\", filename);\n    return -1;\n}\n\n// Write the Vuser ID and time\nlr_whoami (&id, NULL, NULL);\nfprintf(file, \"Vuser %d %ld\", id, time(&t));\n\n// Now read what we've just written. Rewind to start of file\nrewind(file);\nfscanf(file, \"%s\", &s);\nfscanf(file, \"%d\", &id2);\nfscanf(file, \"%ld\", &thetime);\nlr_output_message (\"%s %d %ld\", s, id2, thetime);\nfclose(file);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fscanf.htm"
+  },
+  {
+    "name": "fseek",
+    "category": "C: Input/Output",
+    "signature": "int fseek(FILE *file_pointer, long offset, int origin);",
+    "description": "Moves the file position to a new location. Returns 0 on success, nonzero on failure. origin values: SEEK_SET (0) start of file, SEEK_CUR (1) current position, SEEK_END (2) end of file.",
+    "args": [
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the file."
+      },
+      {
+        "name": "offset",
+        "desc": "Offset in bytes from the origin."
+      },
+      {
+        "name": "origin",
+        "desc": "Starting point: SEEK_SET (0), SEEK_CUR (1), or SEEK_END (2)."
+      }
+    ],
+    "example": "#include <stdio.h>\n#include <time.h>\n#ifdef unix\n    char * filename = \"/tmp/logfile.txt\";\n#else\n    char * filename = \"c:\\\\logfile.txt\";\n#endif\nFILE* file, thetime;\nint id, id2;\ntime_t t;\nchar s[32];\n\n// Create a new file\nif ((file = fopen(filename, \"w+\" )) == NULL) {\n    lr_output_message (\"Unable to create %s\", filename);\n    return -1;\n}\n\n// Write the Vuser ID and time\nlr_whoami (&id, NULL, NULL);\nfprintf(file, \"Vuser %d %ld\", id, time(&t));\n\n// Now read what we've just written. Rewind to start of file\nfseek(file, 0, 0); // 0 is SEEK_SET\nfscanf(file, \"%s\", &s);\nfscanf(file, \"%d\", &id2);\nfscanf(file, \"%ld\", &thetime);\nlr_output_message (\"%s %d %ld\", s, id2, thetime);\nfclose(file);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fseek.htm"
+  },
+  {
+    "name": "fwrite",
+    "category": "C: Input/Output",
+    "signature": "size_t fwrite( const void *buffer, size_t size, size_t count, FILE *file_pointer);",
+    "description": "Writes unformatted (raw) data from a buffer to a stream. Returns the number of complete items (not bytes) successfully written.",
+    "args": [
+      {
+        "name": "buffer",
+        "desc": "Data to write."
+      },
+      {
+        "name": "size",
+        "desc": "Size of the buffer/item (per the documentation)."
+      },
+      {
+        "name": "count",
+        "desc": "Number of items to write."
+      },
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the destination file."
+      }
+    ],
+    "example": "#include <stdio.h>\n\n#ifdef unix\n    char * filename = \"/tmp/marks.txt\";\n#else\n    char * filename = \"c:\\\\marks.txt\";\n#endif\n\nstruct student_data {\n    int student_id;\n    unsigned char marks[10];\n};\n\nFILE* file;\nstruct student_data sd;\nint i;\n\nif ((file = fopen(filename, \"w+\")) == NULL) {\n    lr_output_message (\"Unable to create %s\", filename);\n    return -1;\n}\n\nsd.student_id = 1001;\n\n// Set the marks of student 1001\nfor (i = 0; i < 10; i++)\n     sd.marks[i] = (unsigned char)(85 + i);\n\n// Write student record to the file\ni = fwrite(&sd, sizeof(struct student_data), 1, file);\nif (i > 0)\n    lr_output_message (\"Successfully wrote %d record\", i);\n\nfclose(file);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_fwrite.htm"
+  },
+  {
+    "name": "rewind",
+    "category": "C: Input/Output",
+    "signature": "void rewind(FILE *file_pointer);",
+    "description": "Resets the file position to the beginning of the file. Returns no value.",
+    "args": [
+      {
+        "name": "file_pointer",
+        "desc": "Pointer to the file to reposition."
+      }
+    ],
+    "example": "#include <time.h>\n#include <stdio.h>\n#ifdef unix\n    char *filename = \"/tmp/logfile.txt\";\n#else\n    char *filename = \"c:\\\\logfile.txt\";\n#endif\nFILE* file, thetime;\nint id, id2;\ntime_t t;\nchar s[32];\n// Create a new file\nif ((file = fopen(filename, \"w+\" )) == NULL) {\n    lr_output_message (\"Unable to create %s\", filename);\n    return -1;\n}\n// Write the Vuser ID and time\nlr_whoami (&id, NULL, NULL);\nfprintf(file, \"Vuser %d %ld\", id, time(&t));\n// Now read what we've just written. Rewind to start of file\nrewind(file);\nfscanf(file, \"%s\", &s);\nfscanf(file, \"%d\", &id2);\nfscanf(file, \"%ld\", &thetime);\nlr_output_message (\"%s %d %ld\", s, id2, thetime);\nfclose(file);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_rewind.htm"
+  },
+  {
+    "name": "sprintf",
+    "category": "C: Input/Output",
+    "signature": "int sprintf(char *string_buffer, const char *format_string[, args]);",
+    "description": "Writes formatted output to a string. Returns the number of characters written, or a negative value on error. The destination buffer must be large enough; if the result exceeds its capacity, the script may behave unpredictably.",
+    "args": [
+      {
+        "name": "string_buffer",
+        "desc": "Destination string buffer."
+      },
+      {
+        "name": "format_string",
+        "desc": "Format characters."
+      },
+      {
+        "name": "args",
+        "desc": "Optional arguments to print."
+      }
+    ],
+    "example": "int index = 56;\nchar filename[64], * suffix = \"txt\";\nsprintf(filename, \"log_%d.%s\", index, suffix);\nlr_output_message (\"The new file name is %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_sprintf.htm"
+  },
+  {
+    "name": "sscanf",
+    "category": "C: Input/Output",
+    "signature": "int sscanf(const char *buffer, const char *format_string, args);",
+    "description": "Reads formatted input from a string. Returns the number of fields successfully read (not counting ignored fields).",
+    "args": [
+      {
+        "name": "buffer",
+        "desc": "Source string to parse."
+      },
+      {
+        "name": "format_string",
+        "desc": "Format characters."
+      },
+      {
+        "name": "args",
+        "desc": "Destination arguments (variable addresses)."
+      }
+    ],
+    "example": "char sentence[] = \"After 7 years' siege yet Troy walls stand\";\nchar s1[32], s2[32];\nint num_of_years;\nsscanf(sentence,\"%s %d %s\", s1, &num_of_years, s2);\nlr_output_message (\"Number of years=%d s2=\\\"%s\\\"\", num_of_years, s2);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_sscanf.htm"
+  },
+  {
+    "name": "chdir",
+    "category": "C: File & Directory",
+    "signature": "int chdir(const char *path);",
+    "description": "Changes the current working directory to the given path. Returns 0 on success, -1 on failure.",
+    "args": [
+      {
+        "name": "path",
+        "desc": "Path of the target directory."
+      }
+    ],
+    "example": "#ifdef unix\n    char DirString[] = \"/tmp\";\n    char NewDir[] = \"/tmp/xyz\";\n#else\n    char DirString[] = \"C:\\\\\";\n    char NewDir[] = \"C:\\\\xyz\";\n#endif\n\n// Change the current working directory to DirString\nif (chdir(DirString)) {\n    lr_output_message (\"Unable to locate directory: %s\", DirString);\n    return -1;\n}\nelse\n    lr_output_message (\"Changed directory to %s\", DirString);\n\n// Create a directory under root called xyz and make it the current dir\nif (mkdir(NewDir)) {\n    lr_output_message (\"Create directory %s failed\", NewDir);\n    return -1;\n}\n\nif (chdir(NewDir)) {\n    lr_output_message (\"Unable to change to dir %s\", NewDir);\n    return -1;\n}\nelse\n    lr_output_message (\"Changed to new dir %s\", NewDir);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_chdir.htm"
+  },
+  {
+    "name": "chdrive",
+    "category": "C: File & Directory",
+    "signature": "int chdrive(int drive);",
+    "description": "Switches to a different drive (Windows only). Returns 0 on success, -1 on failure.",
+    "args": [
+      {
+        "name": "drive",
+        "desc": "Drive number: 1 = A, 2 = B, etc."
+      }
+    ],
+    "example": "int ch, drive, curdrive;\nstatic char path[1024];\n// Save current drive letter so it can be restored later\ncurdrive = getdrive();\n// If we can switch to the drive, it exists\nlr_output_message (\"Available drives are:\");\nfor (drive = 1; drive <= 26; drive++)\nif (!chdrive(drive))\n    lr_output_message (\"%c: \", drive + 'A' - 1);\n    chdrive(curdrive); // Restore original drive",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_chdrive.htm"
+  },
+  {
+    "name": "getcwd",
+    "category": "C: File & Directory",
+    "signature": "char *getcwd(char *path, int numchars);",
+    "description": "Retrieves the name of the current working directory into a buffer. According to the documentation, returns zero on success and -1 on failure.",
+    "args": [
+      {
+        "name": "path",
+        "desc": "Destination buffer for the current directory path."
+      },
+      {
+        "name": "numchars",
+        "desc": "Maximum number of characters to retrieve."
+      }
+    ],
+    "example": "#include <direct.h>\n\n#define DIR_LEN 512\nchar original_dir[DIR_LEN];\n#ifdef unix\n    char new_dir[] = \"/tmp\";\n#else\n    char new_dir[] = \"C:\\\\\";\n#endif\n\nif (!getcwd(original_dir, DIR_LEN)) {\n    lr_output_message (\"getcwd error\");\n    return -1;\n}\n\n// Change the current working directory to new_dir\nif (chdir(new_dir)) {\n    lr_output_message (\"Unable to locate directory: %s\", new_dir);\n    return -1;\n}\nelse\n    lr_output_message (\"Changed dir to %s\", new_dir);\n\n// Move back to original directory\nif (chdir(original_dir)) {\n    lr_output_message (\"Cannot move back to %s\", original_dir);\n    return -1;\n}\nelse\n    lr_output_message (\"Moved back to %s\", original_dir);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_getcwd.htm"
+  },
+  {
+    "name": "getdrive",
+    "category": "C: File & Directory",
+    "signature": "int getdrive(void);",
+    "description": "Returns the current drive as a number (1 = A, 2 = B, etc.; Windows only). Returns -1 on failure.",
+    "args": [],
+    "example": "int ch, drive, curdrive;\nstatic char path[1024];\n// Save current drive letter so it can be restored later\ncurdrive = getdrive();\n// If we can switch to the drive, it exists\nlr_output_message (\"Available drives are:\");\nfor (drive = 1; drive <= 26; drive++)\nif (!chdrive(drive))\n    lr_output_message (\"%c: \", drive + 'A' - 1);\n    chdrive(curdrive); // Restore original drive",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_getdrive.htm"
+  },
+  {
+    "name": "ftell",
+    "category": "C: File & Directory",
+    "signature": "long int ftell(FILE *stream)",
+    "description": "Returns the current file position of the stream. On error, returns -1 and sets errno. Commonly used with fseek(SEEK_END) to determine the file length.",
+    "args": [
+      {
+        "name": "stream",
+        "desc": "FILE pointer identifying the stream."
+      }
+    ],
+    "example": "FILE *f = fopen(\"c:\\\\data.txt\", \"rb\");\nlong fileLen;\nif (f == NULL) {\n    lr_error_message(\"Cannot open file\");\n    return -1;\n}\nfseek(f, 0, 2); // 2 = SEEK_END\nfileLen = ftell(f);\nlr_output_message(\"File length: %ld bytes\", fileLen);\nfclose(f);",
+    "exampleSource": "composed",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFr_ftell.htm"
+  },
+  {
+    "name": "mkdir",
+    "category": "C: File & Directory",
+    "signature": "int mkdir(const char *path);",
+    "description": "Creates a new directory at the given path. Returns 0 on success, -1 on failure.",
+    "args": [
+      {
+        "name": "path",
+        "desc": "Path and name of the directory to create."
+      }
+    ],
+    "example": "#ifdef unix\n    char new_dir[] = \"/tmp/xyz\";\n#else\n    char new_dir[] = \"C:\\\\xyz\";\n#endif\n\n// Create a directory under root called xyz and make it the current dir\nif (mkdir(new_dir)) {\n    lr_output_message (\"Create directory %s failed\", new_dir);\n    return -1;\n}\nelse\n     lr_output_message (\"Created new directory %s\", new_dir);\n\nif (chdir(new_dir)) {\n    lr_output_message (\"Unable to change to dir %s\", new_dir);\n    return -1;\n}\nelse\n    lr_output_message (\"Changed to new dir %s\", new_dir);\n\nreturn 0;",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_mkdir.htm"
+  },
+  {
+    "name": "remove",
+    "category": "C: File & Directory",
+    "signature": "int remove(const char *path);",
+    "description": "Deletes the specified file. Returns 0 on success, -1 on failure (errno is set to the error code).",
+    "args": [
+      {
+        "name": "path",
+        "desc": "Full path of the file to delete."
+      }
+    ],
+    "example": "extern int errno;\nchar filename[1024], command[1024];\nchar new_dir[] = \"C:\\\\xyz\";\n\n// Create a directory under root called xyz and make it the current dir\nif (mkdir(new_dir)) {\n    lr_output_message (\"Create directory %s failed\", new_dir);\n    return -1;\n}\nelse\n    lr_output_message (\"Created new directory %s\", new_dir);\n\n// Create a new file in the new directory\nsprintf(filename, \"%s\\\\%s\", new_dir, \"short_lifespan.txt\");\nsprintf(command, \"dir %s > %s /w\", new_dir, filename );\nsystem(command);\nlr_output_message (\"Created new file %s\", filename);\n\n// Now delete the file\nif (remove(filename) == 0)\n    lr_output_message (\"Removed new file %s\", filename);\nelse\n    lr_output_message (\"Unable to remove %s error %d\", filename, errno);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_remove.htm"
+  },
+  {
+    "name": "rmdir",
+    "category": "C: File & Directory",
+    "signature": "int rmdir(const char *path);",
+    "description": "Deletes the specified directory. Returns 0 on success, -1 on failure (errno is set to the error code).",
+    "args": [
+      {
+        "name": "path",
+        "desc": "Full path of the directory to delete."
+      }
+    ],
+    "example": "extern int errno;\nchar filename[1024], command[1024];\nchar new_dir[] = \"C:\\\\xyz\";\n\n// Create a directory under root called xyz\nif (mkdir(new_dir)) {\n    lr_output_message (\"Create directory %s failed\", new_dir);\n    return -1;\n}\nelse\n    lr_output_message (\"Created new directory %s\", new_dir);\n\n// Create a new file in the new directory\nsprintf(filename, \"%s\\\\%s\", new_dir, \"short_lifespan.txt\");\nsprintf(command, \"dir %s > %s /w\", new_dir, filename );\nsystem(command);\n\n// Now delete the file\nif (remove(filename) == 0)\n    lr_output_message (\"Removed new file %s\", filename);\n\n// Now delete the new directory\nif (rmdir(new_dir) == 0)\n    lr_output_message (\"Removed new directory %s\", new_dir);\nelse\n    lr_output_message (\"Unable to remove %s error %d\", new_dir, errno);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_rmdir.htm"
+  },
+  {
+    "name": "abs",
+    "category": "C: Math",
+    "signature": "int abs(int n);",
+    "description": "Returns the absolute value of an integer.",
+    "args": [
+      {
+        "name": "n",
+        "desc": "Integer value whose absolute value is returned."
+      }
+    ],
+    "example": "int m = 23, n = -11;\n\nlr_output_message (\"absolute value of %d = %d\", m, abs(m));\n\nlr_output_message (\"absolute value of %d = %d\", n, abs(n));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_abs.htm"
+  },
+  {
+    "name": "cos",
+    "category": "C: Math",
+    "signature": "double cos(double x);",
+    "description": "Computes the cosine of an angle in radians. Returns the result as a double. Note: 180 degrees = PI radians.",
+    "args": [
+      {
+        "name": "x",
+        "desc": "Angle in radians."
+      }
+    ],
+    "example": "#include <math.h>\n\ndouble cos(double x);\ndouble x = 45;\nlr_output_message (\"Cosine of %lf deg = %lf\", x, cos(x * PI/180));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_cos.htm"
+  },
+  {
+    "name": "floor",
+    "category": "C: Math",
+    "signature": "double floor(double x);",
+    "description": "Returns the largest integer less than or equal to x (rounds down). Returns a double.",
+    "args": [
+      {
+        "name": "x",
+        "desc": "Value to round down."
+      }
+    ],
+    "example": "#include <math.h>\n\ndouble floor(double x); // Explicit forward declaration\nlr_output_message (\"floor of 2.3 is %.1lf\\n\", floor(2.3));\nlr_output_message (\"floor of 3.8 is %.1lf\\n\", floor(3.8));\nlr_output_message (\"floor of -2.3 is %.1lf\\n\", floor(-2.3));\nlr_output_message (\"floor of -3.8 is %.1lf\\n\", floor(-3.8));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFr_floor.htm"
+  },
+  {
+    "name": "rand",
+    "category": "C: Math",
+    "signature": "int rand(void);",
+    "description": "Generates a pseudo-random integer between 0 and 32767. Call srand first to seed the random number generator.",
+    "args": [],
+    "example": "//srand is called before rand\nsrand(time(NULL));\n\n// Generate a random number from 0-99\nlr_output_message(\"A number between 0 and 99: %d\\n\", rand() % 100);\n\nint rNum;\n// rNum between 20 and 29\nrNum= rand() % 10 + 20;",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_rand.htm"
+  },
+  {
+    "name": "sin",
+    "category": "C: Math",
+    "signature": "double sin(double x);",
+    "description": "Computes the sine of an angle in radians. Returns the result as a double.",
+    "args": [
+      {
+        "name": "x",
+        "desc": "Angle in radians."
+      }
+    ],
+    "example": "#include <math.h>\ndouble x = 90;\nlr_output_message (\"Sine of %lf deg = %lf\\n\", x, sin(x * PI/180));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_sin.htm"
+  },
+  {
+    "name": "sqrt",
+    "category": "C: Math",
+    "signature": "double sqrt(double x);",
+    "description": "Computes the square root of x. If x is negative, the result is indefinite (documentation sample output: -1.#IND00).",
+    "args": [
+      {
+        "name": "x",
+        "desc": "Value whose square root is computed."
+      }
+    ],
+    "example": "// Explicit forward declaration\n\ndouble sqrt(double x);\nlr_output_message (\"Square root of 9 = %f\\n\", sqrt(9));\nlr_output_message (\"Square root of 8 = %f\\n\", sqrt(8));\nlr_output_message (\"Square root of -8 = %f\\n\", sqrt(-8));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_sqrt.htm"
+  },
+  {
+    "name": "srand",
+    "category": "C: Math",
+    "signature": "int srand(seedTime);",
+    "description": "Seeds the pseudo-random number generator; must be called before rand(), typically as srand(time(NULL)).",
+    "args": [
+      {
+        "name": "seedTime",
+        "desc": "Seed value for the random number generator."
+      }
+    ],
+    "example": "// Srand is called before rand\nsrand(time(NULL));\n\n// Generate some random numbers\nlr_output_message (\"A number between 0 and 100: %d\\n\", rand() % 100);\nlr_output_message (\"A number between 20 and 30: %d\\n\", rand() % 10+20);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_srand.htm"
+  },
+  {
+    "name": "time",
+    "category": "C: Date & Time",
+    "signature": "time_t time(time_t *timeptr);",
+    "description": "Returns the current system time as the number of seconds since January 1, 1970 UTC; the same value is also stored in timeptr unless it is NULL.",
+    "args": [
+      {
+        "name": "timeptr",
+        "desc": "Pointer to a time_t variable that receives the result; if NULL, the value is not stored."
+      }
+    ],
+    "example": "#include <time.h>\ntime_t t;\n\n// Get system time and display as number and string\nlr_message (\"Time in seconds since 1/1/70: %ld\\n\", time(&t));\nlr_message (\"Formatted time and date: %s\", ctime(&t));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_time.htm"
+  },
+  {
+    "name": "ctime",
+    "category": "C: Date & Time",
+    "signature": "char *ctime(const time_t *calTime);",
+    "description": "Converts calendar time to a human-readable local time string. Note: on Linux this function is not thread-safe; use ctime_r.",
+    "args": [
+      {
+        "name": "calTime",
+        "desc": "Pointer to the calendar time value to convert."
+      }
+    ],
+    "example": "#include <time.h>\n// Get Linux-style time and display as number and string\nlr_message (\"Time in seconds since 1/1/70: %ld\\n\", time(&t));\nlr_message (\"Linux-style time and date: %s\", ctime(&t));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_ctime.htm"
+  },
+  {
+    "name": "localtime",
+    "category": "C: Date & Time",
+    "signature": "struct tm *localtime(const time_t *calTime);",
+    "description": "Converts calendar time to local time and returns a pointer to a struct tm. Note: on Linux it is not thread-safe; use localtime_r.",
+    "args": [
+      {
+        "name": "calTime",
+        "desc": "Pointer to the calendar time value to convert."
+      }
+    ],
+    "example": "#include <time.h>\ntime_t t;\nstruct tm * now;\nchar tmp[128], ampm[] = \"AM\";\n// Sets variables used by localtime\n_tzset();\ntime(&t);\n// Convert to time structure and adjust for PM if necessary\nnow = (struct tm *)localtime(&t);\nif (now->tm_hour > 12) {\n    strcpy (ampm, \"PM\");\n    now->tm_hour -= 12;\n}\n// Adjust if midnight hour\nif (now->tm_hour == 0)\n    now->tm_hour = 12;\nlr_message (\"12-hour time: %.8s %s\", asctime(now) + 11, ampm);\n// Use strftime to build a customized time string\nstrftime (tmp, 128, \"Today is %A, day %d of %B in the year %Y.\", now);\nlr_message (tmp);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_localtime.htm"
+  },
+  {
+    "name": "gmtime",
+    "category": "C: Date & Time",
+    "signature": "struct tm *gmtime(const time_t *calTime);",
+    "description": "Converts calendar time to Coordinated Universal Time (UTC) and returns a pointer to a struct tm. Note: on Linux it is not thread-safe; use gmtime_r.",
+    "args": [
+      {
+        "name": "calTime",
+        "desc": "Pointer to the calendar time value to convert."
+      }
+    ],
+    "example": "#include <time.h>\n\ntime_t t;\nstruct tm * gmt;\ntime(&t);\ngmt = (struct tm *)gmtime(&t);\nlr_message (\"Coordinated universal time:\\t\\t%s\", asctime(gmt));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_gmtime.htm"
+  },
+  {
+    "name": "asctime",
+    "category": "C: Date & Time",
+    "signature": "char *asctime(const struct tm *tmTime);",
+    "description": "Converts a time in a struct tm to a human-readable string. Note: on Linux it is not thread-safe; use asctime_r.",
+    "args": [
+      {
+        "name": "tmTime",
+        "desc": "Pointer to the struct tm to convert."
+      }
+    ],
+    "example": "#include <time.h>\n\ntime_t t;\nstruct tm *gmt;\n\ntime(&t);\ngmt = (struct tm *)gmtime(&t);\nlr_message (\"Coordinated universal time:\\t\\t%s\", asctime(gmt));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_asctime.htm"
+  },
+  {
+    "name": "strftime",
+    "category": "C: Date & Time",
+    "signature": "size_t *strftime(char *string, size_t maxlen, const char *format, const struct tm *timestruct);",
+    "description": "Converts a time to a formatted string and writes it to a memory area. Returns the number of characters written (excluding the null terminator), or 0 on failure. Note: on Linux it is not thread-safe; use strftime_r.",
+    "args": [
+      {
+        "name": "string",
+        "desc": "Destination buffer for the resulting string."
+      },
+      {
+        "name": "maxlen",
+        "desc": "Maximum buffer capacity, including the null terminator."
+      },
+      {
+        "name": "format",
+        "desc": "Format string (platform-dependent)."
+      },
+      {
+        "name": "timestruct",
+        "desc": "Pointer to a struct tm from gmtime() or localtime()."
+      }
+    ],
+    "example": "#include <time.h>\ntime_t t;\nstruct tm * now;\nchar tmp[128], ampm[] = \"AM\";\n// Sets variables used by localtime\n_tzset();\ntime(&t);\n// Convert to time structure and adjust for PM if necessary\nnow = (struct tm *)localtime(&t);\nif (now->tm_hour > 12) {\n    strcpy (ampm, \"PM\");\n    now->tm_hour -= 12;\n}\n// Adjust if midnight hour\nif (now->tm_hour == 0)\n    now->tm_hour = 12;\nlr_message (\"12-hour time: %.8s %s\", asctime(now) + 11, ampm);\n// Use strftime to build a customized time string\nstrftime (tmp, 128, \"Today is %A, day %d of %B in the year %Y.\", now);\nlr_message (tmp);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_strftime.htm"
+  },
+  {
+    "name": "getenv",
+    "category": "C: Process Control",
+    "signature": "char *getenv( const char *varname );",
+    "description": "Retrieves the value of an environment variable. Returns NULL if the variable does not exist.",
+    "args": [
+      {
+        "name": "varname",
+        "desc": "Name of the environment variable."
+      }
+    ],
+    "example": "#include <stdio.h>\nchar * tmp, logfile[512], dir_separator;\nFILE* file;\n// Create an environment variable\nputenv(\"LOGFILE_NAME=lr_test.txt\");\n// Retrieve the temporary directory environment directory\nif (tmp = (char *)getenv(\"TEMP\"))\n    lr_output_message (\"Temp Dir = %s\", tmp);\nelse {\n    lr_output_message (\"TEMP environment variable undefined\");\n    return -1;\n}\nsprintf(logfile, \"%s\\\\%s\", tmp, (char *)getenv(\"LOGFILE_NAME\"));\n// Open and write to the log file\nif ((file = fopen(logfile, \"w\")) == NULL ) {\n    lr_error_message (\"Cannot open %s\", logfile);\n    return -1;\n}\nelse\n    lr_output_message (\"Opened %s\", logfile);\nfprintf(file, \"this is a log file\\n\");\nfclose(file);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_getenv.htm"
+  },
+  {
+    "name": "putenv",
+    "category": "C: Process Control",
+    "signature": "int putenv(const char *envstring);",
+    "description": "Adds a new definition to the environment table. Returns 0 on success, -1 on error.",
+    "args": [
+      {
+        "name": "envstring",
+        "desc": "String in the format \"varname=value\"."
+      }
+    ],
+    "example": "#include <stdio.h>\nchar * tmp, logfile[512], dir_separator;\nFILE* file;\n// Create an environment variable\nputenv(\"LOGFILE_NAME=lr_test.txt\");\n// Retrieve the temporary directory environment directory\nif (tmp = (char *)getenv(\"TEMP\"))\n    lr_output_message (\"Temp Dir = %s\", tmp);\nelse {\n    lr_output_message (\"TEMP environment variable undefined\");\n    return -1;\n}\nsprintf(logfile, \"%s\\\\%s\", tmp, (char *)getenv(\"LOGFILE_NAME\"));\n// Open and write to the log file\nif ((file = fopen(logfile, \"w\")) == NULL ) {\n    lr_error_message (\"Cannot open %s\", logfile);\n    return -1;\n}\nelse\n    lr_output_message (\"Opened %s\", logfile);\nfprintf(file, \"this is a log file\\n\");\nfclose(file);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_putenv.htm"
+  },
+  {
+    "name": "system",
+    "category": "C: Process Control",
+    "signature": "int system(const char *string);",
+    "description": "Executes an operating system command by passing the string to the OS. Returns 0 on success, or -1 on failure (errno: ENOENT, ENOEXEC, ENOMEM, E2BIG).",
+    "args": [
+      {
+        "name": "string",
+        "desc": "Command passed to the operating system."
+      }
+    ],
+    "example": "char filename[1024], command[1024];\nchar new_dir[] = \"C:\\\\xyz\";\n\n// Create a directory under root called xyz and make it the current dir\nif (mkdir(new_dir))\n    lr_output_message (\"Create directory %s failed\", new_dir);\nelse\n    lr_output_message (\"Created new directory %s\", new_dir);\n\nsprintf(filename, \"%s\\\\%s\", new_dir, \"newfile.txt\");\n\n// Execute a dir /b command and direct it to a new file\nsprintf(command, \"dir /b c:\\\\ > %s /w\", filename);\nsystem(command);\nlr_output_message (\"Created new file %s\", filename);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_language/lrFuncRef_CLang_system.htm"
+  }
+]

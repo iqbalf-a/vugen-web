@@ -1,0 +1,330 @@
+[
+  {
+    "name": "web_reg_save_param",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_reg_save_param(const char *ParamName, <List of Attributes>, LAST);",
+    "description": "Registers a request to save dynamic data from the server response to a parameter, by searching for text between case-sensitive left (LB) and right (RB) boundaries. The C version of this function is marked deprecated in the documentation; use web_reg_save_param_ex or web_reg_save_param_xpath instead.",
+    "args": [
+      { "name": "ParamName", "desc": "The name of the output parameter to create." },
+      { "name": "LB", "desc": "The left boundary, required; case-sensitive." },
+      { "name": "RB", "desc": "The right boundary, required; case-sensitive." },
+      { "name": "ORD", "desc": "The occurrence number to save, or \"All\" for a parameter array." },
+      { "name": "Search", "desc": "The search scope: Headers, Body, Noresource, or ALL (default)." },
+      { "name": "Convert", "desc": "Converts the result: HTML_TO_URL or HTML_TO_TEXT." },
+      { "name": "IgnoreRedirections", "desc": "Yes/No: ignores redirect responses." },
+      { "name": "SaveOffset", "desc": "The starting position of the substring to save." },
+      { "name": "SaveLen", "desc": "The length of the substring to save." },
+      { "name": "NOTFOUND", "desc": "\"error\" (default) or \"warning\" if the data is not found." }
+    ],
+    "example": "web_reg_save_param(\"SessionId\",\n    \"LB=name=\\\"sid\\\" value=\\\"\",\n    \"RB=\\\"\",\n    \"Ord=1\",\n    \"Search=Body\",\n    LAST);\n\nweb_url(\"home\",\n    \"URL=http://localhost/WebTours/\",\n    \"Resource=0\",\n    \"Mode=HTML\",\n    LAST);\n\nlr_output_message(\"SessionId = %s\", lr_eval_string(\"{SessionId}\"));",
+    "exampleSource": "composed",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_reg_save_param.htm"
+  },
+  {
+    "name": "web_reg_save_param_ex",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_reg_save_param_ex(\"ParamName=<output parameter name>\", [LB[/IC][BIN]=<value>,] [RB[/IC][BIN]=<value>,] <list of attributes>, SEARCH FILTERS, LAST);",
+    "description": "Registers a request to capture dynamic data from the server response between a left and a right boundary and save it to a parameter for correlation. Supports parameter arrays through Ordinal=All (the number of results is available in {ParamName_count}); the boundaries themselves are not saved.",
+    "args": [
+      { "name": "ParamName", "desc": "The name of the output parameter to create." },
+      { "name": "LB", "desc": "The left boundary where data capture begins." },
+      { "name": "RB", "desc": "The right boundary where data capture ends." },
+      { "name": "/IC", "desc": "Boundary matching is not case-sensitive (for example, LB/IC=...)." },
+      { "name": "/BIN", "desc": "The boundary is written in binary escape format." },
+      { "name": "Ordinal", "desc": "The occurrence to save: a number, \"All\", or \"RANDOM\"." },
+      { "name": "SEARCH_FILTERS", "desc": "Filters that narrow the search scope (for example, Scope=body)." },
+      { "name": "LAST", "desc": "The required marker for the end of the argument list." }
+    ],
+    "example": "web_reg_save_param_ex(\n    \"ParamName=newParam\",\n    \"LB/IC=ll\",\n    \"RB/IC=RR\",\n    \"Ordinal=all\",\n    \"SaveLen=-1\",\n    \"DFEs=UrlEncoding\",\n    SEARCH_FILTERS,\n        \"Scope=body\",\n    LAST);\n\nweb_submit_data(\"echo.asp_2\",\n    \"Action=http://localhost/cgi-bin/echo.asp\",\n    \"Method=POST\",\n    \"Mode=HTML\",\n    ITEMDATA,\n        \"Name=code\", \"Value={inParam}\", ENDITEM,\n    LAST);\n\nelemCnt = atoi(lr_eval_string(\"{newParam_count}\"));\nlr_output_message(\"Number of items found = %d\", elemCnt);\n\nfor (x = 1; x <= elemCnt; x++) {\n    sprintf(arrayParamName, \"{newParam_%d}\", x);\n    lr_output_message(\"%s: %s\", arrayParamName, lr_eval_string(arrayParamName));\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_reg_save_param_ex.htm"
+  },
+  {
+    "name": "web_reg_save_param_regexp",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_reg_save_param_regexp(\"ParamName=<output parameter name>\", \"RegExp=<regular_expression>\", [\"Group=<0-10>\",] List of Attributes, [SEARCH FILTERS,] LAST);",
+    "description": "Registers a request to capture dynamic data that matches a regular expression (PERL-compatible) and save it to a parameter. Can save the entire match or a specific capture group; it is not recorded automatically, so it must be added manually.",
+    "args": [
+      { "name": "ParamName", "desc": "The name of the output parameter to create." },
+      { "name": "RegExp", "desc": "A PERL-compatible regular expression with up to 10 capture groups." },
+      { "name": "Group", "desc": "The part to save: 0 (the entire match) or 1-10 (a capture group); default 1." },
+      { "name": "Ordinal", "desc": "Attribute: \"All\" produces a parameter array." },
+      { "name": "SEARCH_FILTERS", "desc": "Filters that narrow the search scope (for example, RequestUrl)." },
+      { "name": "LAST", "desc": "The required marker for the end of the argument list." }
+    ],
+    "example": "web_reg_save_param_regexp(\n    \"ParamName=Correlation1\",\n    \"RegExp=<TD[^>]+>(.+)</TD>\",\n    \"Ordinal=All\",\n    SEARCH_FILTERS,\n        \"RequestUrl=*/files/index.html\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_reg_save_param_regexp.htm"
+  },
+  {
+    "name": "web_reg_save_param_xpath",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_reg_save_param_xpath(\"ParamName=<output parameter name>\", \"QueryString=<Xpath>\", [\"ReturnXML=<Yes|No>\",] [\"SelectAll=<Yes|No>\",] <List of Attributes>, <Search Filters>, LAST);",
+    "description": "Registers a request to save dynamic data from an XML/HTML-formatted buffer to a parameter using an XPath expression. With SelectAll=Yes, all matches are saved as an array (ParamName_1, ParamName_2, ...; the count is in {ParamName_count}).",
+    "args": [
+      { "name": "ParamName", "desc": "The name of the output parameter to create." },
+      { "name": "QueryString", "desc": "The XPath expression that points to the value to save." },
+      { "name": "ReturnXML", "desc": "Yes: returns the entire XML node including its children; No (default): returns only the element value." },
+      { "name": "SelectAll", "desc": "Yes: saves all matches as an array." },
+      { "name": "SEARCH_FILTERS", "desc": "Filters that narrow the search scope (for example, Scope=Body)." },
+      { "name": "LAST", "desc": "The required marker for the end of the argument list." }
+    ],
+    "example": "web_reg_save_param_xpath(\n    \"ParamName=outParam\",\n    \"QueryString=//tag_c\",\n    SEARCH_FILTERS,\n    \"Scope=Body\",\n    LAST);\n\nweb_url(\"xpath_test.xml\",\n    \"url=http://localhost/webgui/xpath_test.xml\",\n    LAST);\n\nlr_output_message(lr_eval_string(\"outParam = {outParam}\"));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_reg_save_param_xpath.htm"
+  },
+  {
+    "name": "web_reg_save_param_json",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_reg_save_param_json(\"ParamName=<output parameter name>\", \"QueryString=<json query>\", [\"SelectAll=<Yes|No>\",] <List of Attributes>, <Search Filters>, LAST);",
+    "description": "Registers a request to find and retrieve dynamic data from a JSON-formatted response using a JSONPath expression, and save it to a parameter. With SelectAll=Yes, all matches are saved as an indexed array (ParamName_1, ... and ParamName_count).",
+    "args": [
+      { "name": "ParamName", "desc": "The name of the output parameter; created if it does not exist." },
+      { "name": "QueryString", "desc": "The JSONPath expression for the value to retrieve." },
+      { "name": "SelectAll", "desc": "Yes: saves all matches as an indexed array." },
+      { "name": "SEARCH_FILTERS", "desc": "Filters that narrow the search scope (for example, Scope=Body)." },
+      { "name": "LAST", "desc": "The required marker for the end of the argument list." }
+    ],
+    "example": "web_reg_save_param_json(\n    \"ParamName=nameParam\",\n    \"QueryString=$..arguments.additional_context[0].name\",\n    SEARCH_FILTERS,\n    \"Scope=Body\",\n    LAST);\n\nweb_url(\"127.0.0.1:12800\",\n    \"URL=http://127.0.0.1:12800/\",\n    \"Resource=1\",\n    \"RecContentType=application/json\",\n    \"Referer=\",\n    \"Snapshot=t1.inf\",\n    LAST);\n\nweb_url(\"127.0.0.1:12800_2\",\n    \"URL=http://127.0.0.1:12800/?name={nameParam}\",\n    \"Resource=1\",\n    \"RecContentType=application/json\",\n    \"Referer=\",\n    \"Snapshot=t4.inf\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_reg_save_param_json.htm"
+  },
+  {
+    "name": "web_reg_save_param_attrib",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_reg_save_param_attrib(\"ParamName=<output parameter name>\", TagName=<value>, Extract=<value>, [Name=<value>, ] [Id=<value>, ] [Class=<value>, ] [Type=<value>, ]<List of Attributes>, <SEARCH FILTERS>,LAST );",
+    "description": "Registers a request to save dynamic data from an HTML-formatted response to a parameter, based on the tag and attributes of an HTML element. Useful for retrieving values such as hidden form fields without left/right boundaries.",
+    "args": [
+      { "name": "ParamName", "desc": "The name of the output parameter to create." },
+      { "name": "TagName", "desc": "The HTML element name (for example, input, div)." },
+      { "name": "Extract", "desc": "The HTML attribute whose value is saved (for example, value, innerHTML)." },
+      { "name": "Name", "desc": "Filters by the element's name attribute." },
+      { "name": "Id", "desc": "Filters by the element's id attribute." },
+      { "name": "Class", "desc": "Filters by the element's class attribute." },
+      { "name": "Type", "desc": "Filters by the element type (for example, hidden)." }
+    ],
+    "example": "web_reg_save_param_attrib(\n    \"ParamName=corrparam1\",\n    \"TagName=input\",\n    \"Extract=value\",\n    \"Name=field1\",\n    \"Type=*\",\n    SEARCH_FILTERS,\n    \"IgnoreRedirections=No\",\n    LAST);\n\nweb_reg_save_param_attrib(\n    \"ParamName=corrparam2\",\n    \"TagName=p\",\n    \"Extract=innerHTML\",\n    \"Name=field2\",\n    \"Id=*\",\n    SEARCH_FILTERS,\n    \"IgnoreRedirections=No\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_reg_save_param_attrib.htm"
+  },
+  {
+    "name": "web_reg_find",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_reg_find( const char *attribute_list_, LAST );",
+    "description": "Registers a search for a text string in an HTML page, performed when the next action function is called, to verify that the correct page was received. By default it fails if the text is not found; the number of matches can be saved with SaveCount.",
+    "args": [
+      { "name": "Text", "desc": "The text string to search for (required unless TextPfx/TextSfx is used)." },
+      { "name": "TextPfx", "desc": "The left boundary: text that precedes the search string." },
+      { "name": "TextSfx", "desc": "The right boundary: text that follows the search string." },
+      { "name": "Search", "desc": "The scope: Headers, Body, Noresource, or ALL (default BODY)." },
+      { "name": "SaveCount", "desc": "The name of the parameter in which to store the number of matches." },
+      { "name": "Fail", "desc": "\"Found\" or \"NotFound\" (default): the condition treated as a failure." },
+      { "name": "ID", "desc": "An identifier string used to associate the check with the log." },
+      { "name": "RelFrameId", "desc": "The relative frame ID (for example, 1.2)." }
+    ],
+    "example": "web_url(\"WebTours\",\n    \"URL=http://localhost/WebTours/\",\n    \"Resource=0\",\n    \"RecContentType=text/html\",\n    \"Referer=\",\n    \"Snapshot=t1.inf\",\n    \"Mode=HTML\",\n    LAST);\n\nweb_reg_find(\"Text=Welcome\",\n    \"SaveCount=Welcome_Count\",\n    LAST);\n\nweb_submit_form(\"login.pl\",\n    \"Snapshot=t2.inf\",\n    ITEMDATA,\n    \"Name=username\", \"Value=jojo\", ENDITEM,\n    \"Name=password\", \"Value=bean\", ENDITEM,\n    LAST);\n\nif (atoi(lr_eval_string(\"{Welcome_Count}\")) > 0) {\n    lr_output_message(\"Log on successful.\");\n} else {\n    lr_error_message(\"Log on failed\");\n    return(0);\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_reg_find.htm"
+  },
+  {
+    "name": "web_global_verification",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_global_verification( <List of Attributes>, LAST );",
+    "description": "Registers a search for specific text on all subsequent requests until paused (web_global_verification_pause). Unlike web_reg_find, which applies to a single action function; useful for detecting application-level errors that are not reflected in the HTTP status code.",
+    "args": [
+      { "name": "Text", "desc": "The text string to search for (not empty)." },
+      { "name": "TextPfx", "desc": "The left boundary of the text (used without Text)." },
+      { "name": "TextSfx", "desc": "The right boundary of the text (used without Text)." },
+      { "name": "Search", "desc": "The location: Headers, Body, NORESOURCE (default), or All." },
+      { "name": "Fail", "desc": "\"Found\" (default, fails if the text appears) or \"NotFound\" (fails if the text is absent)." },
+      { "name": "ID", "desc": "An identifier string used with pause/resume." }
+    ],
+    "example": "web_global_verification(\"Text/IC=Acme Company\",\n    \"Fail=NotFound\",\n    \"ID=FindAcme\", LAST);\n\nweb_url(\"Step\", \"URL=...\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_global_verification.htm"
+  },
+  {
+    "name": "web_global_verification_pause",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_global_verification_pause(const char *ID [, const char *ID1, ..., const char *IDn], LAST);",
+    "description": "Temporarily suspends the checks registered by web_global_verification until web_global_verification_resume is called with the same ID.",
+    "args": [
+      { "name": "ID", "desc": "A name-value pair \"ID=...\" identical to the ID argument of web_global_verification; more than one can be given." },
+      { "name": "LAST", "desc": "The required marker for the end of the argument list." }
+    ],
+    "example": "web_global_verification(\"Text/IC=text1\", \"Fail=NotFound\", \"ID=text_1_verify\", LAST);\nweb_global_verification(\"Text/IC=text2\", \"Fail=NotFound\", \"ID=text_2_verify\", LAST);\nweb_global_verification(\"Text/IC=text2\", \"Fail=NotFound\", \"ID=text_3_verify\", LAST);\n\n/* The check is performed for all of the verifications above. */\nweb_url(\"Search for 1_2_3\", \"URL=...\", LAST);\n\nweb_global_verification_pause(\"ID=text_3_verify\", \"ID=text_1_verify\", LAST);\n\n/* Only text_2_verify is checked; the others are suspended. */\nweb_url(\"Search for 2 only\", \"URL=...\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_global_verification_pause.htm"
+  },
+  {
+    "name": "web_global_verification_resume",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_global_verification_resume( const char *ID [, const char *ID1_, ..., const char *IDn_], LAST);",
+    "description": "Resumes checks that were previously suspended by web_global_verification_pause, based on the ID given in web_global_verification.",
+    "args": [
+      { "name": "ID", "desc": "A name-value pair \"ID=...\" previously given to web_global_verification, for example \"ID=id1\",\"ID=id2\"." },
+      { "name": "LAST", "desc": "The required marker for the end of the argument list." }
+    ],
+    "example": "web_global_verification_pause(\"ID=text_3_verify\", \"ID=text_1_verify\", LAST);\n\n/* Only text_2_verify is checked. */\nweb_url(\"Search for 2 only\", \"URL=...\", LAST);\n\nweb_global_verification_resume(\"ID=text_3_verify\", LAST);\n\n/* text_2_verify and text_3_verify are checked; text_1_verify is still suspended. */\nweb_url(\"Search for 2 and 3\", \"URL=...\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_global_verification_resume.htm"
+  },
+  {
+    "name": "web_save_header",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_save_header(const char *type, const char *param);",
+    "description": "Saves the request or response headers to a parameter, with each header separated by \"\\r\\n\" or \"\\n\". Each new request overwrites the parameter value; pass an empty string \"\" as param to stop saving. Does not capture additional requests (images/frames) and is not supported in scripts with concurrent groups.",
+    "args": [
+      { "name": "type", "desc": "The header type: REQUEST or RESPONSE." },
+      { "name": "param", "desc": "The name of the parameter in which the header is saved." }
+    ],
+    "example": "web_save_header(RESPONSE, \"response header\");\nweb_save_header(REQUEST, \"request header\");\n\nweb_url(\"John_Willoughby\",\n    \"URL=http://Combe_Magna.com/portal/index.asp\",\n    \"TargetFrame=_TOP\",\n    LAST);\n\nweb_url(\"George_Wickham\",\n    \"URL=http://Meryton.com/regiment/\",\n    \"TargetFrame=_TOP\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_save_header.htm"
+  },
+  {
+    "name": "web_save_param_length",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_save_param_length( const char *Param_, const char *Base_, LAST );",
+    "description": "Creates a new parameter named \"<Param_>_Length\" that holds the length of an existing parameter's value, in Decimal or Hexadecimal format.",
+    "args": [
+      { "name": "Param_", "desc": "The name of the parameter whose value length is to be saved." },
+      { "name": "Base_", "desc": "The number format of the result: \"Base=Decimal\" or \"Base=Hexadecimal\"." }
+    ],
+    "example": "// Create a parameter that is 10 characters long\nlr_save_string(\"ABCDEFGHIJ\", \"Param10\");\nweb_save_param_length(\"Param10\", \"Base=Hexadecimal\", LAST);\n// Output (hexadecimal): Saving Parameter \"Param10_Length = A\"\n\n// Create a parameter that is 16 characters long\nlr_save_string(\"ABCDEFGHIJKLMNOP\", \"Param16\");\nweb_save_param_length(\"Param16\", \"Base=Hexadecimal\", LAST);\n// Output (hexadecimal): Saving Parameter \"Param16_Length = 10\"",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_save_param_length.htm"
+  },
+  {
+    "name": "web_save_timestamp_param",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_save_timestamp_param( const char *tmstampParam, LAST );",
+    "description": "Saves the local timestamp of the computer running the script to a parameter, as the number of milliseconds since January 1, 1970. The value cannot be stored as an integer; it is usually generated automatically by VuGen, and lr_save_timestamp offers more flexible resolution.",
+    "args": [
+      { "name": "tmstampParam", "desc": "The name of the parameter in which the timestamp is saved." }
+    ],
+    "example": "web_save_timestamp_param(\"tStamp\", LAST);\nlr_output_message(lr_eval_string(\"Timestamp: {tStamp}\"));\n// Output: Action.c(4): Timestamp: 1416227868606",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_save_timestamp_param.htm"
+  },
+  {
+    "name": "web_convert_param",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_convert_param( const char *ParamName, [char *SourceString] char *SourceEncoding, char *TargetEncoding, LAST );",
+    "description": "Converts text between HTML, URL, and plain text encoding formats and saves the result to a parameter. Useful when extracting URLs from HTML documents for use in HTTP requests.",
+    "args": [
+      { "name": "ParamName", "desc": "The name of the parameter in which the conversion result is saved (also the source if SourceString is absent)." },
+      { "name": "SourceString", "desc": "Optional: the literal string to convert (\"SourceString=...\")." },
+      { "name": "SourceEncoding", "desc": "The source format: HTML, URL, or PLAIN." },
+      { "name": "TargetEncoding", "desc": "The target format: HTML, URL, or PLAIN." }
+    ],
+    "example": "web_convert_param(\"HTML\", \"SourceEncoding=HTML\",\n    \"TargetEncoding=URL\", LAST);\n\nweb_convert_param(\"HTML1\", \"SourceEncoding=HTML\",\n    \"TargetEncoding=PLAIN\", LAST);\n\nweb_convert_param(\n    \"targetParam\",\n    \"SourceString={param1}abc{param2}\",\n    \"SourceEncoding=HTML\",\n    \"TargetEncoding=PLAIN\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_convert_param.htm"
+  },
+  {
+    "name": "web_convert_date_param",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_convert_date_param( const char * SourceParam, [const char * TargetParam,] const char * SourceFormat, const char * TargetFormat, LAST );",
+    "description": "Converts a date string in a parameter from one format to another; the result replaces the source parameter or is written to a target parameter. The documentation supports only conversion from the \"AMERICAN\" format to the \"GERMAN\" format.",
+    "args": [
+      { "name": "SourceParam", "desc": "The name of the parameter that holds the date string (not a name-value pair)." },
+      { "name": "TargetParam", "desc": "Optional: the destination parameter for the result; if specified, the source is left unchanged." },
+      { "name": "SourceFormat", "desc": "The input date format: \"SourceFormat=AMERICAN\"." },
+      { "name": "TargetFormat", "desc": "The output date format: \"TargetFormat=GERMAN\"." }
+    ],
+    "example": "lr_save_string(\"1/10/03 12:11:10\", \"date1\");\nweb_convert_date_param(\"date1\",\n    \"SourceFormat=AMERICAN\",\n    \"TargetFormat=GERMAN\",\n    LAST);\n// date1 becomes 10.1.03 12:11:10",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_convert_date_param.htm"
+  },
+  {
+    "name": "web_convert_from_formatted",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_convert_from_formatted(\"FormattedData=<formatted_data_string>\", \"TargetParam=<parameter_name>\", [\"Extensions=<comma_separated_list_of_extensions>\",] LAST );",
+    "description": "Converts a formatted string (Data Format Extensions) back to its source format and saves it to a parameter. Requires Data Format Extensions to be enabled in the runtime settings.",
+    "args": [
+      { "name": "FormattedData", "desc": "The string to convert; include the XML wrapper tags if Extensions is not specified." },
+      { "name": "TargetParam", "desc": "The name of the parameter in which the result is saved." },
+      { "name": "Extensions", "desc": "Optional: a comma-separated list of extensions, in reverse order of application." },
+      { "name": "FormattedData/EscapedBinary", "desc": "Qualifier: binary data with escaped character representation." },
+      { "name": "FormattedData/BinaryParam", "desc": "Qualifier: a parameter that holds binary data." }
+    ],
+    "example": "web_convert_from_formatted(\n    \"FormattedData=username=dfe&password=dfe&login.x=17&login.y=8\",\n    \"TargetParam=Param\",\n    \"Extensions=Base64\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_convert_from_formatted.htm"
+  },
+  {
+    "name": "web_convert_to_formatted",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_convert_to_formatted (\"RawData=<data_string>\", \"TargetParam=<parameter_name>\", \"ChainName=<name>\", LAST );",
+    "description": "Applies formatting to raw data through one or more Data Format Extensions (a chain) and saves the result to a parameter. Requires Data Format Extensions to be enabled in the runtime settings.",
+    "args": [
+      { "name": "RawData", "desc": "The input data to format." },
+      { "name": "TargetParam", "desc": "The name of the parameter in which the resulting string is saved." },
+      { "name": "ChainName", "desc": "The name of the data format chain (user-defined or built-in) from the chain INI file." },
+      { "name": "RawData/EscapedBinary", "desc": "Qualifier: a string with escaped binary codes." },
+      { "name": "RawData/BinaryParam", "desc": "Qualifier: a parameter that holds binary data." }
+    ],
+    "example": "web_convert_to_formatted(\n    \"RawData= {\\\"firstName\\\": \\\"John\\\",\\\"lastName\\\": \\\"Smith\\\"}\",\n    \"TargetParam=DFE_Param1\",\n    \"ChainName=myChainName1\",\n    LAST);\n\nweb_convert_to_formatted(\n    \"RawData/BinaryParam= myBinaryDataBuffer\",\n    \"TargetParam=DFE_Param3\",\n    \"ChainName=MyChainName3\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_convert_to_formatted.htm"
+  },
+  {
+    "name": "web_sjis_to_euc_param",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_sjis_to_euc_param(LPCSTR param_name, LPCSTR param_value_in_SJIS);",
+    "description": "Converts an SJIS (Shift JIS) encoded string to EUC and saves it to a parameter. Applies only to the Japanese edition of VuGen and is supported for all web scripts; both arguments support parameterization.",
+    "args": [
+      { "name": "param_name", "desc": "The name of the parameter in which the converted value is saved (no spaces)." },
+      { "name": "param_value_in_SJIS", "desc": "The null-terminated SJIS-encoded string to convert to EUC." }
+    ],
+    "example": "lr_save_string(\"Peter Brown\", \"SubParam\");\nweb_sjis_to_euc_param(\"Param_main\", \"Customer name is: {SubParam}\");\nlr_output_message(\"%s\", lr_eval_string(\"{Param_main}\"));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_sjis_to_euc_param.htm"
+  },
+  {
+    "name": "web_report_data_point",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_report_data_point( const char *EventType_, const char *EventName_, const char *DataPointName_, LAST );",
+    "description": "Defines a data point and includes it in the test results, generally to report step timeouts and other events that appear on the Online graphs in the Controller. All arguments support parameterization.",
+    "args": [
+      { "name": "EventType", "desc": "The event type; currently supports \"EventType=Error\"." },
+      { "name": "EventName", "desc": "The event name; currently supports \"EventName=StepTimeOut\"." },
+      { "name": "DataPointName", "desc": "The user-defined data point name." }
+    ],
+    "example": "web_save_header(RESPONSE, \"response header\");\n// Force web_url to fail with an unreasonable timeout.\nweb_set_timeout(\"Step\", \"1\");\nweb_url(\"cookie.html\",\n    \"URL=http://www.kellynch_hall.com/walter_elliot/no_cookie.html\",\n    \"TargetFrame=_TOP\",\n    LAST);\nweb_report_data_point(\"EventType=Error\",\n    \"EventName=StepTimeOut\", \"DataPointName=timeout\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_report_data_point.htm"
+  },
+  {
+    "name": "web_reg_add_cookie",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_reg_add_cookie( const char *cookie, const char *searchstring, LAST );",
+    "description": "Registers a search for a text string and automatically adds or modifies a cookie when that text appears in the response of the next action function. The domain attribute is required, and this function must be added manually (it is not recorded automatically).",
+    "args": [
+      { "name": "cookie", "desc": "The cookie definition: <name>=VALUE; domain=DOMAIN_NAME; with the optional expires, path, and secure attributes." },
+      { "name": "searchstring", "desc": "The text to search for, in the format \"Text=string\"." },
+      { "name": "LAST", "desc": "The required marker for the end of the argument list." }
+    ],
+    "example": "web_reg_add_cookie(\"client_id=RosingsPark127B; path=/; expires=Wednesday, 09-Nov-2011 23:12:40 GMT; domain=www.pemberley.com\", \"Text=Darcy\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_reg_add_cookie.htm"
+  },
+  {
+    "name": "web_get_int_property",
+    "category": "Web: Correlation & Verification",
+    "signature": "int web_get_int_property(const int HttpInfoType);",
+    "description": "Returns specific information about the previous HTTP request, such as the status code, download size and time, or total request/response statistics.",
+    "args": [
+      { "name": "HTTP_INFO_RETURN_CODE", "desc": "The HTTP response status code." },
+      { "name": "HTTP_INFO_DOWNLOAD_SIZE", "desc": "The size of the last download in bytes (headers, body, overhead)." },
+      { "name": "HTTP_INFO_DOWNLOAD_TIME", "desc": "The download duration in milliseconds." },
+      { "name": "HTTP_INFO_LAST_SOCKET_ERROR", "desc": "The last socket error (10060 on timeout)." },
+      { "name": "HTTP_INFO_TOTAL_REQUEST_STAT", "desc": "The accumulated size of request headers/bodies." },
+      { "name": "HTTP_INFO_TOTAL_RESPONSE_STAT", "desc": "The accumulated size of responses." }
+    ],
+    "example": "int HttpRetCode;\nweb_url(\"my_home\",\n    \"URL=http://my_home\",\n    \"TargetFrame=_TOP\",\n    LAST);\n\nHttpRetCode = web_get_int_property(HTTP_INFO_RETURN_CODE);\n\nif (HttpRetCode == 200)\n    lr_log_message(\"The script successfully accessed the My_home home page\");\nelse\n    lr_log_message(\"The script failed to access the My_home home page \");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_get_int_property.htm"
+  }
+]

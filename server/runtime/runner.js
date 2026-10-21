@@ -13,6 +13,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { HttpClient } from "./http-client.js";
+import { computeTimeValue } from "../project/parameters.js";
 import { TrackedParams } from "./tracked-params.js";
 import * as vuserApi from "./vuser-api.js";
 
@@ -37,18 +38,24 @@ const vu = {
   pauseResolve: null,  // resolve fn for current breakpoint pause; null when not paused
   scriptDir: "",
   unmaskMap: null,   // pemetaan override dari lr_unmask.json (null = belum dicoba, {} = tidak ada file)
+  _lineAtThrottle: { file: "", line: 0, ts: 0 }, // throttle state untuk lineAt
   log: (level, msg) => {
     sendEvent("log", { level, msg, file: vu.currentFile, line: vu.currentLine, iteration: vu.currentIteration });
   },
   sendEvent,
-  __at: async (file, line, vars) => {
+  __at: (file, line, vars) => {
     vu.currentFile = file;
     vu.currentLine = line;
     vu.currentVars = typeof vars === "function" ? vars : null;
-    // Emit live position for every executed line — for live editor highlight
-    sendEvent("lineAt", { file, line });
-    // Check for breakpoint on any line
-    await pauseAtBreakpoint(file, line);
+    // Throttle lineAt: kirim hanya bila file berubah atau sudah >80ms sejak kiriman terakhir
+    const t = vu._lineAtThrottle;
+    const now = Date.now();
+    if (file !== t.file || now - t.ts >= 80) {
+      t.file = file; t.line = line; t.ts = now;
+      sendEvent("lineAt", { file, line });
+    }
+    // Hanya return Promise saat ada breakpoint — hindari overhead async tiap baris
+    if (vu.breakpoints.length) return pauseAtBreakpoint(file, line);
   },
   __unsupported: (raw, file, line) => {
     vu.log("warn", `Unsupported: ${raw} at ${file}:${line}`);
@@ -79,17 +86,21 @@ function sendEvent(type, data, callback) {
  */
 function initParameterFiles(parameters) {
   vu.parameterFiles = new Map();
-  for (const { name, file, values, selectNextRow = "Sequential", updateValueOn = "EachIteration", outOfRangePolicy = "Cycle" } of parameters ?? []) {
+  for (const { name, file, values, selectNextRow = "Sequential", sameLineAs = null, updateValueOn = "EachIteration", outOfRangePolicy = "Cycle", type, timeFormat, timeOffsetSec } of parameters ?? []) {
     vu.parameterFiles.set(name, {
       values,
       currentIndex: 0,
       file,
       selectNextRow,
+      sameLineAs,
       updateValueOn,
       outOfRangePolicy,
       usedIndices: selectNextRow === "Unique" ? new Set([0]) : null,
+      type: type || "Table",
+      timeFormat: timeFormat || null,
+      timeOffsetSec: timeOffsetSec ?? 0,
     });
-    if (values.length > 0) vu.params.set(name, values[0], `.dat: ${file}`);
+    if (values.length > 0) vu.params.set(name, values[0], type === "Time" ? `Time: ${timeFormat}` : `.dat: ${file}`);
   }
 }
 
@@ -99,6 +110,14 @@ function initParameterFiles(parameters) {
  */
 function advanceParameterFiles() {
   for (const [name, param] of vu.parameterFiles) {
+    // Type=Time: recompute dari waktu saat ini + offset
+    if (param.type === "Time") {
+      if (param.updateValueOn !== "Once" && param.timeFormat) {
+        vu.params.set(name, computeTimeValue(param.timeFormat, param.timeOffsetSec), `Time: ${param.timeFormat}`);
+      }
+      continue;
+    }
+    if (param.selectNextRow === "SameLine") continue; // mengikuti induk, lihat di bawah
     if (param.updateValueOn === "Once") continue; // nilai tetap, tidak pernah maju
 
     const n = param.values.length;
@@ -150,6 +169,17 @@ function advanceParameterFiles() {
 
     param.currentIndex = nextIndex;
     vu.params.set(name, param.values[nextIndex], `.dat: ${param.file}`);
+  }
+
+  // "Same line as X": baris selalu sama dengan induk; Update value on dan When out of values milik induk.
+  for (const [name, param] of vu.parameterFiles) {
+    if (param.selectNextRow !== "SameLine") continue;
+    const parent = vu.parameterFiles.get(param.sameLineAs);
+    if (!parent || param.values.length === 0) continue;
+    const index = Math.min(parent.currentIndex, param.values.length - 1);
+    if (index === param.currentIndex) continue;
+    param.currentIndex = index;
+    vu.params.set(name, param.values[index], `.dat: ${param.file}`);
   }
 }
 
@@ -238,14 +268,14 @@ async function run(payload) {
       return found && typeof entries[found] === "function" ? { name: found, fn: entries[found] } : null;
     };
 
-    // Run order dari Run Logic: vuser_init -> action utama (hanya yang pertama diiterasi) -> vuser_end
+    // Run order dari Run Logic: vuser_init -> semua actions (berurutan) -> vuser_end
     const runLogic = payload.runLogic || { init: "vuser_init", actions: ["Action"], end: "vuser_end" };
     const initFn = runLogic.init && resolveFn(runLogic.init);
-    const mainFn = resolveFn(runLogic.actions?.[0] || "Action");
+    const actionFns = (runLogic.actions?.length > 0 ? runLogic.actions : ["Action"]).map(resolveFn).filter(Boolean);
     const endFn = runLogic.end && resolveFn(runLogic.end);
     const iterations = options.iterations || 1;
 
-    sendEvent("started", { runId, actions: [initFn, mainFn, endFn].filter(Boolean).map((unit) => unit.name) });
+    sendEvent("started", { runId, actions: [initFn, ...actionFns, endFn].filter(Boolean).map((unit) => unit.name) });
 
     /**
      * Jalankan satu unit (vuser_init, satu iterasi action, vuser_end).
@@ -300,7 +330,7 @@ async function run(payload) {
       stopIterations = result.failed || result.stopAll;
     }
 
-    if (!stopIterations && mainFn) {
+    if (!stopIterations && actionFns.length > 0) {
       for (let iter = 1; iter <= iterations; iter++) {
         // New user each iteration: clear cookies; header sekali pakai dibuang, auto header tetap.
         // lr_save_string params persist across iterations per plan §6.
@@ -318,9 +348,14 @@ async function run(payload) {
           }
         }
 
-        const result = await runUnit(mainFn, iter);
-        anyFailed ||= result.failed;
-        if (result.stopAll) break;
+        // Jalankan setiap action dalam urutan Run Logic
+        let stopRun = false;
+        for (const actionFn of actionFns) {
+          const result = await runUnit(actionFn, iter);
+          anyFailed ||= result.failed;
+          if (result.stopAll) { stopRun = true; break; }
+        }
+        if (stopRun) break;
 
         // Delay between iterations
         if (iter < iterations && vu.runOptions.iterationDelayMs > 0) {

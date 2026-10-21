@@ -72,6 +72,17 @@ export function saveFile({ path, file, text }) {
 }
 
 /**
+ * @param {{ path: string, name: string, changes: Record<string, string> }} payload
+ */
+export function saveParameterSetting({ path, name, changes }) {
+  return requestJson("/api/parameter", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, name, changes }),
+  });
+}
+
+/**
  * @param {string} scriptPath
  * @param {Object} options
  */

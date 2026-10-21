@@ -1,0 +1,1287 @@
+[
+  {
+    "name": "lr_abort",
+    "category": "LoadRunner (lr_)",
+    "signature": "void lr_abort( );",
+    "description": "Stops script execution: the Actions section is aborted, the vuser_end section still runs, and the run ends with a \"Stopped\" status. Use it to stop a script manually when a specific error condition occurs. Equivalent to lr_exit(LR_EXIT_VUSER, LR_ABORT). Returns no value.",
+    "args": [],
+    "example": "int status;\n\nstatus = web_url(\"Login\",\n          \"URL=https://secure.computing.com//login.asp?user=(username)&session={ssid}\",\n          \"RecContentType=text/html\", LAST );\n\nif (status == LR_FAIL) {\n\tlr_error_message(\"Error: %s\", \"Unable to login to secure computing\");\n        lr_abort();\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_abort.htm"
+  },
+  {
+    "name": "lr_advance_param",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_advance_param(char *param);",
+    "description": "Advances the parameter to the next available value in the parameter data file, so the script uses a new value in the middle of an iteration. Complements the automatic \"Select next row\" setting in the parameter properties; this function is not recorded automatically and must be inserted manually. Returns 0 on success and -1 on failure.",
+    "args": [
+      {
+        "name": "param",
+        "desc": "Parameter name in quotation marks (without curly braces)."
+      }
+    ],
+    "example": "lr_output_message(\"Iteration %s, Param1 %s, Param2 %s\",\n    lr_eval_string(\"{Iteration}\"),\n    lr_eval_string(\"{Param1}\"),\n    lr_eval_string(\"{Param2}\"));\n\nlr_advance_param(\"Param1\");\nlr_output_message(\"Iteration %s, Param1 %s, Param2 %s\",\n    lr_eval_string(\"{Iteration}\"),\n    lr_eval_string(\"{Param1}\"),\n    lr_eval_string(\"{Param2}\"));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_advance_param.htm"
+  },
+  {
+    "name": "lr_aws_get_secret",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_aws_get_secret(\"param1=value1\", \"param2=value2\", LAST);",
+    "description": "Retrieves a secret from AWS Secrets Manager and stores it in a parameter. All string arguments support standard parameterization. Returns 0 on success and 1 on error.",
+    "args": [
+      {
+        "name": "ServerUrl",
+        "desc": "URL for the web request to the AWS service."
+      },
+      {
+        "name": "AccessKey",
+        "desc": "Access key used to authenticate to the AWS service."
+      },
+      {
+        "name": "SecretKey",
+        "desc": "Secret key used to authenticate to the AWS service."
+      },
+      {
+        "name": "SecretId",
+        "desc": "ARN or name of the secret to retrieve."
+      },
+      {
+        "name": "ResultParamName",
+        "desc": "Name of the parameter in which the retrieved secret is stored."
+      }
+    ],
+    "example": "lr_aws_get_secret(\n    \"ServerUrl=https://secretsmanager.eu-central-1.amazonaws.com/\",\n    \"AccessKey=ABCDE3F5VDXCR23GV\",\n    \"SecretKey=Sfp01wlur0zsVoOKuMTuDV9fpkDdxdHrJuK0\",\n    \"SecretId=arn:aws:secretsmanager:eu-central-1:2345653738:secret:lrp-web-protocol-secret-paRino\",\n    \"ResultParamName=TEST\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_aws_get_secret.htm"
+  },
+  {
+    "name": "lr_azure_ad_client_get_token",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_azure_ad_client_get_token(\"param1=value1\",\"param2=value2\",LAST);",
+    "description": "Retrieves a bearer token from the Azure API service using client credentials. The token can be used in subsequent Azure operations, for example retrieving a secret from Key Vault. Returns 0 on success and 1 on error.",
+    "args": [
+      {
+        "name": "ResultParamName",
+        "desc": "Name of the parameter in which the token is stored."
+      },
+      {
+        "name": "TenantID",
+        "desc": "Azure Active Directory tenant ID."
+      },
+      {
+        "name": "ClientID",
+        "desc": "ID of the application registered in Azure Active Directory."
+      },
+      {
+        "name": "ClientSecret",
+        "desc": "Client secret used for authentication."
+      }
+    ],
+    "example": "rc = lr_azure_ad_client_get_token(\"ResultParamName=token1\",\n                                  \"TenantID=xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx\",\n                                  \"ClientID=xxxxxxx-xxxx-xxxx-xxxxx-xxxxxxxxxx\",\n                                  \"ClientSecret=xxxxxxxxxxxxxxxx\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Azure/lr_azure_ad_client_get_token.htm"
+  },
+  {
+    "name": "lr_azure_kv_get_secret",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_azure_kv_get_secret(\"param1=value1\",\"param2=value2\",LAST);",
+    "description": "Retrieves a secret value from Microsoft Azure Key Vault based on the vault URL and secret name. Requires an authentication token obtained separately (for example with lr_azure_ad_client_get_token). All string arguments support standard parameterization. Returns 0 on success and 1 on error.",
+    "args": [
+      {
+        "name": "ResultParamName",
+        "desc": "Name of the parameter in which the secret is stored."
+      },
+      {
+        "name": "VaultURL",
+        "desc": "URL Azure Key Vault."
+      },
+      {
+        "name": "SecretName",
+        "desc": "Name of the secret to retrieve."
+      },
+      {
+        "name": "SecretVersion",
+        "desc": "Optional. Secret version; if omitted, the latest version is retrieved."
+      },
+      {
+        "name": "Token",
+        "desc": "Authentication token."
+      }
+    ],
+    "example": "Action (){\n    int rc;\n    rc = lr_azure_set_service_port(16888);\n    rc = lr_azure_ad_client_get_token(\"ResultParamName=token1\",\n                                      \"TenantID=xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx\",\n                                      \"ClientID=xxxxxxx-xxxx-xxxx-xxxxx-xxxxxxxxxx\",\n                                      \"ClientSecret=xxxxxxxxxxxxxxxx\", LAST);\n    lr_output_message(\"token value is %s\",lr_eval_string(\"{token1}\"));\n    rc = lr_azure_kv_get_secret(\"ResultParamName=secret1\",\n                                \"VaultURL=https://xxxxkeyvtest.vault.azure.net\",\n                                \"SecretName=ProductSecret\",\n                                \"Token={token1}\", LAST);\n    lr_output_message(\"secret1 value is %s\",lr_eval_string(\"{secret1}\"));\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Azure/lr_azure_kv_get_secret.htm"
+  },
+  {
+    "name": "lr_azure_set_service_port",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_azure_set_service_port(int portNum);",
+    "description": "Sets the port used to connect to the local Azure API service. Returns 0 on success and 1 on error.",
+    "args": [
+      {
+        "name": "portNum",
+        "desc": "Port number for the connection to the local Azure API service (default 16888)."
+      }
+    ],
+    "example": "Action (){\n    int rc;\n    rc = lr_azure_set_service_port(16888);\n    rc = lr_azure_ad_client_get_token(\"ResultParamName=token1\",\n                                   \"TenantID=xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx\",\n                                   \"ClientID=xxxxxxx-xxxx-xxxx-xxxxx-xxxxxxxxxx\",\n                                   \"ClientSecret=xxxxxxxxxxxxxxxx\", LAST);\n    lr_output_message(\"token value is %s\",lr_eval_string(\"{token1}\"));\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Azure/lr_azure_set_service_port.htm"
+  },
+  {
+    "name": "lr_checkpoint",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_checkpoint( \"StepName=<step_name>\", \"ActualValue={<input_param>}\", \"Compare=<operator>\", \"ExpectedValue={<checkpoint>}\", \"StopOnValidationError=<error_code>\", LAST);",
+    "description": "Validates a parameter value against an expected value (checkpoint). If validation fails, the script stops or continues depending on StopOnValidationError and the Continue on Error runtime setting. Windows only, case-sensitive, and must be added manually. Returns LR_PASS on success and LR_FAIL on failure.",
+    "args": [
+      {
+        "name": "StepName",
+        "desc": "Step name as displayed in the test tree."
+      },
+      {
+        "name": "ActualValue",
+        "desc": "Data to compare with ExpectedValue (a value or a parameter)."
+      },
+      {
+        "name": "Compare",
+        "desc": "Comparison operator: Equals, NotEquals, Contains, StartsWith, EndsWith."
+      },
+      {
+        "name": "ExpectedValue",
+        "desc": "Reference data that ActualValue is compared against (a value or a parameter)."
+      },
+      {
+        "name": "StopOnValidationError",
+        "desc": "Boolean: true = fail/stop; false = continue."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "int i=1;\nlr_db_executeSQLStatement(\"StepName=PerformQuery\", \"ConnectionName=db1\", \n\"SQLStatement=SELECT dbo.Customer.CustID, dbo.Customer.FirstName, dbo.Customer.LastName FROM dbo.Customer\", \n\"DatasetName=MyDataset\", LAST );\n\nwhile (i<4) {\n    lr_db_getvalue(\"StepName=GetValue\", \"DatasetName=MyDataset\", \n            \"Column=FirstName\",  \"Row=next\", \"OutParam=MyOutputParam\", LAST );\n\n    lr_output_message(\"The value is: %s\", lr_eval_string(\"{MyOutputParam}\") );\n    lr_checkpoint(\"StepName=VerifyCheckpoint\", \"ExpectedValue=Joe\", \n    \"ActualValue={MyOutputParam}\", \"Compare=Equals\", \"StopOnValidationError=false\", LAST );\n\n    i=i+1;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_checkpoint.htm"
+  },
+  {
+    "name": "lr_continue_on_error",
+    "category": "LoadRunner (lr_)",
+    "signature": "void lr_continue_on_error( int value );",
+    "description": "Specifies how runtime errors are handled in a specific script segment, that is, whether execution continues or stops on error. Overrides the default Continue on Error setting in Runtime Settings only for the enclosed section. Returns no value.",
+    "args": [
+      {
+        "name": "value",
+        "desc": "Error continuation option (for example 1 = continue on error, 0 = disabled)."
+      }
+    ],
+    "example": "lrd_stmt(Csr1, \"select...\"...);\nlrd_exec(...);\n//To instruct the test run component to continue on error for the entire script except for this segment, enclose the segment with lr_continue_on_error statements.\nlr_continue_on_error (0);\nlrd_stmt(Csr1, \"select...\"...);\nlrd_exec(...);\nlr_continue_on_error(1);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_continue_on_error.htm"
+  },
+  {
+    "name": "lr_convert_double_to_double",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_convert_double_to_double(char *source_param_name, char *format_string, char *target_param_name);",
+    "description": "Reformats the string representation of a double value using a printf-style format specifier and stores the result in the target parameter. Output is limited to 63 characters. If the input is not purely numeric, valid leading characters are still converted (for example \"1234ABCDF\" becomes 1234), while a string that does not start with a numeric character causes an error. Returns LR_PASS (0) on success and LR_FAIL (1) on failure.",
+    "args": [
+      {
+        "name": "source_param_name",
+        "desc": "Name of the parameter containing the double value to reformat."
+      },
+      {
+        "name": "format_string",
+        "desc": "printf-style format specifier for the output."
+      },
+      {
+        "name": "target_param_name",
+        "desc": "Name of the parameter that stores the formatted string."
+      }
+    ],
+    "example": "lr_save_string(\"1.0502731456E7\",\"sourceParam\");\nlr_save_string(\"10062731.0\",\"sourceParam2\");\n\nlr_convert_double_to_double(\"sourceParam\",\"%.2f\",\"outparam\");\nlr_output_message(\"[%s] converted to: [%s]\",\nlr_eval_string(\"{sourceParam}\"),lr_eval_string(\"{outparam}\"));\n\nlr_convert_double_to_double(\"sourceParam\",\"%.0f\",\"outparam\");\nlr_output_message(\"[%s] converted to: [%s]\",\nlr_eval_string(\"{sourceParam}\"),lr_eval_string(\"{outparam}\"));\n\nlr_convert_double_to_double(\"sourceParam2\",\"%9.7E\",\"outparam\");\nlr_output_message(\"[%s] converted to: [%s]\",\nlr_eval_string(\"{sourceParam2}\"),lr_eval_string(\"{outparam}\"));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_convert_double_to_double.htm"
+  },
+  {
+    "name": "lr_convert_double_to_integer",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_convert_double_to_integer(char *source_param_name, char *target_param_name);",
+    "description": "Converts a double value string to an integer string by discarding the fractional part. The target parameter is created automatically if it does not exist. Leading numeric characters are still converted (\"1234ABCDF\" becomes 1234); a string that does not start with a digit causes an error. Returns LR_PASS (0) on success and LR_FAIL (1) on failure.",
+    "args": [
+      {
+        "name": "source_param_name",
+        "desc": "Name of the parameter containing the double value to convert."
+      },
+      {
+        "name": "target_param_name",
+        "desc": "Name of the parameter that stores the integer result."
+      }
+    ],
+    "example": "lr_save_string(\"1.0502731456E7\",\"sourceParam\");\nlr_save_string(\"10062731.0\",\"sourceParam2\");\n\nlr_convert_double_to_integer(\"sourceParam\",\"outparam\");\nlr_output_message(\"[%s] converted to: [%s]\",\nlr_eval_string(\"{sourceParam}\"),lr_eval_string(\"{outparam}\"));\n\nlr_convert_double_to_integer(\"sourceParam2\",\"outparam\");\nlr_output_message(\"[%s] converted to: [%s]\",\nlr_eval_string(\"{sourceParam2}\"),lr_eval_string(\"{outparam}\"));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_convert_double_to_integer.htm"
+  },
+  {
+    "name": "lr_convert_string_encoding",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_convert_string_encoding(char *sourceString, char *fromEncoding, char *toEncoding, char *paramName);",
+    "description": "Converts the encoding of a string between System locale, Unicode, and UTF-8. The result (including the NULL terminator) is stored in the paramName parameter; printable characters appear as-is in the log, while non-printable characters appear in hexadecimal. Must be added manually. Returns 0 on success and -1 on failure.",
+    "args": [
+      {
+        "name": "sourceString",
+        "desc": "String to convert."
+      },
+      {
+        "name": "fromEncoding",
+        "desc": "Encoding of sourceString (for example LR_ENC_SYSTEM_LOCALE)."
+      },
+      {
+        "name": "toEncoding",
+        "desc": "Target encoding (for example LR_ENC_UNICODE, LR_ENC_UTF8)."
+      },
+      {
+        "name": "paramName",
+        "desc": "Name of the parameter in which the resulting string is stored."
+      }
+    ],
+    "example": "Action() {\n\tint rc = 0;\n\tunsigned long converted_buffer_size_unicode = 0;\n\tchar *converted_buffer_unicode = NULL;\n\trc = lr_convert_string_encoding(\"Hello world\",\n             LR_ENC_SYSTEM_LOCALE, LR_ENC_UNICODE, \"stringInUnicode\");\n\tif(rc < 0) {\n            // error\n\t}\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_convert_string_encoding.htm"
+  },
+  {
+    "name": "lr_cyberark_get_vault",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_cyberark_get_vault(\"param1=value1\", \"param2=value2\", LAST);",
+    "description": "Retrieves a protected password from a CyberArk Vault and Safe and stores it in a parameter. The certificate and private key must be in PEM format. All string arguments support parameterization. Returns 0 on success and 1 on error.",
+    "args": [
+      {
+        "name": "ServerUrl",
+        "desc": "URL for the web request."
+      },
+      {
+        "name": "CertPath",
+        "desc": "Path to the certificate."
+      },
+      {
+        "name": "KeyPath",
+        "desc": "Optional. Path to the private key."
+      },
+      {
+        "name": "Password",
+        "desc": "Optional. Password for the private key."
+      },
+      {
+        "name": "AppID",
+        "desc": "Application ID used in the web request."
+      },
+      {
+        "name": "Safe",
+        "desc": "CyberArk Safe in which the application resides."
+      },
+      {
+        "name": "AccountName",
+        "desc": "Name of the account object in the safe."
+      },
+      {
+        "name": "ExtraQueryData",
+        "desc": "Optional. Additional query data in key=value format."
+      },
+      {
+        "name": "ResultParamName",
+        "desc": "Name of the parameter in which the retrieved password is stored."
+      }
+    ],
+    "example": "lr_cyberark_get_vault(\n       \"ServerUrl=https://test.skytap.com/AIMWebService/api/Accounts\",\n       \"CertPath=D:\\\\feature\\\\cyberark\\\\Certs needed to make CCP call\\\\client_1-28.crt\",\n        \"KeyPath=D:\\\\feature\\\\cyberark\\\\Certs needed to make CCP call\\\\client.pem\",\n        \"Password=Cyberark1\",\n        \"AppID=testappid\",\n        \"Safe=Test\",\n        \"AccountName=testobject1\",\n        \"ResultParamName=TEST\",\n        LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_cyberark_get_vault.htm"
+  },
+  {
+    "name": "lr_db_connect",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_db_connect(\"StepName\", \"ConnectionString=<connection_string>\", \"ConnectionName=<connection_name>\", \"ConnectionType=<connection_type>\", LAST );",
+    "description": "Creates a database connection used by other database functions such as lr_db_executeSQLStatement. Runs on Windows only and should be placed in vuser_init to minimize overhead. For Oracle, use the OLEDB ConnectionType. Always returns zero.",
+    "args": [
+      {
+        "name": "StepName",
+        "desc": "Step name as displayed in the test tree; free text."
+      },
+      {
+        "name": "ConnectionString",
+        "desc": "Database connection details; the syntax depends on the data provider."
+      },
+      {
+        "name": "ConnectionName",
+        "desc": "Logical identifier for the connection."
+      },
+      {
+        "name": "ConnectionType",
+        "desc": "Data provider type: SQL, OLEDB, ODBC, or ORACLE."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "lr_db_connect(\"StepName=DatabaseConnection\",\n        \"ConnectionString=Data Source=myServer.myLab.ad;Initial Catalog=InvDatabase;Persist Security Info=True;User ID=myUser;Password=myPassword\",\n        \"ConnectionName=InvDatabaseConnection\",\n        \"ConnectionType=SQL\",\n        LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_db_connect.htm"
+  },
+  {
+    "name": "lr_db_dataset_action",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_db_dataset_action(\"StepName=<step_name>\", \"DatasetName=<dataset_name>\", \"Action=<action>\", LAST );",
+    "description": "Performs an action on a dataset: resets the cursor to the first record, frees memory, or prints the dataset to the Replay Log. When printing, only the first 100 records are shown in the report summary. Windows only; string arguments support parameterization. Returns LR_PASS on success and LR_FAIL on failure.",
+    "args": [
+      {
+        "name": "StepName",
+        "desc": "Step name as displayed in the test tree; free text."
+      },
+      {
+        "name": "DatasetName",
+        "desc": "Logical name of the dataset defined in lr_db_executeSQLStatement."
+      },
+      {
+        "name": "Action",
+        "desc": "RESET (move the cursor to the first record), REMOVE (free memory), or PRINT (print to the Replay Log)."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "lr_db_executeSQLStatement(\"StepName=PerformQuery\", \"ConnectionName=db1\", \n    \"SQLStatement=SELECT dbo.Customer.CustID, dbo.Customer.FirstName, dbo.Customer.LastName FROM dbo.Customer\", \n    \"DatasetName=MyDataset\", LAST );\n\nlr_db_dataset_action(\"StepName=RemoveDataset\", \"DatasetName=MyDataset\", \"Action=REMOVE\", LAST );\n\nlr_db_executeSQLStatement(\"StepName=PerformQuery\", \"ConnectionName=db1\", \n    \"SQLStatement=SELECT dbo.Customer.CustID, dbo.Customer.FirstName, dbo.Customer.LastName FROM dbo.Customer\", \n    \"DatasetName=MyDataset\", \n    LAST );\n\nlr_db_dataset_action(\"StepName=PrintDataset\", \"DatasetName=MyDataset\", \"Action=PRINT\", LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_db_dataset_action.htm"
+  },
+  {
+    "name": "lr_db_disconnect",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_db_disconnect(\"StepName=<step_name>\", \"ConnectionName=<connection_name>\", LAST );",
+    "description": "Closes a database connection created with lr_db_connect. Windows only; must be called once for each active connection and should be placed in vuser_end rather than in an Action. Returns LR_PASS on success and LR_FAIL on failure.",
+    "args": [
+      {
+        "name": "StepName",
+        "desc": "Step name as displayed in the test tree; free text."
+      },
+      {
+        "name": "ConnectionName",
+        "desc": "Logical name of the connection defined in lr_db_connect."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "lr_db_disconnect(\"StepName=Disconnect\",\n        \"ConnectionName=db1\", LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_db_disconnect.htm"
+  },
+  {
+    "name": "lr_db_executeSQLStatement",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_db_executeSQLStatement(\"StepName=<step_name>\", \"ConnectionName=<connection_name>\", \"SQLStatement=<statement>\", [\"DatasetName=<dataset_name>\",] LAST);",
+    "description": "Sends an SQL statement to the database (Windows only). Returns the number of records in the dataset (excluding the header row) on success, or LR_FAIL on failure. After the call, the cursor row is undefined, so set Row to next or 1 when calling lr_db_getValue.",
+    "args": [
+      {
+        "name": "StepName",
+        "desc": "Step name as displayed in the test tree; free text."
+      },
+      {
+        "name": "ConnectionName",
+        "desc": "Logical name of the database connection from lr_db_connect."
+      },
+      {
+        "name": "SQLStatement",
+        "desc": "SQL statement (SELECT, INSERT, DELETE, UPDATE); the syntax depends on the database; supports parameterization."
+      },
+      {
+        "name": "DatasetName",
+        "desc": "Logical name of the dataset holding the SELECT query results; used for SELECT only."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "int NumRows=0;\n NumRows = lr_db_executeSQLStatement(\"StepName=PerformQuery\",\n\t\"ConnectionName=db1\",\n\t\"SQLStatement=SELECT dbo.Customer.CustID, dbo.Customer.FirstName, dbo.Customer.LastName FROM dbo.Customer\",\n\t\"DatasetName=MyDataset\",\n\tLAST );\n\nlr_output_message(\"The query returned %d rows.\", NumRows);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_db_executeSQLStatement.htm"
+  },
+  {
+    "name": "lr_db_getValue",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_db_getValue( \"StepName=<step_name>\", \"DatasetName=<dataset_name>\", \"Column=<column>\", \"Row=<row>\", \"OutParam=<output_parm>\", LAST );",
+    "description": "Retrieves a value from a dataset created by lr_db_executeSQLStatement, with options for positioning the row cursor. Automatically wraps back to the first record after reaching the end; binary data is displayed as <binary_data>. Windows only. Returns LR_PASS on success, LR_FAIL on failure, and -1 when the cursor reaches the last record or on the first call.",
+    "args": [
+      {
+        "name": "StepName",
+        "desc": "Step name as displayed in the test tree."
+      },
+      {
+        "name": "DatasetName",
+        "desc": "Logical name of the dataset defined in lr_db_executeSQLStatement."
+      },
+      {
+        "name": "Column",
+        "desc": "Name of the dataset column whose value is retrieved."
+      },
+      {
+        "name": "Row",
+        "desc": "Cursor position: a row number (starting at 1), current (do not move), or next (advance to the next row)."
+      },
+      {
+        "name": "OutParam",
+        "desc": "Name of the parameter that receives the result value."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "int i=1;\nlr_db_executeSQLStatement(\"StepName=PerformQuery\", \"ConnectionName=db1\", \n    \"SQLStatement=SELECT dbo.Customer.CustID, dbo.Customer.FirstName, dbo.Customer.LastName FROM dbo.Customer\", \n    \"DatasetName=MyDataset\", LAST );\n\nwhile (i<4) {\n    lr_db_getvalue(\"StepName=GetValue\",\n      \"DatasetName=MyDataset\", \n        \"Column=FirstName\", \n         \"Row=next\", \n        \"OutParam=MyOutputParam\", \n        LAST );\n    lr_output_message(\"The value is: %s\", lr_eval_string(\"{MyOutputParam}\") );\n    i=i+1;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_db_getValue.htm"
+  },
+  {
+    "name": "lr_debug_message",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_debug_message(unsigned int message_level, char *format, ...);",
+    "description": "Sends a debug message to the log file only if the specified message class is currently enabled (through Runtime Settings or lr_set_debug_message). The message appears in the output window when Expert Mode and debug information are enabled. Returns the number of characters written (excluding the null terminator), or a negative value on error.",
+    "args": [
+      {
+        "name": "message_level",
+        "desc": "One of the Runtime Settings log message classes (Disabled does not apply), for example LR_MSG_CLASS_EXTENDED_LOG."
+      },
+      {
+        "name": "format",
+        "desc": "printf-style format string, followed by optional arguments."
+      }
+    ],
+    "example": "lr_set_debug_message(LR_MSG_CLASS_EXTENDED_LOG, LR_SWITCH_ON);\n. . . \nrc = lrd_fetch(Csr1, 1, 1, 0, PrintRow3);\nif (rc>2000) \n    lr_debug_message(LR_MSG_CLASS_RESULT_DATA | LR_MSG_CLASS_PARAMETERS, \"Operation failed.\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_debug_message.htm"
+  },
+  {
+    "name": "lr_decrypt",
+    "category": "LoadRunner (lr_)",
+    "signature": "char *lr_decrypt( const char *EncodedString);",
+    "description": "Decodes (unmasks) an encoded string during replay; VuGen records the original password but displays the encoded version inside lr_decrypt. This function is deprecated; use lr_unmask. Returns a pointer to the decoded string, or NULL on error.",
+    "args": [
+      {
+        "name": "EncodedString",
+        "desc": "Encoded string to decode."
+      }
+    ],
+    "example": "connect_server(\"199.203.78.170\", \"9000\"/*version=110*/,\"module=e:\\\\appsnca\\\\fnd\\\\7.5\\\\forms\\\\us\\\\fndscsgn userid=applsyspub/pub@vision fndnam=apps\");\nlr_think_time(7);\nset_window( \"Oracle Applications\");\nedit_set(\"FNDSCSGN.SIGNON.USERNAME.0\", \"OPERATIONS\");\nedit_set(\"FNDSCSGN.SIGNON.PASSWORD.0\",lr_decrypt(\"38620da61ca1093e7aa7ec\"));\nbutton_press(\"FNDSCSGN.SIGNON.CONNECT_BUTTON\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_decrypt.htm"
+  },
+  {
+    "name": "lr_decrypt_ex",
+    "category": "LoadRunner (lr_)",
+    "signature": "char* lr_decrypt_ex(const char* ciphertext);",
+    "description": "Decrypts a message encrypted with lr_encrypt_ex. The AES key must be configured first. The ciphertext argument supports parameterization. Returns the decrypted string.",
+    "args": [
+      {
+        "name": "ciphertext",
+        "desc": "Encrypted string to decrypt."
+      }
+    ],
+    "example": "Action(){\n    char* ciphertext;\n    char* plaintext;\n    ciphertext = lr_encrypt_ex(\"hello world!\");\n    plaintext = lr_decrypt_ex(ciphertext);\n    lr_output_message(\"ciphertext is %s\", ciphertext);\n    lr_output_message(\"plaintext is %s\", plaintext);\n    return 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_decrypt_ex.htm"
+  },
+  {
+    "name": "lr_disable_ip_spoofing",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_disable_ip_spoofing( );",
+    "description": "Disables IP spoofing during script execution. Paired with lr_enable_ip_spoofing. Returns 0 on success and -1 on failure.",
+    "args": [],
+    "example": "lr_enable_ip_spoofing();\n....\nlr_disable_ip_spoofing();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_disable_ip_spoofing.htm"
+  },
+  {
+    "name": "lr_enable_ip_spoofing",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_enable_ip_spoofing( );",
+    "description": "Enables IP spoofing during script execution, so that Vusers can use different IP addresses. Paired with lr_disable_ip_spoofing. Returns 0 on success and -1 on failure.",
+    "args": [],
+    "example": "lr_enable_ip_spoofing();\n...\nlr_disable_ip_spoofing();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_enable_ip_spoofing.htm"
+  },
+  {
+    "name": "lr_encrypt_ex",
+    "category": "LoadRunner (lr_)",
+    "signature": "char* lr_encrypt_ex(const char* plaintext);",
+    "description": "Encrypts a message using the AES-256-GCM algorithm (FIPS compliant). The result can be decrypted with lr_decrypt_ex. The AES key must be configured first. Returns the encrypted string.",
+    "args": [
+      {
+        "name": "plaintext",
+        "desc": "String to encrypt."
+      }
+    ],
+    "example": "Action(){\n    char* ciphertext;\n    char* plaintext;\n\n    ciphertext = lr_encrypt_ex(\"hello world!\");\n    plaintext = lr_decrypt_ex(ciphertext);\n\n    lr_output_message(\"ciphertext is %s\", ciphertext);\n    lr_output_message(\"plaintext is %s\", plaintext);\n\n    return 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_encrypt_ex.htm"
+  },
+  {
+    "name": "lr_end_cross_vuser_transaction",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_end_cross_vuser_transaction(char *transaction_name, char *trans_id_param, int status);",
+    "description": "Marks the completion of a transaction started by another Vuser (cross-Vuser transaction), from the perspective of the receiving Vuser. The script logic determines when the transaction ends and its status. If the ID parameter value is longer than 16 bytes or contains a null character, it is replaced with an MD5 hash. Not recorded automatically and does not support standard parameterization. Returns zero on success, -1 on failure, or TRANSACTION_MSGS_EMPTY_START_TRANSACTION_STRING / TRANSACTION_MSGS_EMPTY_IDENTIFIER_DATA for empty arguments.",
+    "args": [
+      {
+        "name": "transaction_name",
+        "desc": "Name of the cross-Vuser transaction."
+      },
+      {
+        "name": "trans_id_param",
+        "desc": "Parameter containing the transaction ID string; must match the value used by the starting Vuser in lr_start_cross_vuser_transaction."
+      },
+      {
+        "name": "status",
+        "desc": "Completion status: LR_PASS, LR_FAIL, LR_AUTO, LR_ABORT, LR_STOP, LR_TIMED_OUT, or LR_USER_DEFINED."
+      }
+    ],
+    "example": "lr_think_time(30);\nlr_end_cross_vuser_transaction(\"cross_trans_1\", \"{CVTIdentify}\", LR_AUTO);\nlr_end_cross_vuser_transaction(\"cross_trans_2\", \"{CVTIdentify}\", LR_AUTO);\nlr_end_cross_vuser_transaction(\"cross_trans_end_only\", \"{CVTIdentify}\", LR_AUTO);\nlr_end_cross_vuser_transaction(\"error_trans\", \"{CVTIdentify}\", LR_FAIL);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_end_cross_vuser_transactn.htm"
+  },
+  {
+    "name": "lr_end_sub_transaction",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_end_sub_transaction( char *sub_transaction, int status );",
+    "description": "Marks the end of a sub-transaction. Must be paired with lr_start_sub_transaction; sub-transactions can be nested inside a parent transaction, but each end must have a matching start or an error occurs. Arguments do not support standard parameterization. Returns 0 on success and -1 if the name is invalid or there is no matching lr_start_sub_transaction.",
+    "args": [
+      {
+        "name": "sub_transaction",
+        "desc": "Name string of an existing sub-transaction."
+      },
+      {
+        "name": "status",
+        "desc": "Transaction status (LR_PASS, LR_FAIL, LR_AUTO, etc.)."
+      }
+    ],
+    "example": "/* Notify that a transaction is starting */\nlr_start_transaction(\"purchases\");\n/* Breakdown the transaction into a smaller transaction */\nlr_start_sub_transaction(\"electrical_purchases\", \"purchases\");\nstatus = purchase_electrical_items(6); /* call to Server API */\n\n/* End transaction with operation result - pass or fail */\n\nif (status == 0)\n    lr_end_sub_transaction(\"electrical_purchases\", LR_AUTO);\nelse\n    lr_end_sub_transaction(\"electrical_purchases\", LR_FAIL);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_end_sub_trans.htm"
+  },
+  {
+    "name": "lr_end_transaction",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_end_transaction( char *transaction_name, int status);",
+    "description": "Marks the end of a transaction and records its execution time; paired with lr_start_transaction. The status can be set manually (LR_PASS, LR_FAIL, LR_STOP) or automatically with LR_AUTO, which uses LR_PASS unless changed by a status-setting function. Returns 0 on success and -1 if the transaction name is invalid or there is no matching lr_start_transaction.",
+    "args": [
+      {
+        "name": "transaction_name",
+        "desc": "Name string of an existing transaction."
+      },
+      {
+        "name": "status",
+        "desc": "Transaction status value: LR_PASS, LR_FAIL, LR_STOP, or LR_AUTO."
+      }
+    ],
+    "example": "/* Notify that a transaction is starting */\nlr_start_transaction(\"deposit\");\n\n/* Server API call */\nrc = bank_deposit (50);\n\n/* End transaction with operation result - pass or fail */\nif (rc == 0)\n    lr_end_transaction(\"deposit\", LR_PASS);\nelse\n    lr_end_transaction(\"deposit\", LR_FAIL);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_end_transaction.htm"
+  },
+  {
+    "name": "lr_end_transaction_instance",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_end_transaction_instance (long parent_handle, int status);",
+    "description": "Ends a transaction instance and records the elapsed time; paired with lr_start_transaction_instance. The status can be set manually or automatically with LR_AUTO. Returns 0 on success and a negative number on failure.",
+    "args": [
+      {
+        "name": "parent_handle",
+        "desc": "Handle returned by lr_start_transaction_instance when the instance was created."
+      },
+      {
+        "name": "status",
+        "desc": "Transaction status: LR_PASS, LR_FAIL, LR_STOP, or LR_AUTO."
+      }
+    ],
+    "example": "long id;\nint status;\n\n/* Call to server API */\nint amount_overdrawn = get_amount_overdrawn(); \nwhile (amount_overdrawn < LIMIT) {\n/* Notify that a transaction is starting */\n    id = lr_start_transaction(\"withdraw\");\n\n/* Call to server API */\n    status = bank_withdraw(500); \n\n/* End transaction with operation result - pass or fail */\n    if (status == 0)\n        lr_end_transaction(\"withdraw\", LR_PASS);\n    else\n        lr_end_transaction(\"withdraw\", LR_FAIL);\n    \n    amount_overdrawn = get_amount_overdrawn();\n}\n/* Try to withdraw anyway to record the server response time */\n    id = lr_start_transaction_instance(\"withdraw\", 0);\n\n/* This call will fail, but we want to time it */\n    status = bank_withdraw(500); \n    lr_end_transaction_instance(id, LR_PASS);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_end_transaction_instance.htm"
+  },
+  {
+    "name": "lr_end_timer",
+    "category": "LoadRunner (lr_)",
+    "signature": "double lr_end_timer(merc_timer_handle_t timer);",
+    "description": "Stops a timer started by lr_start_timer and returns its duration in seconds, with up to microsecond precision depending on the runtime environment.",
+    "args": [
+      {
+        "name": "timer",
+        "desc": "Timer handle returned by lr_start_timer."
+      }
+    ],
+    "example": "double time_elapsed;\nmerc_timer_handle_t timer;\nlr_start_transaction (\"Web-tours\");\nweb_url(\"home;sz=234x60;tile=1;ord=977672495775323400\",\n    \"URL=http://ad.doubleclick.net/...ord=977672495775323400\",\n     ..\n    \"Mode=URL\",\n    LAST );\ntimer = lr_start_timer();\nweb_reg_save_param(\"WCSParam_Diff1\", \"LB=http://\", \"RB=/\", \"Ord=17\", \"Search=body\", LAST );\n\n/* result is in seconds */\ntime_elapsed = lr_end_timer(timer);\nlr_output_message(\"Duration of web_reg_save_param = %lf\", time_elapsed);\n\n/* Subtract time spent on call web_reg_save_param from all open transactions. \nWasted time is measured in milliseconds */ \nlr_wasted_time(1000 * time_elapsed);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_end_timer.htm"
+  },
+  {
+    "name": "lr_error_message",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_error_message( char *format, exp1, exp2,...expn );",
+    "description": "Sends an error message to the output window, the log file, and the test report summary, together with location information. The message is limited to 5 KB. If the runtime setting \"Fail open transactions on lr_error_message\" is enabled, calling this function also fails any open transactions. Returns the message length on success, or a negative number on failure.",
+    "args": [
+      {
+        "name": "format",
+        "desc": "Format string sent to the Output window; a quoted literal or a standard message format."
+      },
+      {
+        "name": "exp1, exp2,..expn",
+        "desc": "Expressions/variables to format."
+      }
+    ],
+    "example": "int status = web_url(\"Login\",\n          \"URL=https://secure.computing.com//login.asp?user={username}&session={ssid}\",\n          \"RecContentType=text/html\", LAST );\n\nif (status == LR_FAIL) {\n    lr_error_message(\"Error: %s\", \"Unable to login to secure computing\");\n     return -1;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_error_message.htm"
+  },
+  {
+    "name": "lr_eval_json",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_eval_json( \"Buffer or Buffer/File = <buffer>\", \"JsonObject = <parameter name>\" );",
+    "description": "Parses JSON content, creates a JSON object, and stores its handle in a parameter. The input can be a string or a file. Only ANSI and UTF-8 encodings are supported; not recorded automatically. Returns 0 on success and -1 on failure.",
+    "args": [
+      {
+        "name": "Buffer",
+        "desc": "String JSON."
+      },
+      {
+        "name": "Buffer/File",
+        "desc": "Path of the file containing the JSON string."
+      },
+      {
+        "name": "JsonObject",
+        "desc": "Name of the parameter that stores the JSON object handle."
+      }
+    ],
+    "example": "TestEval()\n{\n\tchar* json_input = \"{\"\n\t\t\"\\\"firstName\\\": \\\"John\\\",\"\n\t\t\"\\\"lastName\\\": \\\"Smith\\\",\"\n\t\t\"\\\"address\\\": {\"\n\t\t\"    \\\"streetAddress\\\":\\\"21 2nd Street\\\",\"\n\t\t\"    \\\"city\\\":\\\"New York\\\",\"\n\t\t\"    \\\"state\\\":\\\"NY\\\",\"\n\t\t\"    \\\"postalCode\\\":\\\"10021\\\"\"\n\t\t\"}\"\n\t\t\"}\";\n\tlr_save_string(json_input, \"JSON_Input_Param\");\n\n\t// Create a Json object from a string.\n\tlr_eval_json(\"Buffer={JSON_Input_Param}\",\n\t             \"JsonObject=json_obj_1\", LAST);\n\n\t// Create a Json object from a file.\n\tlr_eval_json(\"Buffer/File=store.json\", \n\t             \"JsonObject=json_obj_2\", LAST);\n\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_eval_json.htm"
+  },
+  {
+    "name": "lr_eval_string",
+    "category": "LoadRunner (lr_)",
+    "signature": "char *lr_eval_string( char *instring );",
+    "description": "Returns the argument string after all parameters in it (enclosed in curly braces) have been evaluated. Memory is freed automatically at the end of each iteration. If the string contains only a single parameter, the function returns that parameter's value; returns NULL if evaluation fails.",
+    "args": [
+      {
+        "name": "instring",
+        "desc": "String to evaluate; parameters are written in curly braces, for example {name}."
+      }
+    ],
+    "example": "Action()\n{\n\tlr_save_int(0, \"searchCount\");\n\tif (atoi(lr_eval_string(\"{searchCount}\") ) == 0) {\n\n\t\tlr_output_message(\"Is zero, %s\",  lr_eval_string(\"{searchCount}\"));\n    }\n\n\tlr_save_int(47, \"searchCount\");\n\tif (atoi(lr_eval_string(\"{searchCount}\") ) != 0) {\n\t\tlr_output_message(\"Not zero, %s\",  lr_eval_string(\"{searchCount}\"));\n    }\n\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_eval_string.htm"
+  },
+  {
+    "name": "lr_eval_string_ext",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_eval_string_ext( const char *in_string, unsigned long const in_len, char ** const out_str, unsigned long * const out_len, unsigned long const options, const char *file, long const line );",
+    "description": "Evaluates a string by replacing parameters with their values, then allocates a buffer containing the result. Designed for binary data, including strings with embedded NULL characters. The buffer must be freed with lr_eval_string_ext_free. Preferable to lr_eval_string when processing in loops, to save memory. Returns LR_PASS (0) on success and LR_FAIL (1) on failure.",
+    "args": [
+      {
+        "name": "in_str",
+        "desc": "String to evaluate."
+      },
+      {
+        "name": "in_len",
+        "desc": "Length of the argument name plus 2 (for the curly braces)."
+      },
+      {
+        "name": "out_str",
+        "desc": "Pointer to the output buffer."
+      },
+      {
+        "name": "out_len",
+        "desc": "Length of the output buffer."
+      },
+      {
+        "name": "options",
+        "desc": "Reserved for future use; set to 0."
+      },
+      {
+        "name": "file",
+        "desc": "Reserved for future use; set to 0."
+      },
+      {
+        "name": "line",
+        "desc": "Reserved for future use; set to -1."
+      }
+    ],
+    "example": "char* out_str;\nunsigned long out_len;\nlr_eval_string_ext(\"{NewParam}\", 10, &out_str, &out_len, 0, 0, -1);\nlr_log_message(\"this is the value of the NewParam: %s\", out_str);\nlr_log_message(\"this is the length of the NewParam: %d\", out_len);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_eval_string_ext.htm"
+  },
+  {
+    "name": "lr_eval_string_ext_free",
+    "category": "LoadRunner (lr_)",
+    "signature": "void lr_eval_string_ext_free(const char **param);",
+    "description": "Frees memory allocated by lr_eval_string_ext. Call it once you have finished with the buffer to prevent memory leaks. Returns no value.",
+    "args": [
+      {
+        "name": "param",
+        "desc": "Pointer to the buffer to free."
+      }
+    ],
+    "example": "char *out_str;\nunsigned long out_len;\n\nlr_eval_string_ext(\"{NewParam}\", 10, &out_str, &out_len, 0, 0, -1);\nlr_log_message(\"value: %s, length: %lu\", out_str, out_len);\n\n/* free the buffer when done */\nlr_eval_string_ext_free(&out_str);",
+    "exampleSource": "composed",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_eval_string_ext_free.htm"
+  },
+  {
+    "name": "lr_exit",
+    "category": "LoadRunner (lr_)",
+    "signature": "void lr_exit(int continuation_option, int exit_status);",
+    "description": "Exits the script, action, or iteration during a run. Transactions that contain lr_exit do not appear in the Controller's Transaction Status box and are not counted as pass/fail. If called multiple times, the exit status of the last call determines the final status of the Vuser group. lr_exit(LR_EXIT_VUSER, LR_ABORT) is equivalent to lr_abort. Returns no value.",
+    "args": [
+      {
+        "name": "continuation_option",
+        "desc": "How the script continues after lr_exit (for example LR_EXIT_VUSER, LR_EXIT_ACTION_AND_CONTINUE, LR_EXIT_ITERATION_AND_CONTINUE)."
+      },
+      {
+        "name": "exit_status",
+        "desc": "Exit status of the scenario group resulting from this call (for example LR_PASS, LR_FAIL, LR_AUTO, LR_ABORT)."
+      }
+    ],
+    "example": "vuser_init() {\n\n     int status = ftp_logon(\"FTP\", \"URL=ftp://user:pwd@ftp.merc-int.com\",\n\t        \"LocalAddr=ca_server:21\", \"ClientCert=/ca/pem/\",\n               \"ClientKey=/ca/pem/key/\", \"ClientPassword=@3#$8800cvd\",\n               \"CertificateAuthority=/ca/\", \"SSLVersion=SSL3\", LAST );\n\n     if (status == LR_FAIL) {\n          lr_error_message (\"ftp login failed\");\n          lr_exit(LR_EXIT_VUSER, LR_FAIL);\n     }\n\n     return(0);\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_exit.htm"
+  },
+  {
+    "name": "lr_fail_trans_with_error",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_fail_trans_with_error(char *format, exp1, exp2,...expn);",
+    "description": "Sets LR_FAIL as the default result of all open transactions that use LR_AUTO in lr_end_transaction, and sends an error message to the output window or log. By default, an LR_AUTO transaction resolves to LR_PASS. Arguments do not support standard parameterization. Returns the message length on success and a negative number on failure.",
+    "args": [
+      {
+        "name": "format",
+        "desc": "printf-style format string for the message."
+      },
+      {
+        "name": "exp1, exp2,.. expn",
+        "desc": "Optional. Expressions/variables to format and print."
+      }
+    ],
+    "example": "if (status != SUCCESS)\n     lr_fail_trans_with_error(\"An error has occurred: %s\", my_get_error_string(status));\n\nlr_end_transaction(\"t1\", LR_AUTO);\nlr_end_transaction(\"t2\", LR_PASS);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_fail_trans_with_error.htm"
+  },
+  {
+    "name": "lr_free_parameter",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_free_parameter(const char *param);",
+    "description": "Deletes a dynamic parameter at runtime and frees its buffer memory, for example a parameter created by web_reg_save_param or lr_save_string. Important for managing memory consumption. Arguments do not support standard parameterization. Returns 0 on success, or a negative number if the parameter is not found or deallocation fails.",
+    "args": [
+      {
+        "name": "param",
+        "desc": "Name of the dynamic parameter to free."
+      }
+    ],
+    "example": "// Create the parameter Name\nlr_save_string(\"Fitzwilliam\", \"Name\");\n\n// Try to evaluate the string \"Name\" with parameter delimiters\nlr_output_message(lr_eval_string(\"{Name}\"));\n\n// Free the memory allocated for the dynamic parameter \"Name\"\nlr_free_parameter(\"Name\");\n\n// Try to re-evaluate the string \"Name\" with parameter delimiters\nlr_output_message(lr_eval_string(\"{Name}\"));\n\nreturn 0;",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_free_parameter.htm"
+  },
+  {
+    "name": "lr_get_attrib_double",
+    "category": "LoadRunner (lr_)",
+    "signature": "double lr_get_attrib_double( char *argument_name );",
+    "description": "Retrieves the value of a double-type argument supplied when running the script (a command-line argument). Arguments can be viewed in the mdrv_cmd.txt file in the script folder. Does not support standard parameterization. Returns the double value on success, or -1 if the argument does not exist or its value is not compatible with the double type (for example a flag parameter).",
+    "args": [
+      {
+        "name": "argument_name",
+        "desc": "Name of an argument that can be interpreted as a double value."
+      }
+    ],
+    "example": "Action() {\n\tdouble wait_time;\n\tlong secInYear;\n\tchar *mrsCollins;\n\tlong t;\n\tint i, loops = 3;\n\twait_time=lr_get_attrib_double(\"time\");\n\tsecInYear = lr_get_attrib_long (\"secondsInYear\");\n\tmrsCollins =lr_get_attrib_string (\"MrsCollins\");\n\tif ( wait_time <= 0 ){\n\t    lr_message(\"Illegal time value = %f \\n\", wait_time);\n\t    return;\n\t} else\n\t{\n\t    lr_message(\"Wait time value = %f\", wait_time);\n\t    lr_message(\"The number of seconds in a year is %ld\", secInYear);\n\t    lr_message(\"Mr. Collins' wife is named %s Lucas\", mrsCollins);\n\t}\n\t for (i=0; i < loops; ++i) {\n\t    time(&t);\n\t    lr_message(\"Time and date: %s\", ctime(&t));\n\t    lr_think_time(wait_time);\n\t    }\n\t return 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_attrib_double.htm"
+  },
+  {
+    "name": "lr_get_attrib_long",
+    "category": "LoadRunner (lr_)",
+    "signature": "long lr_get_attrib_long( char *argument_name );",
+    "description": "Retrieves the value of a long-integer argument supplied when running the script. Arguments can be viewed in the mdrv_cmd.txt file in the script folder. Does not support standard parameterization. Returns the long value on success, or -1 if the argument does not exist or cannot be interpreted as a long.",
+    "args": [
+      {
+        "name": "argument_name",
+        "desc": "Name of an argument that can be interpreted as a long integer."
+      }
+    ],
+    "example": "Action() {\n    long loop;\n    int i;\n    iterations=lr_get_attrib_long(\"loop\");\n    if (iterations==0){\n        lr_error_message(\"Illegal value \\\\n\");\n        return;\n    }\n    for (i=0; i <iterations; ++i) {\n         /* perform test operations... */\n    }\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_attrib_long.htm"
+  },
+  {
+    "name": "lr_get_attrib_string",
+    "category": "LoadRunner (lr_)",
+    "signature": "char *lr_get_attrib_string( char *argument_name );",
+    "description": "Retrieves the value of a script command-line argument as a string. If the argument is empty, an empty string is returned; if the argument does not exist, NULL is returned.",
+    "args": [
+      {
+        "name": "argument_name",
+        "desc": "Name of the script invocation argument."
+      }
+    ],
+    "example": "vuser_init() {\n/* LPCSTR is a char * . */\n     LPCSTR server;\n     LPCSTR user = \"tomh\";\n     LPCSTR password = \"pwd\";\n     LPCSTR connect[10];\n     server=lr_get_attrib_string(\"host\");\n     if (server==NULL){\n          lr_error_message(\"Failed to login. Unknown host.\\n\");\n          return(0);\n     }\n\n/* Prepare a string with login information */\n     sprintf(connect,\"%s%s%s\", user, password, server);\n     lr_message(\"%s\", connect);\n     return 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_attrib_string.htm"
+  },
+  {
+    "name": "lr_get_debug_message",
+    "category": "LoadRunner (lr_)",
+    "signature": "unsigned int lr_get_debug_message( );",
+    "description": "Returns the current message logging setting (from runtime settings or lr_set_debug_message) as an unsigned integer. A base value of 0, 1, or 16 indicates Disabled, Brief, or Extended Log; additional flags (2, 4, 8, 512) can be OR-ed with Extended Log for Result Data, Parameter Substitution, Full Runtime Trace, or error-only. Use a bitwise AND operation to check the options.",
+    "args": [],
+    "example": "int msg_level;\nmsg_level=lr_get_debug_message( );\n\n/* Check if message level is \"Data Returned by Server\" and \"Parameter Substitution\" */\nif ((msg_level & LR_MSG_CLASS_RESULT_DATA) && (msg_level & LR_MSG_CLASS_PARAMETERS))\n    lr_output_message(\"Current message level is result data and parameters.\");\n\n/* Check for standard logging */\nif (msg_level & LR_MSG_CLASS_BRIEF_LOG)\n    lr_output_message(\"Logging is enabled.\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_debug_message.htm"
+  },
+  {
+    "name": "lr_get_host_name",
+    "category": "LoadRunner (lr_)",
+    "signature": "char *lr_get_host_name( );",
+    "description": "Returns the name of the host machine running the script. The returned value points to static data and must be read only, not modified. Returns NULL on failure.",
+    "args": [],
+    "example": "char * my_host;\nmy_host = lr_get_host_name( );\nlr_output_message(\"%s\", my_host);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_host_name.htm"
+  },
+  {
+    "name": "lr_get_master_host_name",
+    "category": "LoadRunner (lr_)",
+    "signature": "char *lr_get_master_host_name( );",
+    "description": "Returns the name of the machine running the Controller. The returned value points to static data and must be read only. Returns NULL on failure.",
+    "args": [],
+    "example": "char * controller_host;\ncontroller_host = lr_get_master_host_name( );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_master_host_name.htm"
+  },
+  {
+    "name": "lr_get_transaction_duration",
+    "category": "LoadRunner (lr_)",
+    "signature": "double lr_get_transaction_duration( char *transaction );",
+    "description": "Retrieves the running duration, in seconds, of a still-open transaction by name. The value includes wasted time, so it can be slightly larger than the final duration recorded by lr_end_transaction. Returns a positive value only for open transactions; returns 0 if the transaction has already ended or data is unavailable, and a negative number on failure.",
+    "args": [
+      {
+        "name": "transaction",
+        "desc": "Transaction name string."
+      }
+    ],
+    "example": "double trans_time;\nint status;\nlr_start_transaction (\"Flight\");\nweb_url(\"home;sz=234x60;tile=1;ord=977672495775323400\",\n          \"URL=http://ad.doubleclick.net/...ord=977672495775323400\",\n          ..\n          \"Mode=URL\",\n          LAST );\n\n // Get transaction time to this point\ntrans_time=lr_get_transaction_duration(\"Flight\");\nstatus = web_submit_data(\"flight\",\n          \"Action=http://www.Web-tours.com/cgi-bin/tours?ITN_RESPONSE+\",\n          \"Method=POST\",\n          \"TargetFrame=\",\n          ...\n          LAST );\n\n /* End transaction with operation result - pass or fail */\nif (status == 0)\n     lr_end_transaction(\"Flight\", LR_PASS);\nelse\n     lr_end_transaction(\"Flight\", LR_FAIL);\n\nif (trans_time)\n     lr_output_message(\"The duration up to the submit is %f seconds\", trans_time);\nelse\n     lr_output_message(\"The duration cannot be determined.\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_transaction_duration.htm"
+  },
+  {
+    "name": "lr_get_transaction_status",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_get_transaction_status(char *transaction);",
+    "description": "Retrieves the current status of a still-open transaction. Cannot be called after lr_end_transaction and does not report the final status. Useful in multi-step transactions so that a Vuser can stop early once it has failed. If Continue on Error is disabled, the check after an error may not be reached. Returns the transaction status value, or a negative number on error.",
+    "args": [
+      {
+        "name": "transaction",
+        "desc": "Transaction name string."
+      }
+    ],
+    "example": "int status;\n\nlr_start_transaction (\"Flight\");\nweb_url(\"home;sz=234x60;tile=1;ord=977672495775323400\",\n               \"URL=http://ad.doubleclick.net/...ord=977672495775323400\",\n               ..\n               \"Mode=URL\", LAST );\n\nif (lr_get_transaction_status() == LR_FAIL) {\n\n     /* web_url has failed the transaction. No point in continuing,\n      * because future calls will probably fail too */\n     lr_end_transaction(\"Flight\", LR_FAIL);\n     return;\n}\n\n/* Carry on ... */\nstatus = web_submit_data(\"flight\",\n          \"Action=http://www.Web-tours.com/cgi-bin/tours?ITN_RESPONSE+\",\n          \"Method=POST\", \"TargetFrame=\",\n          ...\n          LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_transaction_status.htm"
+  },
+  {
+    "name": "lr_get_trans_instance_duration",
+    "category": "LoadRunner (lr_)",
+    "signature": "double lr_get_trans_instance_duration (long trans_handle);",
+    "description": "Retrieves the running duration, in seconds, of a still-open transaction instance by its handle. Unlike lr_get_transaction_duration, which uses the name. Returns a value greater than zero only for open transactions; 0 if the instance has already ended or data is unavailable, and a negative value on failure.",
+    "args": [
+      {
+        "name": "trans_handle",
+        "desc": "Transaction handle (the return value of lr_start_transaction_instance)."
+      }
+    ],
+    "example": "long parent_trans_handle;\nlong child_handle;\ndouble trans_time;\n\nparent_trans_handle = lr_start_transaction_instance(\"ParentTransaction\",0);\nweb_url(\"web_url\", \"URL=http://www.ABC.com\",LAST );\n\nchild_handle = lr_start_transaction_instance(\"ChildTransInstance\",parent_trans_handle);\nweb_url(\"web_url\",\"URL=http://ABC.com\",LAST );\n\ntrans_time = lr_get_trans_instance_duration(child_handle);\nlr_output_message(\"First child instance time is %lf seconds.\", trans_time);\n\nlr_end_transaction_instance(child_handle, LR_PASS);\n\ntrans_time = lr_get_trans_instance_duration(parent_trans_handle);\nlr_output_message(\"Parent Transaction duration is %lf seconds.\", trans_time );\n\nlr_end_transaction_instance(parent_trans_handle, LR_PASS);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_trans_instance_duration.htm"
+  },
+  {
+    "name": "lr_get_trans_instance_status",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_get_trans_instance_status( long transaction_handle ) ;",
+    "description": "Retrieves the current status of an active transaction instance. Cannot be called after the transaction has ended and does not report the final status. Useful for monitoring multi-step transactions that can fail at various points. Returns the transaction instance status, or a negative number on error.",
+    "args": [
+      {
+        "name": "transaction_handle",
+        "desc": "Transaction instance handle returned by lr_start_transaction_instance."
+      }
+    ],
+    "example": "long trans_handle;\ntrans_handle = lr_start_transaction_instance(\"Web-tours\", 0);\nweb_url(\"home;sz=234x60;tile=1;ord=977672495775323400\",\n    \"URL=http://ad.doubleclick.net/...ord=977672495775323400\",\n    ..\n    \"Mode=URL\",         LAST );\n\nif (lr_get_trans_instance_status(trans_handle) == LR_FAIL) {\n\n     /* web_url has failed the transaction. No point in continuing,\n    because future calls will probably fail. */\n     lr_end_transaction_instance(trans_handle, LR_FAIL);\n     return;\n}\n\n/* Continue with the transaction instance */",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_trans_instance_status.htm"
+  },
+  {
+    "name": "lr_get_trans_instance_think_time",
+    "category": "LoadRunner (lr_)",
+    "signature": "double lr_get_trans_instance_think_time (long trans_handle);",
+    "description": "Retrieves the think time of a transaction instance by its handle. Returns a value greater than zero only for open transactions; 0 if the instance has already ended or data is unavailable, and a negative value on failure.",
+    "args": [
+      {
+        "name": "trans_handle",
+        "desc": "Transaction handle returned by lr_start_transaction_instance()."
+      }
+    ],
+    "example": "long child_handle;\ndouble trans_time;\nint rc;\n\nchild_handle = lr_start_transaction_instance(\"ParentTransaction\",0);\n\nweb_url(\"web_url\", \"URL=http://www.ABC.com\",LAST );\n\ntrans_time = lr_get_trans_instance_think_time(child_handle);\nlr_output_message(\"Instance think time is %lf seconds.\", trans_time);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_trans_instance_think_tim.htm"
+  },
+  {
+    "name": "lr_get_trans_instance_wasted_time",
+    "category": "LoadRunner (lr_)",
+    "signature": "double lr_get_trans_instance_wasted_time (long trans_handle);",
+    "description": "Retrieves the wasted time, in seconds, of a transaction instance by its handle. Returns a value greater than zero only for open transactions; 0 if the instance has already ended or data is unavailable, and a negative value on failure.",
+    "args": [
+      {
+        "name": "trans_handle",
+        "desc": "Transaction handle returned by lr_start_transaction_instance."
+      }
+    ],
+    "example": "long parent_trans_handle;\ndouble trans_time;\n\nparent_trans_handle =  lr_start_transaction_instance(\"ParentTransaction\",0);\n\nweb_url(\"web_url\", \"URL=http://www.ABC.com\",LAST );\n\ntrans_time = lr_get_trans_instance_duration(parent_trans_handle);\nlr_output_message(\"Instance time is %lf seconds.\", trans_time);\n\ntrans_time = lr_get_trans_instance_think_time(parent_trans_handle);\nlr_output_message(\"Instance think time is %lf seconds.\", trans_time);\n\ntrans_time = lr_get_trans_instance_wasted_time(parent_trans_handle);\nlr_output_message(\"Instance waste time is %lf seconds.\", trans_time);\n\nlr_end_transaction_instance(parent_trans_handle, LR_PASS);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_trans_instance_wastedTim.htm"
+  },
+  {
+    "name": "lr_get_transaction_think_time",
+    "category": "LoadRunner (lr_)",
+    "signature": "double lr_get_transaction_think_time( char *transaction );",
+    "description": "Retrieves the think time accumulated in an open transaction up to the current execution point, by transaction name. Returns a positive value only for transactions still running; 0 if the transaction has already ended or data is unavailable, and a negative value on failure.",
+    "args": [
+      {
+        "name": "transaction",
+        "desc": "Transaction name."
+      }
+    ],
+    "example": "double think_time;\nlr_start_transaction (\"Flight\");\nweb_url(\"home;sz=234x60;tile=1;ord=977672495775323400\",\n        \"URL=http://ad.doubleclick.net/...ord=977672495775323400\",\n        ..\n        \"Mode=URL\",\n        LAST );\nthink_time=lr_get_transaction_think_time(\"Flight\");\nstatus = web_submit_data(\"flight\",\n        \"Action=http://www.Web-tours.com/cgi-bin/tours?ITN_RESPONSE+\",\n        \"Method=POST\",\n        \"TargetFrame=\",\n        ...\n        LAST );\n\n /* End transaction with operation result - pass or fail */\nif (status == 0)\n    lr_end_transaction(\"Flight\", LR_PASS);\nelse\n    lr_end_transaction(\"Flight\", LR_FAIL);\n\nif (think_time)\n    lr_output_message(\"The transaction think time is %f seconds\", think_time);\nelse\n    lr_output_message(\"The think time cannot be determined.\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_transaction_think_time.htm"
+  },
+  {
+    "name": "lr_get_transaction_wasted_time",
+    "category": "LoadRunner (lr_)",
+    "signature": "double lr_get_transaction_wasted_time( char *transaction );",
+    "description": "Retrieves the wasted time, in seconds, accumulated in an open transaction up to the current execution point. Meaningful only for transactions that are still active; returns 0 if the transaction has already ended or data is unavailable, and a negative number on failure.",
+    "args": [
+      {
+        "name": "transaction",
+        "desc": "Name of the transaction to query."
+      }
+    ],
+    "example": "WasteTime() {\n    int i, baseIter = 1000;\n    char dude[1000];\n    double wasteTime;\n    merc_timer_handle_t timer;\n\n    lr_start_transaction(\"Demo\");\n\n    // Create some wasted time and record it with timer\n    timer = lr_start_timer();\n    for (i=0; i< (5 * baseIter); ++i)\n            sprintf(dude, \"This is the way we waste time in a script = %d\", i);\n    wasteTime = lr_end_timer(timer);\n\n    lr_output_message(\"Before lr_wasted_time: Duration = %lf - Waste = %lf\",\n        lr_get_transaction_duration(\"Demo\"),\n        lr_get_transaction_wasted_time(\"Demo\"));\n\n    /* Convert Timer in seconds to wasted time in milliseconds */\n    wasteTime *= 1000;\n    lr_wasted_time(wasteTime);\n    lr_output_message(\"After lr_wasted_time: Duration = %lf - Waste = %lf\",\n            lr_get_transaction_duration(\"Demo\"),\n            lr_get_transaction_wasted_time(\"Demo\"));\n\n    lr_end_transaction(\"Demo\", LR_AUTO);\n    return 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_transaction_wasted_time.htm"
+  },
+  {
+    "name": "lr_get_vuser_ip",
+    "category": "LoadRunner (lr_)",
+    "signature": "char *lr_get_vuser_ip( );",
+    "description": "Retrieves the IPv4 address currently assigned to the Vuser when IP spoofing is enabled, for example when the IP is set through web_set_sockets_option with the IP_ADDRESS_BY_INDEX option. For an IPv6 address, use lr_get_attrib_string(\"ipv6\"). Returns a pointer to the IP string, or NULL on failure or if IP spoofing is disabled.",
+    "args": [],
+    "example": "char *ip;\nip = lr_get_vuser_ip();\nif (ip)\n     lr_output_message(\"The IP address is %s\", ip);\nelse\n     lr_output_message(\"IP spoofing disabled\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_get_vuser_ip.htm"
+  },
+  {
+    "name": "lr_json_delete",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_json_delete(\"JsonObject=<parameter name>\", \"QueryString=<JSON query>\", [\"SelectAll=<Yes|No>\",] [\"NotFound=<Error|Continue>\",] LAST);",
+    "description": "Deletes values in a JSON object that match a query. Not recorded automatically and must be inserted manually. Supports deleting one or many matches, with configurable error handling. Returns the number of items deleted.",
+    "args": [
+      {
+        "name": "JsonObject",
+        "desc": "Name of the JSON object parameter created with lr_eval_json."
+      },
+      {
+        "name": "QueryString",
+        "desc": "JSON query that matches the items to delete."
+      },
+      {
+        "name": "SelectAll",
+        "desc": "Optional. Yes deletes all matches; No deletes only the first (default No)."
+      },
+      {
+        "name": "NotFound",
+        "desc": "Optional. Error stops the script; Continue only issues a warning (default Error)."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "TestDelete()\n{\n\tint i = 0;\n\n\tlr_eval_json(\"Buffer/File=store.json\", \n\t                 \"JsonObject=d_json_obj\", LAST);\n\n\t// 1 match\n\ti = lr_json_delete(\"JsonObject=d_json_obj\",\n\t                \"QueryString=$.store.name\",\n\t                 LAST);\n\tif (i != 1)\n\t\tlr_error_message(\"lr_json_delete should return %d, but returns %d\", 1, i);\n\n\tlr_save_string(\"$.store.books[*].isbn\", \"d_path_isbn\");\n\n\t// 2 matches\n\ti = lr_json_delete(\"JsonObject=d_json_obj\",\n\t                \"QueryString={d_path_isbn}\",\n\t                \"SelectAll=Yes\",\n\t                 LAST);\n\tif (i != 2)\n\t\tlr_error_message(\"lr_json_delete should return %d, but returns %d\", 2, i);\n\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_json_delete.htm"
+  },
+  {
+    "name": "lr_json_find",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_json_find( \"JsonObject=<parameter name>\", \"Value or ValueParam=<value>\", \"QueryString=<query>\", [\"SelectAll=<Yes|No>\",] [\"IgnoreCase=<Yes|No>\",] [\"UseRegExp=<Yes|No>\",] [\"NotFound=<Error|Continue>\",] LAST);",
+    "description": "Runs a query on a JSON object and returns the number of results that match the searched value. Supports regular expression filtering, case-insensitive matching, and error handling when nothing is found. When SelectAll=No, the return value is only 0 or 1.",
+    "args": [
+      {
+        "name": "JsonObject",
+        "desc": "Name of the parameter that holds the JSON object handle returned by lr_eval_json."
+      },
+      {
+        "name": "QueryString",
+        "desc": "JSON query to run."
+      },
+      {
+        "name": "Value",
+        "desc": "Value to search for."
+      },
+      {
+        "name": "ValueParam",
+        "desc": "Name of the parameter containing the value to search for."
+      },
+      {
+        "name": "UseRegExp",
+        "desc": "Optional. Yes treats Value as a regular expression (default No)."
+      },
+      {
+        "name": "SelectAll",
+        "desc": "Optional. Yes returns the total number of matches; No stops at the first (default No)."
+      },
+      {
+        "name": "IgnoreCase",
+        "desc": "Optional. Yes ignores case differences (default No)."
+      },
+      {
+        "name": "NotFound",
+        "desc": "Optional. Error stops the script (default); Continue only issues a warning."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "TestFind()\n{\n\tint i = 0;\n\n\ti = lr_eval_json(\"Buffer/File=store.json\", \n\t                 \"JsonObject=f_json_obj\", LAST);\n\n\t// Multi match with SelectAll=No\n\ti = lr_json_find(\"JsonObject=f_json_obj\",\n\t                \"Value=fiction\",\n\t                \"QueryString=$.store.books[*].category\",\n\t                 LAST);\n\tif (i != 1)\n\t\tlr_error_message(\"lr_json_find should return %d, but returns %d\", 1, i);\n\n\t// Multi match with SelectAll=Yes\n\ti = lr_json_find(\"JsonObject=f_json_obj\",\n\t                \"Value=fiction\",\n\t                \"QueryString=$.store.books[*].category\",\n\t                \"SelectAll=Yes\",\n\t                 LAST);\n\tif (i != 3)\n\t\tlr_error_message(\"lr_json_find should return %d, but returns %d\", 3, i);\n\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_json_find.htm"
+  },
+  {
+    "name": "lr_json_get_values",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_json_get_values( \"JsonObject=<parameter name>\", \"ValueParam=<parameter name>\", \"QueryString=<JSON query>\", [\"SelectAll=<Yes|No>\",] [\"NotFound=<Error|Continue>\",] LAST );",
+    "description": "Retrieves data from JSON object nodes that match a query and stores it in the ValueParam parameter. Not recorded automatically and must be inserted manually. Returns the number of matching nodes.",
+    "args": [
+      {
+        "name": "JsonObject",
+        "desc": "Name of the parameter that holds the JSON object handle returned by lr_eval_json."
+      },
+      {
+        "name": "ValueParam",
+        "desc": "Name of the parameter in which the retrieved data is stored."
+      },
+      {
+        "name": "QueryString",
+        "desc": "JSON query/path."
+      },
+      {
+        "name": "SelectAll",
+        "desc": "Optional. Yes retrieves all matches; No stops at the first (default No)."
+      },
+      {
+        "name": "NotFound",
+        "desc": "Optional. Error stops the script; Continue only issues a warning (default Error)."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "TestGetValues()\n{\n\tint i;\n\n\ti = lr_eval_json(\"Buffer/File=store.json\", \n\t                 \"JsonObject=s_json_obj\", LAST);\n\n\ti = lr_json_get_values(\"JsonObject=s_json_obj\",\n                \"ValueParam=s_new_storename\",\n                \"QueryString=$.store.name\",\n                 LAST);\n\n\t// Multi match with SelectAll=Yes\n\tlr_save_string(\"$.store.books[*].isbn\", \"s_path_isbn\");\n\n\ti = lr_json_get_values(\"JsonObject=s_json_obj\",\n                \"ValueParam=s_new_isbn\",\n                \"QueryString={s_path_isbn}\",\n\t            \"SelectAll=Yes\",\n                 LAST);\n\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_json_get_values.htm"
+  },
+  {
+    "name": "lr_json_insert",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_json_insert( \"JsonObject=<parameter name>\", \"Value or ValueParam or JsonNode=<value>\", \"QueryString=<query>\", [\"SelectAll=<Yes|No>\",] [\"NotFound=<Error|Continue>\",] LAST );",
+    "description": "Inserts a value into a JSON object at the location specified by a query. Can insert a string, a value from a parameter, or an entire JSON object node, optionally at all matching locations. Returns the number of matches at insertion.",
+    "args": [
+      {
+        "name": "JsonObject",
+        "desc": "Name of the parameter that holds the JSON object handle returned by lr_eval_json."
+      },
+      {
+        "name": "QueryString",
+        "desc": "JSON path where the node is inserted."
+      },
+      {
+        "name": "Value",
+        "desc": "String to insert; it must be parseable as a JSON array/object matching the target type."
+      },
+      {
+        "name": "ValueParam",
+        "desc": "Name of the parameter containing the string to insert."
+      },
+      {
+        "name": "JsonNode",
+        "desc": "Parameter containing the handle of the JSON object to insert into JsonObject."
+      },
+      {
+        "name": "SelectAll",
+        "desc": "Optional (default No). Yes inserts at all matching locations; No only at the first."
+      },
+      {
+        "name": "NotFound",
+        "desc": "Optional (default Error). Error stops the script; Continue issues a warning and proceeds."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "TestInsert()\n{\n\tint i = 0;\n\n\tlr_eval_json(\"Buffer/File=store.json\", \n\t             \"JsonObject=i_json_obj\", LAST);\n\t// 1 match\n\ti = lr_json_insert(\"JsonObject=i_json_obj\",\n\t                \"Value={\\\"owner\\\":\\\"Mr Black\\\"}\",\n\t                \"QueryString=$.store\",\n\t                 LAST);\n\tif (i != 1)\n\t\tlr_error_message(\"lr_json_insert should return %d, but returns %d\", 1, i);\n\n\t// 2 match with ValueParam and SelectAll=Yes\n\tlr_save_string(\"{\\\"discount\\\":\\\"20 percent\\\"}\", \"i_new_discount\");\n\n\ti = lr_json_insert(\"JsonObject=i_json_obj\",\n\t                   \"ValueParam=i_new_discount\",\n\t                   \"QueryString=$.store.books[?(@.price > 10)]\",\n\t                   \"SelectAll=Yes\",\n\t                   LAST);\n\tif (i != 2)\n\t\tlr_error_message(\"lr_json_insert should return %d, but returns %d\", 2, i);\n\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_json_insert.htm"
+  },
+  {
+    "name": "lr_json_replace",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_json_replace(\"JsonObject=<parameter name>\", \"Value or ValueParam or JsonNode=<value>\", \"QueryString=<query>\", [\"SelectAll=<Yes|No>\",] [\"NotFound=<Error|Continue>\",] LAST);",
+    "description": "Replaces the node identified by a query in a JSON object with a new key-value pair. Unlike lr_json_set_values, this function changes both the key and the value. If several pairs are supplied, only the first pair is used. Returns the number of matches replaced.",
+    "args": [
+      {
+        "name": "JsonObject",
+        "desc": "Name of the parameter that holds the JSON object handle returned by lr_eval_json."
+      },
+      {
+        "name": "QueryString",
+        "desc": "JSON path that identifies the node to replace."
+      },
+      {
+        "name": "Value",
+        "desc": "Replacement key-value pair for the matching node; curly braces are optional."
+      },
+      {
+        "name": "ValueParam",
+        "desc": "Parameter containing the replacement key-value pair."
+      },
+      {
+        "name": "JsonNode",
+        "desc": "Parameter containing the handle of the JSON object that replaces the query result."
+      },
+      {
+        "name": "SelectAll",
+        "desc": "Optional (default No). Yes replaces all matches; No only the first."
+      },
+      {
+        "name": "NotFound",
+        "desc": "Optional (default Error). Error stops the script; Continue issues a warning."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "TestReplace()\n{\n\tint i = 0;\n\n\tlr_eval_json(\"Buffer/File=store.json\", \n\t                 \"JsonObject=r_json_obj\", LAST);\n\n\t/* Change \"name\": \"Black Books\" to \"owner\":\"Mr Black\".*/\n\ti = lr_json_replace(\"JsonObject=r_json_obj\",\n\t                \"Value=\\\"owner\\\":\\\"Mr Black\\\"\",\n\t                \"QueryString=$.store.name\",\n\t                 LAST);\n\tif (i != 1)\n\t\tlr_error_message(\"lr_json_replace should return %d, but returns %d\", 1, i);\n\n\tlr_save_string(\"$.store.books[*].isbn\", \"r_path_isbn\");\n\n\ti = lr_json_replace(\"JsonObject=r_json_obj\",\n\t                \"Value=\\\"discount\\\":\\\"20 percent\\\"\",\n\t                \"QueryString={r_path_isbn}\",\n\t                \"SelectAll=Yes\",\n\t                 LAST);\n\tif (i != 2)\n\t\tlr_error_message(\"lr_json_replace should return %d, but returns %d\", 2, i);\n\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_json_replace.htm"
+  },
+  {
+    "name": "lr_json_set_values",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_json_set_values( \"JsonObject=<parameter name>\", \"Value or ValueParam=<value>\", \"QueryString=<query>\", [\"SelectAll=<Yes|No>\",] [\"NotFound=<Error|Continue>\",] LAST );",
+    "description": "Changes the value of JSON object nodes that match a query. When using a parameter array with SelectAll=Yes, each array element replaces the matches in order. To change the key name as well as the value, use lr_json_replace. Returns the number of nodes updated.",
+    "args": [
+      {
+        "name": "JsonObject",
+        "desc": "Parameter that holds the JSON object handle from lr_eval_json."
+      },
+      {
+        "name": "QueryString",
+        "desc": "JSON path/query."
+      },
+      {
+        "name": "Value",
+        "desc": "Data to set on the matching nodes."
+      },
+      {
+        "name": "ValueParam",
+        "desc": "Name of the parameter containing the data; with SelectAll=Yes, supply an array with as many elements as there are matches."
+      },
+      {
+        "name": "SelectAll",
+        "desc": "Optional (default No). Yes updates all matches; No stops at the first."
+      },
+      {
+        "name": "NotFound",
+        "desc": "Optional (default Error). Error stops the script; Continue issues a warning."
+      },
+      {
+        "name": "LAST",
+        "desc": "Marks the end of the argument list."
+      }
+    ],
+    "example": "TestSetGetValues()\n{\n\tint i = 0;\n\n\ti = lr_eval_json(\"Buffer/File=store.json\",\n\t                 \"JsonObject=s_json_obj\", LAST);\n\n\t// Single match\n\ti = lr_json_set_values(\"JsonObject=s_json_obj\",\n\t                \"Value=\\\"Red Books\\\"\",\n\t                \"QueryString=$.store.name\",\n\t                 LAST);\n\tif (i != 1)\n\t\tlr_error_message(\"lr_json_set_values should return %d, but returns %d\", 1, i);\n\n\t// Multi match with SelectAll=Yes\n\tlr_save_string(\"\\\"1111\\\"\", \"s_isbn_1\");\n\tlr_save_string(\"\\\"2222\\\"\", \"s_isbn_2\");\n\tlr_save_string(\"2\", \"s_isbn_count\");\n\tlr_save_string(\"$.store.books[*].isbn\", \"s_path_isbn\");\n\n\ti = lr_json_set_values(\"JsonObject=s_json_obj\",\n\t                \"ValueParam=s_isbn\",\n\t                \"QueryString={s_path_isbn}\",\n\t                \"SelectAll=Yes\",\n\t                 LAST);\n\tif (i != 2)\n\t\tlr_error_message(\"lr_json_set_values should return %d, but returns %d\", 2, i);\n\n\treturn 0;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_json_set_values.htm"
+  },
+  {
+    "name": "lr_json_stringify",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_json_stringify(\"JsonObject=<parameter name>\", \"Format=<auto|compact|indented>\" \"OutputParam=<parameter name>\");",
+    "description": "Converts a JSON object to a JSON string without modifying the original object. Not recorded automatically; must be inserted manually. Returns 0 on success and -1 on failure.",
+    "args": [
+      {
+        "name": "JsonObject",
+        "desc": "Name of the parameter that holds the JSON object handle returned by lr_eval_json."
+      },
+      {
+        "name": "Format",
+        "desc": "Optional. Whitespace/line format: compact (no whitespace), indented (default, human-readable), or auto (compact in the Controller, indented in VuGen)."
+      },
+      {
+        "name": "OutputParam",
+        "desc": "Name of the parameter in which the resulting JSON string is stored."
+      }
+    ],
+    "example": "char *json_input =\n    \"{\"\n        \"\\\"cart\\\":\"\n            \"{\"\n                \"\\\"customerId\\\":1343,\"\n                \"\\\"lineItems\\\":\"\n                \"[{\\\"productId\\\":12343,\\\"quantity\\\":4},\"\n                \"{\\\"productId\\\":39293,\\\"quantity\\\":2}]\"\n            \"}\"\n        \"}\";\nlr_save_string(json_input, \"JSON_Input\");\nlr_eval_json(\"Buffer={JSON_Input}\", \"JsonObject=JSON_Param\");\n\nlr_json_stringify(\"JsonObject=JSON_Param\",\"Format=compact\",\"OutputParam=Result\",LAST);\nlr_output_message(\"Compact: %s\", lr_eval_string(\"{Result}\"));\n\nlr_json_stringify(\"JsonObject=JSON_Param\",\"Format=indented\",\"OutputParam=Result\",LAST);\nlr_output_message(\"Indented: %s\", lr_eval_string(\"{Result}\"));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_json_stringify.htm"
+  },
+  {
+    "name": "lr_load_dll",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_load_dll( const char *library_name);",
+    "description": "Loads a DLL (Windows) or shared object (Linux) so that external functions can be called during replay with the C interpreter. A full path may be supplied. On Windows (non-SAP GUI), without a path the library is searched using the standard LoadLibrary order; SAP GUI requires a full path; on Linux, dlopen rules and LD_LIBRARY_PATH apply. Standard parameterization is not supported. Returns 0 on success, 10 if out of memory, and 11 if the file is not found.",
+    "args": [
+      {
+        "name": "library_name",
+        "desc": "Name of the DLL (Windows) or shared object (Linux), optionally with a full path."
+      }
+    ],
+    "example": "WIN32_FIND_DATA fdFile;\nHANDLE hFind = NULL;\n\nchar *filepath;\nchar sPath[2048];\n\nlr_load_dll(\"user32.dll\");\nMessageBoxA(NULL, \"This is the message body\", \"message_caption\", 0);\n\nfilepath = lr_eval_string(\"{UploadDirectoryPath}\");\n\nlr_load_dll(\"kernel32.dll\");\n\nsprintf(sPath, \"C:\\\\TEMP\\\\*.*\");\n\nif((hFind = (void*) FindFirstFileA(sPath, &fdFile)) == INVALID_HANDLE_VALUE)\n{\n   lr_message(\"Path not found: [%s]\\n\", sPath);\n   lr_abort();\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_load_dll.htm"
+  },
+  {
+    "name": "lr_log_message",
+    "category": "LoadRunner (lr_)",
+    "signature": "int lr_log_message( char *format, exp1, exp2,...expn);",
+    "description": "Sends a message to the Vuser/agent log file rather than to the output window, which reduces network overhead during testing. Logging must be enabled in Runtime Settings with the \"Always send messages\" option. Returns the message length on success, or a negative number on failure.",
+    "args": [
+      {
+        "name": "format",
+        "desc": "printf-style format string sent to the log file."
+      },
+      {
+        "name": "exp1, exp2,..expn",
+        "desc": "Expressions/variables to format and print."
+      }
+    ],
+    "example": "char* abort=\"aborting...\";\n...\nif (init() < 0) {\n    lr_log_message (\"login failed: %s\", abort);}\n   return(0);\n}\n\nlr_log_message( \"We are on iteration #%s\", lr_eval_string( \"{iteration}\" ) );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/c_vuser/lrFr_lr_log_message.htm"
+  }
+]

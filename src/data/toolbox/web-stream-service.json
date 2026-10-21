@@ -1,0 +1,325 @@
+[
+  {
+    "name": "web_stream_close",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_close(\"ID=<n>\", LAST);",
+    "description": "Closes a media stream previously opened with web_stream_open and releases the streaming connection resources. Returns LR_PASS (0) on success or LR_FAIL (1) on failure.",
+    "args": [
+      { "name": "ID", "desc": "The stream identifier given to web_stream_open." },
+      { "name": "LAST", "desc": "Marks the end of the argument list." }
+    ],
+    "example": "web_stream_open(\"ID=1\", \"URL=http://my_server/streaming-test/Video2/Class%20-%206.mp4\",\n  \"EventReportCB=PrintBytes\", \"Protocol=HTTP\", \"StreamBufferingTimeout=38\", LAST);\nweb_stream_play(\"ID=1\", \"PlayingDuration=30\", \"Speed=1.5\", LAST);\nweb_stream_close(\"ID=1\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_close.htm"
+  },
+  {
+    "name": "web_stream_get_param_double",
+    "category": "Web: Streaming",
+    "signature": "double web_stream_get_param_double(const char *StreamID, const int StateType);",
+    "description": "Retrieves status information from an open stream as a double value (for example, the current time position or the duration). Returns a negative integer on failure.",
+    "args": [
+      { "name": "StreamID", "desc": "The identifier given to web_stream_open." },
+      { "name": "StateType", "desc": "The status type: CURRENT_TIME (2), CURRENT_BUFFERING_TIME (3), TOTAL_BUFFERING_TIME (4), BUFFERED_TIME (5), or DURATION (6)." }
+    ],
+    "example": "lr_output_message(\"Current time in movie:%lf\", web_stream_get_param_double(\"2\", CURRENT_TIME));\nlr_output_message(\"How much time has been played : %lf\", web_stream_get_param_double(\"2\", DURATION));\nweb_stream_play(\"ID=2\",\"Speed=1\",LAST);\nlr_output_message(\"Current time in movie:%lf\", web_stream_get_param_double(\"2\", CURRENT_TIME));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_get_param_double.htm"
+  },
+  {
+    "name": "web_stream_get_param_int",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_get_param_int(const char *StreamID, const int StateType);",
+    "description": "Returns the status of an open stream as an integer, either the current state or the number of bytes received. Returns -1 on failure.",
+    "args": [
+      { "name": "StreamID", "desc": "The identifier given to web_stream_open." },
+      { "name": "StateType", "desc": "CURRENT_STATE (one of the states STREAM_STATUS_INIT, _PLAY, _PAUSE, _STOP, and so on) or BYTES_RECEIVED (the number of bytes received)." }
+    ],
+    "example": "int currentState, bytesRcved;\n\ncurrentState = web_stream_get_param_int(\"1\", CURRENT_STATE);\nbytesRcved   = web_stream_get_param_int(\"1\", BYTES_RECEIVED);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_get_param_int.htm"
+  },
+  {
+    "name": "web_stream_get_param_string",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_get_param_string(const char *StreamID, const int StateType, const char *ParameterName);",
+    "description": "Retrieves a string-valued status from an open stream and saves it to a script parameter. Returns LR_PASS (0) on success or LR_FAIL (1) on failure.",
+    "args": [
+      { "name": "StreamID", "desc": "The identifier given to web_stream_open." },
+      { "name": "StateType", "desc": "STREAM_URL (7), PROTOCOL (8), or SERVER_IP (9)." },
+      { "name": "ParameterName", "desc": "The name of the parameter in which the resulting string is saved." }
+    ],
+    "example": "web_stream_get_param_string(\"2\", STREAM_URL, \"StreamURL\");\nweb_stream_get_param_string(\"2\", PROTOCOL, \"StreamProtocol\");\nweb_stream_get_param_string(\"2\", SERVER_IP, \"ServerIP\");\nlr_output_message(\"Url: , %s\", lr_eval_string(\"{StreamURL}\"));\nlr_output_message(\"Protocol: , %s\", lr_eval_string(\"{StreamProtocol}\"));\nlr_output_message(\"IP:, %s\", lr_eval_string(\"{ServerIP}\"));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_get_param_string.htm"
+  },
+  {
+    "name": "web_stream_open",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_open(\"ID=<string>\", \"URL=<url>\", \"Protocol=<protocol>\", [\"Bandwidth=<n>\"], [\"StreamBufferingTimeout=<seconds>\"], [\"DumpPath=<path>\"], [\"EventReportCB=<function_name>\"], [\"AdaptiveMode=<0 or 1>\"], [\"Duration=<seconds>\"], LAST);",
+    "description": "Opens (starts) a media stream and creates a stream identifier for use by subsequent web_stream_* functions. Returns LR_PASS (0) on success or LR_FAIL (1) on failure.",
+    "args": [
+      { "name": "ID", "desc": "A unique stream identifier (integer > 0) referenced by other stream functions." },
+      { "name": "URL", "desc": "The full address of the media resource." },
+      { "name": "Protocol", "desc": "The communication protocol: HTTP or HLS." },
+      { "name": "Bandwidth", "desc": "The estimated download speed; uses the run-time setting if 0." },
+      { "name": "StreamBufferingTimeout", "desc": "The maximum wait time (in seconds) before playback can begin." },
+      { "name": "DumpPath", "desc": "The directory in which the downloaded stream file is stored." },
+      { "name": "EventReportCB", "desc": "A user-defined callback function for event notifications." },
+      { "name": "AdaptiveMode", "desc": "1 = segments are downloaded on demand (HLS); 0 = all segments are downloaded." },
+      { "name": "Duration", "desc": "The total video duration in seconds (HTTP only; improves performance)." }
+    ],
+    "example": "web_stream_open(\"ID=1\", \"URL=http://my_server/streaming-test/Video2/Class%20-%206.mp4\",\n  \"EventReportCB=PrintBytes\", \"Protocol=HTTP\", \"StreamBufferingTimeout=38\", LAST);\nweb_stream_play(\"ID=1\", \"PlayingDuration=30\", \"Speed=1.5\", LAST);\nweb_stream_close(\"ID=1\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_open.htm"
+  },
+  {
+    "name": "web_stream_pause",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_pause(\"ID=<n>\", \"PausingDuration=<secs>\", LAST);",
+    "description": "Pauses stream playback while keeping the current position; the stream continues to download in the background and playback resumes from the paused position. This function is not recorded automatically and must be inserted manually.",
+    "args": [
+      { "name": "ID", "desc": "The stream identifier from web_stream_open." },
+      { "name": "PausingDuration", "desc": "The pause duration in seconds." }
+    ],
+    "example": "web_stream_pause(\"ID=1\",\"PausingDuration=20\", LAST);\nlr_vuser_status_message(\"Current time in movie:%lf\", web_stream_get_param_double(\"1\", CURRENT_TIME));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_pause.htm"
+  },
+  {
+    "name": "web_stream_play",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_play(\"ID=<n>\", \"PlayingDuration=<seconds>\", [\"Speed=<n>\",] LAST);",
+    "description": "Plays a media stream that was opened with web_stream_open. If PlayingDuration is omitted, the entire stream is played; the step fails if the duration exceeds the step download timeout. Not recorded automatically.",
+    "args": [
+      { "name": "ID", "desc": "The stream identifier from web_stream_open." },
+      { "name": "PlayingDuration", "desc": "The playback duration in seconds." },
+      { "name": "Speed", "desc": "The playback speed: 0.5, 1.0, 1.5, or 2.0 (default 1.0)." }
+    ],
+    "example": "web_stream_play(\"ID=1\", \"PlayingDuration=30\", \"Speed=1.5\", LAST);\nlr_vuser_status_message(\"Current time:%lf\", web_stream_get_param_double(\"1\", CURRENT_TIME));",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_play.htm"
+  },
+  {
+    "name": "web_stream_seek",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_seek(\"ID=<n>\", \"TimeOffset=<seconds>\" | \"RelativeOffset=<+/- seconds>\", LAST);",
+    "description": "Sets the position within a stream opened with web_stream_open, either from the start of the stream (TimeOffset) or relative to the current position (RelativeOffset). Use only one of the two; fails for live streams that do not support seeking.",
+    "args": [
+      { "name": "ID", "desc": "The stream identifier from web_stream_open." },
+      { "name": "TimeOffset", "desc": "The position from the start of the stream (seconds)." },
+      { "name": "RelativeOffset", "desc": "The offset relative to the current position (seconds, can be + or -)." }
+    ],
+    "example": "web_stream_play(\"ID=1\",\"Duration=10\",LAST);\nweb_stream_seek(\"ID=1\",\"TimeOffset=11\",LAST);\nweb_stream_play(\"ID=1\",\"Duration=10\",LAST);\n\nweb_stream_seek(\"ID=1\",\"RelativeOffset=90\",LAST);\nweb_stream_play(\"ID=1\",\"Duration=10\",LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_seek.htm"
+  },
+  {
+    "name": "web_stream_set_param_double",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_set_param_double(const char *StreamID, const int StateType, const double StateValue);",
+    "description": "Sets a new value for a double-type parameter on an open stream (for example, the SPEED). Returns LR_PASS (0) on success or LR_FAIL (1) on failure.",
+    "args": [
+      { "name": "StreamID", "desc": "The identifier given to web_stream_open." },
+      { "name": "StateType", "desc": "The code of the double-type parameter, for example SPEED (13)." },
+      { "name": "StateValue", "desc": "The new double value." }
+    ],
+    "example": "web_stream_open(\"ID=1\", \"URL=http://my_server/streaming-test/Video2/Class%20-%206.mp4\",\n  \"EventReportCB=PrintBytes\", \"Protocol=HTTP\", \"StreamBufferingTimeout=38\", LAST);\n\nweb_stream_set_param_double(\"1\", SPEED, 2.0);\nweb_stream_set_param_int(\"1\", BANDWIDTH, 2000000);\nweb_stream_play(\"ID=1\", \"PlayingDuration=30\", \"Speed=1.5\", LAST);\nweb_stream_stop(\"ID=1\", LAST);\nweb_stream_close(\"ID=1\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_set_param_double.htm"
+  },
+  {
+    "name": "web_stream_set_param_int",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_set_param_int(const char *StreamID, const int StateType, const int StateValue);",
+    "description": "Sets an integer value for a parameter of an open stream, such as BANDWIDTH or BUFFERING_TIMEOUT. Not recorded automatically and does not support standard parameterization.",
+    "args": [
+      { "name": "StreamID", "desc": "The identifier given to web_stream_open." },
+      { "name": "StateType", "desc": "The code of the integer parameter, for example BANDWIDTH (11) or BUFFERING_TIMEOUT (12)." },
+      { "name": "StateValue", "desc": "The new integer value." }
+    ],
+    "example": "web_stream_set_param_int(\"1\", BANDWIDTH, 2000000);\nweb_stream_set_param_int(\"1\", BUFFERING_TIMEOUT, 60);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_set_param_int.htm"
+  },
+  {
+    "name": "web_stream_stop",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_stop(\"ID=<n>\", LAST);",
+    "description": "Stops stream playback and resets the stream position to the beginning, so the next playback starts from the start. Not recorded automatically and does not support standard parameterization.",
+    "args": [
+      { "name": "ID", "desc": "The stream identifier from web_stream_open." }
+    ],
+    "example": "web_stream_stop(\"ID=1\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_stop.htm"
+  },
+  {
+    "name": "web_stream_wait",
+    "category": "Web: Streaming",
+    "signature": "int web_stream_wait(\"ID=<n>\", [\"StreamingDuration=<seconds>\"] [\"Percentage=<0-100>\"], LAST);",
+    "description": "Holds script execution during stream playback until a specified download condition is met. Specify exactly one condition (for example, StreamingDuration or Percentage; Percentage is not supported for live streaming).",
+    "args": [
+      { "name": "ID", "desc": "The stream identifier from web_stream_open." },
+      { "name": "StreamingDuration", "desc": "The wait duration in seconds." },
+      { "name": "Percentage", "desc": "The stream position (0-100%) to wait for." }
+    ],
+    "example": "web_stream_open(\"ID=1\", \"URL=http://my_server/streaming-test/Video2/Class%20-%206.mp4\", \"Protocol=HTTP\", LAST);\nweb_stream_wait(\"ID=1\", \"Percentage=50\", LAST);\nweb_stream_close(\"ID=1\", LAST);",
+    "exampleSource": "composed",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/streaming/lrFr_web_stream_wait.htm"
+  },
+  {
+    "name": "web_service_call",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int web_service_call( const char *StepName, [URL,] ExpectedResponse, <List of specifications>, [BEGIN_ARGUMENTS, Arguments, END_ARGUMENTS,] [Send Attachments,] [BEGIN_RESULT, Results, END_RESULT,] [Receive Attachments,] LAST );",
+    "description": "Calls a web service; typically generated automatically when importing a WSDL in a Web Service Vuser. Provides a high-level interface for modifying SOAP arguments. Returns LR_PASS (0) or LR_FAIL (1).",
+    "args": [
+      { "name": "StepName", "desc": "The step name shown in the test tree." },
+      { "name": "URL", "desc": "The web service endpoint (overrides the default from the WSDL)." },
+      { "name": "ExpectedResponse", "desc": "The response type: SoapResult, SoapFault, or AnySoap." },
+      { "name": "SOAPMethod", "desc": "Service|Port|Method (cannot be parameterized)." },
+      { "name": "SOAPHeader", "desc": "An optional custom SOAP header in XML format." },
+      { "name": "Arguments", "desc": "Input parameters between BEGIN_ARGUMENTS and END_ARGUMENTS: ArgumentName=Value." },
+      { "name": "Results", "desc": "Output mapping between BEGIN_RESULT and END_RESULT: ResultName=ParameterName." }
+    ],
+    "example": "#include \"as_web.h\"\n\nweb_service_call( \"StepName=UkLocation\",\n    \"ExpectedResponse=AnySoap\",\n    \"URL=http://www.locatorx.net/uklocation.asmx\",\n    \"SOAPMethod=TownService|TownServiceSoap|GetUKLocationByTown\",\n    \"SOAPMethodNamespace=http://www.locatorX.NET\",\n    \"SOAPMethodStyle=document\",\n    \"SOAPAction=http://www.locatorX.NET/GetUKLocationByTown\",\n    \"WSDL=http://www.locatorx.net/uklocation.asmx?WSDL\",\n    \"SOAPHeader=<SoapHeader><e>jb14</e></SoapHeader>\",\n    \"Snapshot=t1.inf\",\n    BEGIN_ARGUMENTS,\n        \"Town=London\",\n    END_ARGUMENTS,\n    BEGIN_RESULT,\n         \"GetUKLocationByTownResult=Result\",\n    END_RESULT,\n    LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_call.htm"
+  },
+  {
+    "name": "web_service_cancel_security",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int web_service_cancel_security( );",
+    "description": "Cancels the security settings from a previous web_service_set_security call, so the token is no longer included in subsequent soap_request and web_service_call functions. Takes no arguments.",
+    "args": [],
+    "example": "web_service_set_security(\"30\",\n  SECURITY_TOKEN,\n    \"TokenName=MyUserNameToken\",\n    \"Type=Username\",\n    \"UserName=admin\", \"Password=test\",\n    \"PasswordOptions=SendPlainText\",\n    \"IDType=SubjectName\",\n  MESSAGE_SIGNATURE,\n    \"UseToken=MyUserNameToken\",\n    \"TargetPath=//soap:Body/View\",\n    \"SignatureOptions=IncludeBody|IncludeAddressing|IncludeTimestamp\",\n  LAST);\n\n...\n\nweb_service_cancel_security( );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_cancel_security.htm"
+  },
+  {
+    "name": "web_service_cancel_security_saml",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int web_service_cancel_security_saml();",
+    "description": "A legacy function that cancels the security settings from a previous web_service_set_security_saml call, so the token is no longer included in subsequent soap_request and web_service_call functions. Takes no arguments.",
+    "args": [],
+    "example": "web_service_set_security_saml(\n  \"ISsuerUrl=http://myserver/SamlSecurityTokenService/SamlTokenIssuer.ashx\",\n  \"Username=myserver\\\\administrator\",\n  \"Password=abcabc\",\n  \"PasswordOptions=SendPlainText\",\n  \"CertStoreLocation=CurrentUser\",\n  \"CertStoreName=AddressBook\",\n  \"CertSubjectName=CN=WSE2QuickStartServer\",\n  \"PolicyFile=samlPolicy.config\",\n  LAST );\n\nweb_service_call(\n    \"StepName=HelloWorld_101\",\n    \"SOAPMethod=Service|ServiceSoap|HelloWorld\",\n    \"ResponseParam=response\",\n    \"WSDL=http://localhost/SampleService/Service.asmx?wsdl\",\n    \"URL=http://myserver/SampleService/Service.asmx\",\n    \"UseWSDLCopy=1\",\n    \"Snapshot=t1153124794.inf\",\n    BEGIN_ARGUMENTS,\n    END_ARGUMENTS,\n    BEGIN_RESULT,\n    \"HelloWorldResult=Param_HelloWorldResult\",\n    END_RESULT,\n    LAST );\n\nweb_service_cancel_security_saml();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_cancel_securty_saml.htm"
+  },
+  {
+    "name": "web_service_cancel_security_saml_ex",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int web_service_cancel_security_saml_ex( );",
+    "description": "Cancels the SAML security settings from a previous web_service_set_security_saml_ex call, so the token is no longer included in subsequent soap_request and web_service_call functions. Takes no arguments.",
+    "args": [],
+    "example": "web_service_set_security_saml_ex(\"IssuerUrl=https://myserver/sts/STSWebHost/Saml20STSService.svc\",\n    \"Username=test\",\n    \"Password=test\",\n    \"TokenType=SAML2.0\",\n    \"KeyType=Bearer\",\n    \"AudienceUris=https://RelyingParty/*\",\n    LAST);\n\nweb_service_call( \"StepName=Add_101\",\n    \"SOAPMethod=Calculator|WS2007FederationHttpBinding_ICalculator|Add\",\n    \"ResponseParam=response\",\n    \"Service=Calculator\",\n    \"ExpectedResponse=SoapResult\",\n    \"Snapshot=t1568875776.inf\",\n    BEGIN_ARGUMENTS,\n    \"n1=1\",\n    \"n2=2\",\n    END_ARGUMENTS,\n    BEGIN_RESULT,\n    END_RESULT,\n    LAST);\n\nweb_service_cancel_security_saml_ex();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_cancel_security_saml_ex.htm"
+  },
+  {
+    "name": "web_service_set_option",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int web_service_set_option( const char *OptionName, const char *OptionValue );",
+    "description": "Sets an option for subsequent web service calls; must be added manually before web_service_call when a particular option is needed. Returns LR_PASS (0) or LR_FAIL (1).",
+    "args": [
+      { "name": "OptionName", "desc": "The web service option name (case-sensitive): DoNotValidateSecurity, ExcludeWseHeaders, or HandleMIMEResponse." },
+      { "name": "OptionValue", "desc": "The option value (case-insensitive), for example \"true\"." }
+    ],
+    "example": "web_service_set_option(\"DoNotValidateSecurity\", \"true\");\nweb_service_call( \"StepName=EchoBoolean_101\",\n    \"SOAPMethod=EchoService|EchoServicePort|EchoBoolean\",\n    \"ResponseParam=response\",\n    \"Service=EchoService\",\n    \"ExpectedResponse=SoapResult\",\n    \"Snapshot=t1444878757.inf\",\n    BEGIN_ARGUMENTS,\n    \"Input=false\",\n    END_ARGUMENTS,\n    BEGIN_RESULT,\n    END_RESULT,\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_set_option.htm"
+  },
+  {
+    "name": "web_service_set_security",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int web_service_set_security ( [const char * TtlIsSeconds ,] SECURITY_TOKEN, const char * attributes, [SECURITY_TOKEN , attributes... ,] MESSAGE_SIGNATURE, const char * attributes, [MESSAGE_SIGNATURE, attributes, ...] ENCRYPTED_DATA, const char * attributes, [ENCRYPTED_DATA, attributes,...] LAST );",
+    "description": "Includes a security token in all subsequent SOAP and web service requests; the token stays active until the next web_service_set_security or web_service_cancel_security call. The token is processed before attachments in each web_service_call.",
+    "args": [
+      { "name": "TtlIsSeconds", "desc": "The message lifetime in seconds from creation." },
+      { "name": "SECURITY_TOKEN", "desc": "Defines a security token with its required attributes (Type, token name) and type-specific parameters." },
+      { "name": "MESSAGE_SIGNATURE", "desc": "Specifies token-based signing of the message or parts of the SOAP envelope." },
+      { "name": "ENCRYPTED_DATA", "desc": "Specifies token-based encryption of the message or SOAP elements." },
+      { "name": "LAST", "desc": "Marks the end of the argument list." }
+    ],
+    "example": "web_service_set_security(\"30\",\n  SECURITY_TOKEN,\n    \"TokenName=MyUserNameToken\",\n    \"Type=Username\",\n    \"UserName=admin\", \"Password=test\",\n    \"PasswordOptions=SendPlainText\",\n    \"IDType=SubjectName\",\n  MESSAGE_SIGNATURE,\n    \"UseToken=MyUserNameToken\",\n    \"TargetPath=//soap:Body/View\",\n    \"SignatureOptions=IncludeBody|IncludeAddressing|IncludeTimestamp\",\n    \"TransformAlgorithm=http://www.w3.org/2001/10/xml-exc-c14n#\",\n  ENCRYPTED_DATA ,\n    \"EncryptionType=Content\",\n    \"KeyAlgorithm=RSA15\",\n    \"SessionAlgorithm=TripleDES\",\n  WS_ADDRESSING,\n    \"Version=WSA1.0\",\n  TIME_STAMP,\n    \"Exclude=True/False\"\n  LAST);\n\n...\n\nweb_service_cancel_security( );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_set_security.htm"
+  },
+  {
+    "name": "web_service_set_security_saml",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int web_service_set_security_saml([const char * IssuerURL,] [const char * Username, const char * Password,] [const char * PasswordOptions,] [const char * CertStoreLocation,] [const char * CertStoreName,] [const char * CertSubjectName,] [const char * PolicyFile,] LAST);",
+    "description": "A legacy function that includes a SAML security token in subsequent SOAP/web service calls. The token is obtained from an STS endpoint and remains active until the next call or web_service_cancel_security_saml. For new scripts, use web_service_set_security_saml_ex.",
+    "args": [
+      { "name": "IssuerURL", "desc": "The STS endpoint URL (required)." },
+      { "name": "Username", "desc": "The user name for the STS." },
+      { "name": "Password", "desc": "The password for the STS." },
+      { "name": "PasswordOptions", "desc": "How the password is sent: SendPlainText, SendNone, or SendHashed." },
+      { "name": "CertStoreLocation", "desc": "The certificate store location: CurrentUser or LocalMachine." },
+      { "name": "CertStoreName", "desc": "The certificate store name." },
+      { "name": "CertSubjectName", "desc": "The certificate subject name." },
+      { "name": "PolicyFile", "desc": "The security configuration file for the RST and WebService." }
+    ],
+    "example": "web_service_set_security_saml(\n  \"ISsuerUrl=http://myserver/SamlSecurityTokenService/SamlTokenIssuer.ashx\",\n  \"Username=myserver\\\\administrator\",\n  \"Password=abcabc\",\n  \"PasswordOptions=SendPlainText\",\n  \"CertStoreLocation=CurrentUser\",\n  \"CertStoreName=AddressBook\",\n  \"CertSubjectName=CN=WSE2QuickStartServer\",\n  \"PolicyFile=samlPolicy.config\",\n  LAST );\n\nweb_service_cancel_security_saml();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_set_security_saml.htm"
+  },
+  {
+    "name": "web_service_set_security_saml_ex",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int web_service_set_security_saml_ex([const char * IssuerURL,] [const char * Username, const char * Password,] [const char * TokenType,] [const char * KeyType,] [const char * AudienceUris,] LAST);",
+    "description": "Includes a SAML security token in subsequent SOAP/web service calls by retrieving the token from an STS endpoint. Works only with the WCF/.NET toolkit; the token remains active until the next call or web_service_cancel_security_saml_ex.",
+    "args": [
+      { "name": "IssuerURL", "desc": "The STS endpoint URL (required)." },
+      { "name": "Username", "desc": "The user name for the STS." },
+      { "name": "Password", "desc": "The password for the STS." },
+      { "name": "TokenType", "desc": "The SAML version: SAML1.1 or SAML2.0." },
+      { "name": "KeyType", "desc": "The key type: Asymmetric, Bearer, or Symmetric." },
+      { "name": "AudienceUris", "desc": "A comma-separated list of URIs agreed upon by the client and the STS." }
+    ],
+    "example": "web_service_set_security_saml_ex(\"IssuerUrl=https://myserver/sts/STSWebHost/Saml20STSService.svc\",\n    \"Username=test\",\n    \"Password=test\",\n    \"TokenType=SAML2.0\",\n    \"KeyType=Bearer\",\n    \"AudienceUris=https://RelyingParty/*\",\n    LAST);\n\nweb_service_call( \"StepName=Add_101\",\n    \"SOAPMethod=Calculator|WS2007FederationHttpBinding_ICalculator|Add\",\n    \"ResponseParam=response\",\n    \"Service=Calculator\",\n    \"ExpectedResponse=SoapResult\",\n    \"Snapshot=t1568875776.inf\",\n    BEGIN_ARGUMENTS,\n    \"n1=1\",\n    \"n2=2\",\n    END_ARGUMENTS,\n    BEGIN_RESULT,\n    END_RESULT,\n    LAST);\n\nweb_service_cancel_security_saml_ex();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_set_security_saml_ex.htm"
+  },
+  {
+    "name": "web_service_wait_for_event",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "char * web_service_wait_for_event( const char * StepName, const char * Quantifier, const char * Timeout, BEGIN_EVENTS, const char * EventName_1, [...EventName_n,] END_EVENTS, LAST );",
+    "description": "Pauses script execution until a response is received from a previous asynchronous service request. Returns the name of the captured event, or null on timeout. Events are created through web_service_call (AsyncEvent=...).",
+    "args": [
+      { "name": "StepName", "desc": "The step name in the test tree." },
+      { "name": "Quantifier", "desc": "\"ALL\" (wait for all events) or \"ANY\" (wait for the first event)." },
+      { "name": "Timeout", "desc": "The maximum wait time in milliseconds." },
+      { "name": "EventName_1..n", "desc": "The list of event names, enclosed by BEGIN_EVENTS and END_EVENTS." }
+    ],
+    "example": "web_service_call( \"StepName=EchoString_101\",\n    \"SOAPMethod=ExtendedECHO_rpc_encoded|ExtendedECHO_rpc_encodedSoap|EchoString\",\n    \"ResponseParam=response\",\n    \"Service=ExtendedECHO_rpc_encoded\",\n    \"AsyncEvent=first_event\",\n    BEGIN_ARGUMENTS,\n    \"sec=7\",\n    \"strString=jabberwocky\",\n    END_ARGUMENTS,\n    BEGIN_RESULT,\n    \"EchoStringResult=first_call\",\n    END_RESULT,\n    LAST );\n\nlr_output_message(\"got event %s\",\n    web_service_wait_for_event(\"StepName=WaitHere\",\n        \"Quantifier=ALL\",\n        \"Timeout=10000\",\n        BEGIN_EVENTS,\n        \"first_event\",\n        \"second_event\",\n        END_EVENTS,\n        LAST)\n    );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_web_service_wait_for_event.htm"
+  },
+  {
+    "name": "ws_sign_saml_assertion",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int ws_sign_saml_assertion(const char *AssertionContent, const char *CertificateFile, [const char *CertificatePassword,] const char *OutParam);",
+    "description": "Digitally signs a SAML assertion; it can sign an unsigned assertion or replace an existing signature. The result is saved to an output parameter.",
+    "args": [
+      { "name": "AssertionContent", "desc": "The assertion content; if it is already signed, the old signature is replaced." },
+      { "name": "CertificateFile", "desc": "The certificate file name or full path (name only if it is in the script directory)." },
+      { "name": "CertificatePassword", "desc": "The certificate file password (optional)." },
+      { "name": "OutParam", "desc": "The output parameter that holds the signed SAML assertion." }
+    ],
+    "example": "ws_sign_saml_assertion(\n        \"AssertionContent=<Assertion AssertionID=...> ... </Assertion>\",\n        \"CertificateFile=Client Private.pfx\",\n        \"CertificatePassword=wse2qs\",\n        \"OutParam=param1\"\n        );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_ws_sign_saml_assertion.htm"
+  },
+  {
+    "name": "wsdl_wsi_validation",
+    "category": "Web: Web Service (SOAP)",
+    "signature": "int wsdl_wsi_validation(const char *ServiceName);",
+    "description": "Validates a WSDL file against the WS-I (Web Services Interoperability) standards and reports compliance. Requires the external WS-I testing tools to be installed and the service to be already imported into VuGen.",
+    "args": [
+      { "name": "ServiceName", "desc": "The name of the imported service; the WSDL location is determined from the service import folder (supports parameterization)." }
+    ],
+    "example": "web_service_call( \"StepName=CalcCheck\",\n    \"SOAPMethod=Calc|CalcSoapPort|Add\",\n    \"ResponseParam=response\",\n    \"Service=Calc\",\n    \"URL=http://16.59.60.46/MSSoapSamples30/Calc/Service/Rpc/IsapiCpp/Calc.WSDL\",\n    \"ExpectedResponse=SoapResult\",\n    \"Snapshot=t1221482536.inf\",\n    BEGIN_ARGUMENTS,\n            \"A=\",\n            \"B=\",\n    END_ARGUMENTS,\n    BEGIN_RESULT,\n    END_RESULT,\n    LAST );\n\nwsdl_wsi_validation(\"ServiceName=Calc\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/Soap/lrFr_wsdl_wsi_validation.htm"
+  }
+]

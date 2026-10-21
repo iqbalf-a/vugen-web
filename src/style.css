@@ -67,7 +67,8 @@
   align-items: center;
   gap: 6px;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 10px;
+  white-space: nowrap;
   font-size: 12px;
   color: #7d8896;
   background: transparent;
@@ -156,4 +157,218 @@
 
 #status[data-state="error"]::before {
   background: #f08a8a;
+}
+
+/* Step Toolbox: daftar fungsi, header kategori, pemisah, argumen, warna sintaks (selaras tema editor One Dark) */
+.tb-list {
+  outline: none;
+}
+
+.tb-list:focus-visible {
+  box-shadow: inset 0 0 0 1px #d2a24c;
+}
+
+.tb-cat {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 12px;
+  border-bottom: 1px solid #232a33;
+  background: #141922;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7d8896;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tb-cat:hover {
+  color: #e6edf3;
+}
+
+.tb-chevron {
+  width: 8px;
+  font-size: 7px;
+}
+
+.tb-row {
+  height: 24px;
+  padding: 0 12px 0 20px;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 24px;
+  color: #c5ced8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tb-row:hover {
+  background: #1b212b;
+}
+
+.tb-row[aria-selected="true"] {
+  background: #1b212b;
+  color: #e6edf3;
+  box-shadow: inset 2px 0 0 #d2a24c;
+}
+
+.tb-row mark,
+.tb-list mark {
+  background: transparent;
+  color: #d2a24c;
+  font-weight: 600;
+}
+
+.tb-split {
+  height: 5px;
+  flex-shrink: 0;
+  border-top: 1px solid #232a33;
+  border-bottom: 1px solid #232a33;
+  background: #141922;
+  cursor: row-resize;
+  outline: none;
+}
+
+.tb-split:hover,
+.tb-split:focus-visible {
+  background: #d2a24c;
+  border-color: #d2a24c;
+}
+
+.tb-args {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 12px;
+  row-gap: 6px;
+}
+
+.tb-code {
+  tab-size: 4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tok-comment { color: #7d8896; font-style: italic; }
+.tok-string { color: #98c379; }
+.tok-number { color: #d19a66; }
+.tok-keyword { color: #c678dd; }
+.tok-call { color: #61afef; }
+.tok-constant { color: #e5c07b; }
+
+/* Popover Run settings: baris pengaturan, field, dan toggle */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  cursor: pointer;
+}
+
+.setting-row + .setting-row {
+  border-top: 1px solid #1b212b;
+}
+
+.setting-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.setting-name {
+  font-size: 12px;
+  color: #e6edf3;
+}
+
+.setting-hint {
+  font-size: 11px;
+  color: #7d8896;
+}
+
+.ui-field {
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  border: 1px solid #232a33;
+  border-radius: 3px;
+  background: #1b212b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: #e6edf3;
+  outline: none;
+}
+
+.ui-field:focus-visible {
+  border-color: #d2a24c;
+}
+
+.ui-toggle {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  flex-shrink: 0;
+  appearance: none;
+  border: 1px solid #2a3644;
+  border-radius: 999px;
+  background: #1b212b;
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+}
+
+.ui-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #7d8896;
+  transition: transform 120ms, background-color 120ms;
+}
+
+.ui-toggle:checked {
+  border-color: #d2a24c;
+  background: #3a2f15;
+}
+
+.ui-toggle:checked::after {
+  background: #d2a24c;
+  transform: translateX(13px);
+}
+
+.ui-toggle-warn:checked {
+  border-color: #e3c664;
+  background: #3a3315;
+}
+
+.ui-toggle-warn:checked::after {
+  background: #e3c664;
+}
+
+.ui-toggle:focus-visible {
+  outline: 1px solid #d2a24c;
+  outline-offset: 2px;
+}
+
+.ui-toggle:disabled,
+.ui-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-toggle,
+  .ui-toggle::after {
+    transition: none;
+  }
 }

@@ -18,6 +18,8 @@ export async function getProject(_req, res, url) {
   const scriptDir = await resolveScriptDir(url.searchParams.get("path"));
   const project = await loadProject(scriptDir);
   // Nilai parameter (.dat bisa berisi user/password) hanya untuk runner, tidak dikirim ke browser.
-  const parameters = project.parameters.map(({ name, file, rows }) => ({ name, file, rows }));
+  const parameters = project.parameters.map(({ name, file, rows, column, prmFile, selectNextRow, sameLineAs, updateValueOn, outOfRangePolicy }) => ({
+    name, file, rows, column, prmFile, selectNextRow, sameLineAs, updateValueOn, outOfRangePolicy,
+  }));
   sendJson(res, 200, { ...project, parameters });
 }

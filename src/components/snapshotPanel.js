@@ -121,16 +121,24 @@ function mountHtmlFrame(container, text) {
   container.replaceChildren(frame);
 }
 
+/** Batas tampilan teks sebelum "Show all" muncul (karakter) */
+const DISPLAY_LIMIT = 20_000;
+/** Set seq step yang sudah di-expand penuh oleh user */
+const expandedSteps = new Set();
+
 /** Render content based on category */
 function renderContent(text, category, meta = {}) {
   if (category === "html") {
     return '<div data-html-frame></div>';
-  } else if (category === "json") {
-    return `<pre class="snap-code p-2 text-green-300 text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">${escapeHtml(prettyJson(text))}</pre>`;
-  } else if (category === "xml") {
-    return `<pre class="snap-code p-2 text-yellow-300 text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">${escapeHtml(prettyXml(text))}</pre>`;
-  } else if (category === "text") {
-    return `<pre class="snap-code p-2 text-gray-300 text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">${escapeHtml(text)}</pre>`;
+  } else if (category === "json" || category === "xml" || category === "text") {
+    const pretty = category === "json" ? prettyJson(text) : category === "xml" ? prettyXml(text) : text;
+    const color = category === "json" ? "text-green-300" : category === "xml" ? "text-yellow-300" : "text-gray-300";
+    const seq = currentStep?.seq;
+    const isExpanded = expandedSteps.has(seq);
+    const truncated = !isExpanded && pretty.length > DISPLAY_LIMIT;
+    const display = truncated ? pretty.slice(0, DISPLAY_LIMIT) : pretty;
+    return `<pre class="snap-code p-2 ${color} text-[11px] leading-snug overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">${escapeHtml(display)}</pre>`
+      + (truncated ? `<div class="px-2 pb-2"><button type="button" data-show-all class="text-[11px] text-[#d2a24c] hover:underline">Show all (${(pretty.length/1024).toFixed(0)} KB)…</button></div>` : "");
   } else {
     return `
       <div class="p-4 text-center text-gray-500">
@@ -390,6 +398,12 @@ async function renderSnapshot() {
   if (frameSlot) mountHtmlFrame(frameSlot, text);
   root.querySelector('[data-load-resources]')?.addEventListener('change', (e) => {
     loadResources = e.target.checked;
+    renderSnapshot();
+  });
+
+  // Tombol "Show all"
+  root.querySelector('[data-show-all]')?.addEventListener('click', () => {
+    if (currentStep?.seq != null) expandedSteps.add(currentStep.seq);
     renderSnapshot();
   });
 

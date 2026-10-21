@@ -15,8 +15,13 @@ let unsubscribe = null;
 let countEl = null;
 /** @type {boolean} */
 let autoScroll = true;
+/** Jumlah baris yang sudah dirender — untuk incremental append */
+let renderedCount = 0;
+/** runId yang sedang dirender — reset renderedCount saat run baru */
+let renderedRunId = "";
 
-/** Warna per level: warn kuning, error merah, selain itu teks biasa */
+const MAX_DISPLAY = 500;
+
 function getLevelColor(level) {
   switch (level) {
     case "error": return "text-[#f08a8a]";
@@ -25,7 +30,6 @@ function getLevelColor(level) {
   }
 }
 
-/** Ikon level (menempel di awal pesan) */
 function getLevelIcon(level) {
   switch (level) {
     case "error": return "✗";
@@ -34,43 +38,57 @@ function getLevelIcon(level) {
   }
 }
 
-/** Format timestamp */
 function formatTime(ts) {
   const date = new Date(ts);
   return date.toLocaleTimeString("en-US", { hour12: false }) + "." + String(date.getMilliseconds()).padStart(3, "0");
 }
 
-/** Render log panel */
+function rowHtml(entry) {
+  const location = entry.file ? `${entry.file}:${entry.line ?? ""}` : "";
+  return `<div class="log-row grid grid-cols-[84px_104px_minmax(0,1fr)] items-baseline gap-x-3 px-3 py-0.5 hover:bg-[#161c24] ${getLevelColor(entry.level)}"><span class="font-mono text-[11px] tabular-nums text-[#5b6572]">${formatTime(entry.ts)}</span><span class="truncate font-mono text-[11px] text-[#7d8896]" title="${escapeHtml(location)}">${escapeHtml(location)}</span><span class="text-[12px] leading-snug [overflow-wrap:anywhere]"><span class="mr-1 inline-block w-3 text-center">${getLevelIcon(entry.level)}</span>${escapeHtml(entry.msg)}</span></div>`;
+}
+
 function render() {
   if (!contentEl) return;
   const state = getState();
   const run = state.currentRun;
   const logs = run?.log || [];
+  const runId = run?.runId ?? "";
 
-  if (logs.length === 0) {
-    contentEl.innerHTML = '<div class="p-4 text-center text-[12px] text-[#5b6572]">No log entries yet</div>';
+  // Run baru atau log dikosongkan → full re-render
+  if (runId !== renderedRunId || logs.length < renderedCount) {
+    renderedRunId = runId;
+    renderedCount = 0;
+    if (logs.length === 0) {
+      contentEl.innerHTML = '<div class="p-4 text-center text-[12px] text-[#5b6572]">No log entries yet</div>';
+      if (countEl) countEl.textContent = "0";
+      return;
+    }
+    // Full render: tampilkan MAX_DISPLAY terakhir
+    const start = Math.max(0, logs.length - MAX_DISPLAY);
+    contentEl.innerHTML = logs.slice(start).map(rowHtml).join("");
+    renderedCount = logs.length;
+    if (countEl) countEl.textContent = String(logs.length);
+    if (autoScroll) contentEl.scrollTop = contentEl.scrollHeight;
     return;
   }
 
-  // Keep only last 500 entries for performance
-  const displayLogs = logs.slice(-500);
-  if (countEl) countEl.textContent = String(logs.length);
+  // Incremental: hanya append baris baru
+  if (logs.length <= renderedCount) return;
 
-  // Grid tiga kolom: waktu | lokasi | pesan (pesan dibungkus di batas kata/karakter, tanpa memotong kata di tengah)
-  contentEl.innerHTML = displayLogs.map((entry) => {
-    const location = entry.file ? `${entry.file}:${entry.line ?? ""}` : "";
-    return `
-    <div class="log-row grid grid-cols-[84px_104px_minmax(0,1fr)] items-baseline gap-x-3 px-3 py-0.5 hover:bg-[#161c24] ${getLevelColor(entry.level)}">
-      <span class="font-mono text-[11px] tabular-nums text-[#5b6572]">${formatTime(entry.ts)}</span>
-      <span class="truncate font-mono text-[11px] text-[#7d8896]" title="${escapeHtml(location)}">${escapeHtml(location)}</span>
-      <span class="text-[12px] leading-snug [overflow-wrap:anywhere]"><span class="mr-1 inline-block w-3 text-center">${getLevelIcon(entry.level)}</span>${escapeHtml(entry.msg)}</span>
-    </div>`;
-  }).join("");
-
-  // Auto scroll to bottom
-  if (autoScroll) {
-    contentEl.scrollTop = contentEl.scrollHeight;
+  // Batasi MAX_DISPLAY total: buang baris awal bila perlu
+  const newEntries = logs.slice(renderedCount);
+  const totalAfter = renderedCount + newEntries.length;
+  if (totalAfter > MAX_DISPLAY) {
+    const excess = totalAfter - MAX_DISPLAY;
+    const rows = contentEl.querySelectorAll(".log-row");
+    for (let i = 0; i < Math.min(excess, rows.length); i++) rows[i].remove();
   }
+
+  contentEl.insertAdjacentHTML("beforeend", newEntries.map(rowHtml).join(""));
+  renderedCount = logs.length;
+  if (countEl) countEl.textContent = String(logs.length);
+  if (autoScroll) contentEl.scrollTop = contentEl.scrollHeight;
 }
 
 function onStateChange() {
@@ -94,8 +112,7 @@ export function createLogPanel(container) {
   `;
   contentEl = root.querySelector("#content");
   countEl = root.querySelector("#logCount");
-  const autoScrollCheckbox = root.querySelector("#autoScroll");
-  autoScrollCheckbox.addEventListener("change", (e) => {
+  root.querySelector("#autoScroll").addEventListener("change", (e) => {
     autoScroll = e.target.checked;
   });
 
@@ -109,6 +126,8 @@ export function createLogPanel(container) {
       root = null;
       contentEl = null;
       countEl = null;
+      renderedCount = 0;
+      renderedRunId = "";
     },
   };
 }

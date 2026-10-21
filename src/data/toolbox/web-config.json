@@ -1,0 +1,414 @@
+[
+  {
+    "name": "web_add_auto_filter",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_add_auto_filter([Action,]< List of Attributes >, LAST);",
+    "description": "Sets filter criteria for downloading URLs (include or exclude) for subsequent action functions. Unlike web_add_filter, this filter remains active until removed with web_remove_auto_filter (use the ID attribute).",
+    "args": [
+      { "name": "Action", "desc": "\"Include\" to include matching URLs, or \"Exclude\" (default) to skip matching URLs." },
+      { "name": "URL / UrlPrefix", "desc": "The exact URL, or a URL that starts with a given string." },
+      { "name": "Host / HostPrefix / HostSuffix", "desc": "Host name matching criteria." },
+      { "name": "Path / PathPrefix / PathSuffix", "desc": "URL path matching criteria." },
+      { "name": "Port", "desc": "The port number of the URL source." },
+      { "name": "Scheme", "desc": "The protocol: http, https, ftp." },
+      { "name": "Query / QueryPrefix / QuerySuffix", "desc": "Query string matching criteria." },
+      { "name": "FragmentId*", "desc": "Fragment identifier matching criteria." },
+      { "name": "ID", "desc": "The filter identifier, so that it can be removed with web_remove_auto_filter." },
+      { "name": "LAST", "desc": "Marks the end of the attribute list." }
+    ],
+    "example": "web_add_auto_filter(\"Action=Exclude\", \"PathPrefix=/Images/Upload\", LAST );\n\nweb_url(\"www.knanas.com\", \n    \"URL=http://www.knanas.com/\", \"Resource=0\",\n    \"RecContentType=text/html\", \"Referer=\", \"Snapshot=t1.inf\",\n    \"Mode=HTML\", \n    EXTRARES,\n    \"Url=/images/netaction_icon.gif\", \n    ENDITEM,\n    \"Url=http://frontpage.knanas.com/Images/Upload/Commerce323.jpg\",\n    ENDITEM,\n    LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_add_auto_filter.htm"
+  },
+  {
+    "name": "web_add_auto_header",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_add_auto_header( const char *Header, const char *Content );",
+    "description": "Adds a specified header to all subsequent HTTP requests in the script. Unlike web_add_header, which applies only to the next request. Does not apply in a concurrent group and is ignored by web_rest steps.",
+    "args": [
+      { "name": "Header", "desc": "The header name, for example \"Accept\" or \"Accept-Encoding\"." },
+      { "name": "Content", "desc": "The header value." }
+    ],
+    "example": "web_add_auto_header(\"Accept-Encoding\", \"gzip\");\n\nweb_add_auto_header(\"userid\", \"HTilney\");\nweb_add_auto_header(\"pwd\", \"northanger1803\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_add_auto_header.htm"
+  },
+  {
+    "name": "web_add_cookie",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_add_cookie(const char *Cookie);",
+    "description": "Adds, deletes, or replaces a script's temporary cookie (not a browser cookie). If a cookie with the same name and path already exists, it is overwritten; a cookie whose expiration date has passed is deleted. The domain attribute is required.",
+    "args": [
+      { "name": "Cookie", "desc": "The cookie definition in the format name=VALUE; domain=DOMAIN_NAME; expires=DATE; path=PATH; secure." },
+      { "name": "name=VALUE", "desc": "Required: the cookie name and value." },
+      { "name": "domain", "desc": "Required: the domain name (use web_add_cookie_ex for an empty domain)." },
+      { "name": "expires", "desc": "Optional: the expiration date." },
+      { "name": "path", "desc": "Optional: the cookie path, default \"/\"." },
+      { "name": "secure", "desc": "Optional: the secure cookie flag." }
+    ],
+    "example": "web_add_cookie (\"client_id=China127B; path=/; expires=Wednesday, 09-Nov-2001 23:12:40 GMT; domain=www.cnn.com\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_add_cookie.htm"
+  },
+  {
+    "name": "web_add_cookie_ex",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_add_cookie_ex( const char *Cookie , [const char *Insert,][ const char *AllowEmptyDomain,] [ENDITEM, Cookie, [Insert,] [AllowEmptyDomain,] ] [ENDITEM...] LAST );",
+    "description": "Adds a cookie with extra options: the insertion position in the cookie table and permission for an empty domain. Multiple cookie definitions can be specified in one call, separated by ENDITEM. Only the Cookie argument can be parameterized.",
+    "args": [
+      { "name": "Cookie", "desc": "The cookie to add or modify, with elements like those of a Set-Cookie header." },
+      { "name": "Insert", "desc": "\"Default\" or \"Alt\"; \"Alt\" places the cookie first in the table." },
+      { "name": "AllowEmptyDomain", "desc": "\"yes\" allows an empty domain element; default is \"no\"." },
+      { "name": "ENDITEM", "desc": "The separator between cookie definitions." },
+      { "name": "LAST", "desc": "Marks the end of the argument list (required)." }
+    ],
+    "example": "web_add_cookie_ex(\n    \"Cookie=client_id=China127B; path=/; expires=Wednesday, 09-Nov-2001 23:12:40 GMT; domain=\",  \n    \"Insert=Alt\",  \n    \"AllowEmptyDomain=yes\",\n    LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_add_cookie_ex.htm"
+  },
+  {
+    "name": "web_add_filter",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_add_filter([Action,]<List of Attributes>, LAST);",
+    "description": "Sets criteria for including or excluding URLs when downloading, for the next action function only. For a persistent filter, use web_add_auto_filter.",
+    "args": [
+      { "name": "Action", "desc": "\"Include\" to include matching URLs, or \"Exclude\" (default) to skip them." },
+      { "name": "URL / UrlPrefix", "desc": "The exact URL, or a URL that starts with a given string." },
+      { "name": "Host / HostPrefix / HostSuffix", "desc": "Host name matching criteria." },
+      { "name": "Path / PathPrefix / PathSuffix", "desc": "URL path matching criteria." },
+      { "name": "Port", "desc": "The port number of the URL source." },
+      { "name": "Scheme", "desc": "The protocol: http, https, ftp, and so on." },
+      { "name": "Query / QueryPrefix / QuerySuffix", "desc": "Query string matching criteria." },
+      { "name": "FragmentId*", "desc": "Fragment identifier matching criteria." },
+      { "name": "LAST", "desc": "Marks the end of the attribute list." }
+    ],
+    "example": "web_add_filter(\"Action=Exclude\", \"PathPrefix=/Images/Upload\", LAST);\n\nweb_url(\"www.knanas.com\", \"URL=http://www.knanas.com/\", \"Resource=0\",\n     \"RecContentType=text/html\", \"Referer=\", \"Snapshot=t1.inf\",\n     \"Mode=HTML\",\n     EXTRARES,\n     \"Url=/images/netaction_icon.gif\", ENDITEM,\n     \"Url=http://frontpage.knanas.com/Images/Upload/Commerce323.jpg\", ENDITEM,\n     \"Url=http://frontpage.knanas.com/Images/Upload/Commerce134.gif\", ENDITEM,\n     LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_add_filter.htm"
+  },
+  {
+    "name": "web_add_header",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_add_header( const char *Header, const char *Content );",
+    "description": "Adds a custom header to the next HTTP request only (one time). For a header that applies to all requests, use web_add_auto_header. Arguments support parameterization, the function is supported in a concurrent group, and it does not apply to web_rest steps.",
+    "args": [
+      { "name": "Header", "desc": "The custom header name, for example \"Accept\"." },
+      { "name": "Content", "desc": "The header value." }
+    ],
+    "example": "web_add_header(\"User-Agent\", \"ABC Browser 1.0\");\nweb_add_header(\"Accept\", \"text/xml/html\");\nweb_add_header(\"userid\", \"sam\");\nweb_add_header(\"pwd\", \"****\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_add_header.htm"
+  },
+  {
+    "name": "web_remove_auto_filter",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_remove_auto_filter(char *Id, LAST);",
+    "description": "Removes a download filter previously created with web_add_auto_filter, identified by the filter's ID.",
+    "args": [
+      { "name": "Id", "desc": "The filter instance identifier, written as \"Id=value\"." },
+      { "name": "LAST", "desc": "Marks the end of the attribute list." }
+    ],
+    "example": "web_add_auto_filter(\"Action=Exclude\",\n     \"PathPrefix=/Images/Upload\", \n     \"Id=fid\",\n     LAST );\n\nweb_url(\"www.knanas.com\", \"URL=http://www.knanas.com/\", \"Resource=0\",\n     \"RecContentType=text/html\", \"Referer=\", \"Snapshot=t1.inf\",\n     \"Mode=HTML\", \n     EXTRARES,\n     \"Url=/images/netaction_icon.gif\", ENDITEM,\n     LAST );\n\nweb_remove_auto_filter(\"Id=fid\", LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_remove_auto_filter.htm"
+  },
+  {
+    "name": "web_remove_auto_header",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_remove_auto_header(const char *Header, char *Implicit, LAST);",
+    "description": "Stops adding a specific user-defined header to subsequent requests, reversing web_add_auto_header. The ImplicitGen argument controls whether the implicit header is still generated.",
+    "args": [
+      { "name": "Header", "desc": "The name of the user-defined header to stop, for example Content-Type, User-Agent." },
+      { "name": "Implicit", "desc": "\"ImplicitGen=Yes/No/Cond\": Yes = the implicit header is generated as before web_add_auto_header; No = it is not generated at all; Cond (default) = only if it was previously specified through web_add_auto_header." },
+      { "name": "LAST", "desc": "Marks the end of the argument list." }
+    ],
+    "example": "web_add_auto_header(\"Accept-Encoding\", \"gzip\"); \n    ...\nweb_remove_auto_header(\"Accept-Encoding\", \"ImplicitGen=Yes\", LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_remove_auto_header.htm"
+  },
+  {
+    "name": "web_remove_cookie",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_remove_cookie(const char *Cookie);",
+    "description": "Removes a specific cookie from the list of cookies available to the Vuser while the script runs. If only the cookie name is given (without path/domain), all cookies with that name are removed.",
+    "args": [
+      { "name": "Cookie", "desc": "The name of the cookie to remove (no value is needed)." }
+    ],
+    "example": "web_add_cookie (\"client_id=Abbey; domain=www.northanger.com\");\n    ...\nweb_remove_cookie (\"client_id\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_remove_cookie.htm"
+  },
+  {
+    "name": "web_revert_auto_header",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_revert_auto_header(const char *Header);",
+    "description": "Stops adding a user-defined header to subsequent requests and restores implicit header generation as if web_add_auto_header/web_remove_auto_header had never been called. Equivalent to web_remove_auto_header with ImplicitGen=Yes.",
+    "args": [
+      { "name": "Header", "desc": "The name of the user-defined header to stop, for example Content-Type, User-Agent, Referer." }
+    ],
+    "example": "web_revert_auto_header(\"User-Agent\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_revert_auto_header.htm"
+  },
+  {
+    "name": "web_cleanup_auto_headers",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_cleanup_auto_headers( );",
+    "description": "Stops adding all user-defined headers to subsequent HTTP requests, reversing the effect of web_add_auto_header. Takes no arguments.",
+    "args": [],
+    "example": "web_cleanup_auto_headers();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_cleanup_auto_headers.htm"
+  },
+  {
+    "name": "web_cleanup_cookies",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_cleanup_cookies( );",
+    "description": "Deletes all cookies currently stored by the Vuser. Affects only the script's temporary cookies, not browser cookies. Takes no arguments.",
+    "args": [],
+    "example": "web_cleanup_cookies();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_cleanup_cookies.htm"
+  },
+  {
+    "name": "web_cache_cleanup",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_cache_cleanup( );",
+    "description": "Clears the contents of the simulator's cache. If the runtime setting \"Simulate a new user each iteration\" is enabled on the Browser Emulation tab, this function is called automatically at the start of each iteration.",
+    "args": [],
+    "example": "web_url(\"index.html\",\n    \"URL=http://my_web_server/index.html\",\n     \"Resource=0\",\n     \"Referer=\",\n     \"Mode=HTTP\",\n     LAST );\n\nweb_url(\"survey.gif\",\n     \"URL=http://my_web_server/gifs/survey.gif\",\n     \"Resource=1\",\n     \"Referer=http://my_web_server/index.html\",\n     LAST );\n\nweb_cache_cleanup();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_cache_cleanup.htm"
+  },
+  {
+    "name": "web_dump_cache",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_dump_cache( const char *Name, const char *fileName, [ const char *Replace], LAST );",
+    "description": "Saves the browser cache to a file for persistent caching; used together with web_load_cache so the same initial cache can be reused across runs. The \".cache\" extension is added automatically and the destination folder must already exist.",
+    "args": [
+      { "name": "Name", "desc": "The step label and automatic transaction name." },
+      { "name": "fileName", "desc": "The full or relative path of the cache file (supports parameterization), written as \"FileName=...\"." },
+      { "name": "Replace", "desc": "\"yes\" (default) overwrites an existing file; \"no\" keeps it." },
+      { "name": "LAST", "desc": "Marks the end of the argument list." }
+    ],
+    "example": "/* This command was used once to create the cache files, then \n    commented out for the actually load testing */\n\n/*    web_dump_cache(\"paycheckcache\",\n        \"FileName=c:\\\\temp\\\\{VuserName}paycheck\", \n        \"Replace=yes\", LAST );\t\t*/",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_dump_cache.htm"
+  },
+  {
+    "name": "web_load_cache",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_load_cache( const char *Name, const char *fileName, LAST );",
+    "description": "Restores the browser cache from a file for persistent caching, so the same initial cache is used repeatedly in every run (reducing CPU load on the application and database servers). Used together with web_dump_cache.",
+    "args": [
+      { "name": "Name", "desc": "The step label and automatic transaction name." },
+      { "name": "fileName", "desc": "The path of the cache file (absolute or relative, supports parameterization), written as \"FileName=...\"." },
+      { "name": "LAST", "desc": "Marks the end of the argument list." }
+    ],
+    "example": "// Get the previously created cache\n\nweb_load_cache(\"ActionLoad\",\n    \"FileName=c:\\\\temp\\\\{VuserName}paycheck\",\n    LAST ); ",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_load_cache.htm"
+  },
+  {
+    "name": "web_disable_keep_alive",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_disable_keep_alive( );",
+    "description": "Disables HTTP Keep-Alive (persistent) connections. Keep-Alive is enabled by default; when disabled, a separate TCP connection is created for each page element, which increases server load.",
+    "args": [],
+    "example": "web_disable_keep_alive();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_disable_keep_alive.htm"
+  },
+  {
+    "name": "web_enable_keep_alive",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_enable_keep_alive( );",
+    "description": "Enables HTTP Keep-Alive connections so that a TCP connection can be reused to download multiple page elements. Enabled by default, and works only when both the browser and the server support it.",
+    "args": [],
+    "example": "web_enable_keep_alive();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_enable_keep_alive.htm"
+  },
+  {
+    "name": "web_set_certificate",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_certificate(const char *CertificateNumber);",
+    "description": "Makes the script use a specific certificate from the Internet Explorer certificate list when a secure server requests client authentication. This function is deprecated; use web_set_certificate_ex.",
+    "args": [
+      { "name": "CertificateNumber", "desc": "A string with the position of the certificate in the Internet Explorer certificate list, for example \"3\"." }
+    ],
+    "example": "web_set_certificate(\"2\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_certificate.htm"
+  },
+  {
+    "name": "web_set_certificate_ex",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_certificate_ex( char *option_list, LAST );",
+    "description": "Sets the certificate attributes and key file for HTTPS requests that require a client certificate. A certificate can be cleared with CertFilePath=NULL.",
+    "args": [
+      { "name": "CertFilePath", "desc": "The path of the certificate file (Sockets replay only)." },
+      { "name": "CertFormat", "desc": "The certificate format: PEM or ASN1." },
+      { "name": "KeyFilePath", "desc": "The path of the certificate key file." },
+      { "name": "KeyFormat", "desc": "The key file format: PEM or ASN1." },
+      { "name": "Password", "desc": "The certificate password." },
+      { "name": "CertIndex", "desc": "A one-based index into the IE certificate database." },
+      { "name": "CertThumbprint", "desc": "The certificate thumbprint." },
+      { "name": "SendCertChain", "desc": "1 to send the certificate chain; 0 (default) to not send it." }
+    ],
+    "example": "web_set_certificate_ex(\n    \"CertFilePath=cert1.pem\",\n    \"CertFormat=PEM\",\n    \"KeyFilePath=key1.pem\",\n    \"KeyFormat=PEM\",\n    \"Password=donkey\",\n    LAST );\n\n// Remove the certificate\nweb_set_certificate_ex(\"CertFilePath=NULL\",LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_certificate_ex.htm"
+  },
+  {
+    "name": "web_set_max_html_param_len",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_max_html_param_len(const char *length);",
+    "description": "Sets the maximum length of an HTML string that can be captured and stored as a parameter (correlation, together with web_reg_save_param). The default is 256 characters; saving a string longer than the limit fails.",
+    "args": [
+      { "name": "length", "desc": "The maximum length of the stored HTML string (must not exceed 4,294,967,295)." }
+    ],
+    "example": "web_set_max_html_param_len(\"1024\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_max_html_param_len.htm"
+  },
+  {
+    "name": "web_set_max_retries",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_max_retries(const char *MaxRetries);",
+    "description": "Sets the maximum number of retries for Action steps. Retries are performed for HTTP 500-599 responses and network API errors, but not for timeouts or argument errors.",
+    "args": [
+      { "name": "MaxRetries", "desc": "A string with the maximum number of retries; 0 means no retries (supports parameterization)." }
+    ],
+    "example": "web_set_max_retries (\"5\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_max_retries.htm"
+  },
+  {
+    "name": "web_set_option",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_option( const char *OptionID, const char *OptionValue, LAST );",
+    "description": "Sets a web option that affects all subsequent functions until it is changed again. Options are saved at the end of vuser_init and restored before each iteration.",
+    "args": [
+      { "name": "DecodeContent", "desc": "Enables or disables decompression of server replies (\"Yes\"/\"No\")." },
+      { "name": "DecodeContentForResources", "desc": "Controls decoding of resources to reduce CPU usage (\"Yes\"/\"No\")." },
+      { "name": "DownloadNonHtmlResources", "desc": "Starts or stops downloading of images and non-HTML resources (\"Yes\"/\"No\")." },
+      { "name": "LRW_OPT_DISPLAY_IMAGE_BODY", "desc": "Displays the request/response body of images (\"Yes\"/\"No\")." },
+      { "name": "IgnoreCookieExpiresAttribute", "desc": "Ignores the cookie expires attribute (\"Yes\"/\"No\")." },
+      { "name": "MaxRedirectionDepth", "desc": "The maximum redirection depth (a decimal number as a string)." },
+      { "name": "LRW_OPT_NON_GUI_FRAMES_SCHEME_JAVASCRIPT", "desc": "Handles JavaScript frames in low-level scripts (\"Yes\"/\"No\")." },
+      { "name": "LRW_OPT_HTML_CHAR_REF_BACKWARD_COMPATIBILITY", "desc": "Forces GUI-level character handling (\"Yes\"/\"No\")." }
+    ],
+    "example": "// Disables decoding\nweb_set_option(\"DecodeContent\", \"No\", LAST );\n\n// Enables decoding\nweb_set_option(\"DecodeContent\", \"Yes\", LAST );\n\n// Disables redirection. If redirection is required in following action functions, a warning is issued.\nweb_set_option(\"MaxRedirectionDepth\", \"0\", LAST );\n\n// Sets the maximum redirection depth to 10.\nweb_set_option(\"MaxRedirectionDepth\", \"10\", LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_option.htm"
+  },
+  {
+    "name": "web_set_pac",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_pac( const char *pacURL );",
+    "description": "Sets the location of the proxy auto-configuration (PAC) script for HTTP requests. Proxy credentials from the Runtime Settings are ignored; call web_set_user before web_set_pac if the proxy requires authentication. An empty string \"\" disables PAC.",
+    "args": [
+      { "name": "pacURL", "desc": "The URL of the PAC file (must be a URL, not a local path); \"\" to disable." }
+    ],
+    "example": "web_set_pac( \"http://myhost/pacfile.js\" );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_pac.htm"
+  },
+  {
+    "name": "web_set_proxy",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_proxy(const char *proxy_host:port);",
+    "description": "Routes all subsequent HTTP requests through a specified proxy server. The port is required because a proxy has no default port. An empty string \"\" bypasses the proxy and connects directly to the server.",
+    "args": [
+      { "name": "proxy_host:port", "desc": "The proxy host and port, for example \"proxy03.vision.net:8080\" (supports parameterization); \"\" for a direct connection." }
+    ],
+    "example": "web_set_proxy(\"proxy03.my_proxy_server.net:8080\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_proxy.htm"
+  },
+  {
+    "name": "web_set_proxy_bypass",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_proxy_bypass( const char *bypass1..n );",
+    "description": "Specifies a list of URLs that are accessed directly, without going through the proxy. The list is not incremental: each call resets the previous setting, and an empty string clears all bypasses.",
+    "args": [
+      { "name": "bypass1..n", "desc": "A semicolon-separated (;) list of \"host:port\" entries; \"<local>\" bypasses the proxy for all local/intranet hosts." }
+    ],
+    "example": "web_set_proxy_bypass(\"<local>;www.abc.com\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_proxy_bypass.htm"
+  },
+  {
+    "name": "web_set_proxy_bypass_local",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_proxy_bypass_local(const char *no_local);",
+    "description": "Specifies whether the proxy is bypassed for local (intranet) addresses, overriding the runtime setting \"Do not use proxy server for local (intranet) addresses\". If the proxy bypass string contains <local>, neither this function nor the UI option has any effect.",
+    "args": [
+      { "name": "no_local", "desc": "\"1\" = bypass the proxy for local addresses, \"0\" = do not bypass (supports parameterization)." }
+    ],
+    "example": "web_set_proxy_bypass_local(\"1\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_proxy_bypass_local.htm"
+  },
+  {
+    "name": "web_set_secure_proxy",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_secure_proxy( const char *secure_proxy_host_port );",
+    "description": "Routes all subsequent HTTPS (SSL) requests through a specified secure proxy server. Works like web_set_proxy but for HTTPS traffic.",
+    "args": [
+      { "name": "secure_proxy_host_port", "desc": "The secure proxy host and port in \"host:port\" format (the port is required; supports parameterization)." }
+    ],
+    "example": "web_set_secure_proxy(\"proxy03.myips.com:8080\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_secure_proxy.htm"
+  },
+  {
+    "name": "web_set_sockets_option",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_sockets_option(const char *option, const char *value);",
+    "description": "Sets socket-level options on the client machine. Supports socket-level replay in the Web HTML protocol (both HTML-based and URL-based scripts) and has no effect on WinInet-based replay.",
+    "args": [
+      { "name": "ALLOW_ONLY_HOSTS", "desc": "Restricts requests to the listed servers only." },
+      { "name": "DISALLOW_HOSTS", "desc": "Blocks requests to specific servers (for example, ads)." },
+      { "name": "SSL_CIPHER_LIST", "desc": "A colon-separated list of SSL ciphers." },
+      { "name": "SSL_VERSION", "desc": "The SSL/TLS version: 2, 3, TLS, TLS1.1, TLS1.2, TLS1.3, AUTO." },
+      { "name": "INITIAL_AUTH", "desc": "Sends credentials on the first request without waiting for a 401 (BASIC/NTLM/KERBEROS/NONE)." },
+      { "name": "MAX_CONNECTIONS_PER_HOST", "desc": "The maximum number of concurrent connections per host (default 6)." },
+      { "name": "SHUTDOWN_MODE", "desc": "The port shutdown behavior: GRACEFUL, FAST, or ABRUPT." },
+      { "name": "TRACE_SSL_IO", "desc": "Raw bit trace of the SSL connection." },
+      { "name": "USER_IP_ADDRESS", "desc": "The desired client IP address (IP spoofing)." },
+      { "name": "OVERLAPPED_SEND", "desc": "0 or 1 to disable/enable splitting of the \"First Buffer\"." }
+    ],
+    "example": "/* Use RC4-MD5 cipher for SSL */\nweb_set_sockets_option(\"SSL_CIPHER_LIST\", \"RC4-MD5\");\n\n/* Prevent downloading of images from unwanted_server */\nweb_set_sockets_option(\"DISALLOW_HOSTS\",\n    \"a372.g.unwanted_server.net;a372.g.unwanted_server.net\"); \n\n/* Sets the client's preferred IP address */\nweb_set_sockets_option(\"USER_IP_ADDRESS\", \"200.100.100.100\");\n\n// Turn on pre-emptive authentication for web server. The pre-emptive authenticate scheme is always \"BASIC\".\nweb_set_sockets_option(\"INITIAL_AUTH\",\"BASIC\");\n\n// Turn off pre-emptive authentication for web server.\nweb_set_sockets_option(\"INITIAL_AUTH\",\"NONE\");\n\n// Do the same for proxy server.\nweb_set_sockets_option(\"PROXY_INITIAL_AUTH\",\"BASIC\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFR_web_set_sockets_option.htm"
+  },
+  {
+    "name": "web_set_timeout",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_timeout(const char *Action, const char *TimeOut);",
+    "description": "Sets the maximum wait time (in seconds) for a specific operation during web testing. Both arguments support parameterization.",
+    "args": [
+      { "name": "Action", "desc": "The operation type: CONNECT (establishing a connection to the server), RECEIVE (waiting for part of a response), or STEP (step timeout)." },
+      { "name": "TimeOut", "desc": "The maximum wait time, in seconds." }
+    ],
+    "example": "web_set_timeout(\"CONNECT\", \"60\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_timeout.htm"
+  },
+  {
+    "name": "web_set_user",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_user( const char *username, const char *password, const char *[realm\\\\]host:port );",
+    "description": "Specifies login credentials for web server or proxy server authentication. Can be called multiple times for different servers, overrides the runtime proxy settings, and has no effect when a proxy autoconfiguration file is used.",
+    "args": [
+      { "name": "username", "desc": "The user account name (maximum 127 characters)." },
+      { "name": "password", "desc": "The user password (maximum 127 characters)." },
+      { "name": "[realm\\\\]host:port", "desc": "The server and port (optionally \"Realm\\\\server:port\"); an empty string applies to all domains. Default ports: HTTP 80, HTTPS 443, FTP 21." }
+    ],
+    "example": "web_set_proxy(\"sussex:8080\");\nweb_set_user(\"dashwood\",\n    lr_unmask(\"4042e3e7c8bbbcfde0f737f91f\"),\n    \"sussex:8080\");\n\nweb_set_user(\"abc\", \"abc\", \"mansfield:80\");\nweb_set_user(\"mansfield\\\\freddy\", \"XYZ\", \"mansfield:80\");",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_user.htm"
+  }
+]

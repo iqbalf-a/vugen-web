@@ -107,7 +107,7 @@ describe("substitusi {param}: kurung kurawal JSON tidak memicu warning", () => {
 });
 
 describe("GET /api/project: parameters", () => {
-  it("array biasa { name, file, rows } tanpa nilai; tidak ada parameterFiles", async () => {
+  it("array biasa { name, file, rows, column, ... } tanpa nilai; tidak ada parameterFiles", async () => {
     const server = createServer(apiRouter);
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     try {
@@ -116,15 +116,52 @@ describe("GET /api/project: parameters", () => {
 
       expect(project.parameterFiles).toBeUndefined();
       // API tetap mendaftar semua kolom .dat (termasuk yang tidak dipakai run); nilai tidak dikirim
-      expect(project.parameters).toEqual([
-        { name: "Host", file: "hosts.dat", rows: 2 },
-        { name: "pathSuffix", file: "hosts.dat", rows: 2 },
-        { name: "subTrans", file: "subTrans.dat", rows: 1 },
+      expect(project.parameters.map(({ name, file, rows, column }) => ({ name, file, rows, column }))).toEqual([
+        { name: "Host", file: "hosts.dat", rows: 2, column: "Host" },
+        { name: "pathSuffix", file: "hosts.dat", rows: 2, column: "pathSuffix" },
+        { name: "subTrans", file: "subTrans.dat", rows: 1, column: "subTrans" },
       ]);
+      expect(project.parameters.every((p) => !("values" in p))).toBe(true);
       expect(JSON.stringify(project)).not.toContain("localhost:18085"); // nilai tidak bocor ke browser
     } finally {
       server.closeAllConnections?.();
       await new Promise((resolve) => server.close(resolve));
     }
   });
+});
+
+describe('SelectNextRow="Same line as X"', () => {
+  it("pengikut selalu di baris induk; policy induk berlaku walau pengikut punya policy sendiri; induk ikut dimuat", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vugen-sameline-"));
+    const prm = (name, table, extra) =>
+      [`[parameter:${name}]`, 'Type="Table"', `Table="${table}"`, 'ColumnName="Col 1"', ...extra].join("\r\n");
+    try {
+      await fs.writeFile(path.join(dir, "maker.dat"), "m\nm1\nm2\n", "utf8");
+      await fs.writeFile(path.join(dir, "approver.dat"), "a\na1\na2\n", "utf8");
+      await fs.writeFile(
+        path.join(dir, "s.prm"),
+        [
+          prm("maker", "maker.dat", ['SelectNextRow="Sequential"', 'OutOfRangePolicy="ContinueWithLast"']),
+          prm("approver", "approver.dat", ['SelectNextRow="Same line as maker"', 'OutOfRangePolicy="AbortVuser"']),
+          "",
+        ].join("\r\n"),
+        "utf8",
+      );
+      await fs.writeFile(path.join(dir, "vuser_init.c"), "vuser_init()\n{\n    return 0;\n}\n", "utf8");
+      await fs.writeFile(path.join(dir, "vuser_end.c"), "vuser_end()\n{\n    return 0;\n}\n", "utf8");
+      // hanya {approver} yang dirujuk: induk (maker) harus tetap dimuat supaya baris bisa diikuti
+      await fs.writeFile(
+        path.join(dir, "Action.c"),
+        'Action()\n{\n    web_url("p", "URL=http://127.0.0.1:18085/echo-headers?s={approver}", LAST);\n    return 0;\n}\n',
+        "utf8",
+      );
+      const real = await fs.realpath(dir);
+
+      const result = await (await startRun({ scriptDir: real, options: { iterations: 3 } })).done;
+      expect(result.status).toBe("passed");
+      expect(result.steps.map((s) => s.request.url.split("s=")[1])).toEqual(["a1", "a2", "a2"]);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  }, 30000);
 });

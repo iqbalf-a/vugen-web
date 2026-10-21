@@ -13,6 +13,7 @@ import path from "node:path";
 
 import { cacheKeyFor, toPosix } from "./paths.js";
 import { loadParameters } from "./parameters.js";
+import { MAX_SCAN_BYTES, layoutFiles, parseUsr } from "./structure.js";
 
 const SCRIPT_EXTENSIONS = new Set([".c", ".h"]);
 const CONFIG_EXTENSIONS = new Set([".usr", ".cfg", ".usp", ".prm", ".dat"]);
@@ -30,7 +31,23 @@ const MAX_FILES = 2000;
 /** @typedef {{ key: string, file: string }} RunLogicEntry */
 
 function classify(extension) {
-  return SCRIPT_EXTENSIONS.has(extension) ? "script" : "config";
+  return SCRIPT_EXTENSIONS.has(extension) || extension === ".js" ? "script" : "config";
+}
+
+/**
+ * Baca `.usr` di root folder (bila ada) untuk daftar action dan Extra Files.
+ *
+ * @param {string} scriptDir
+ */
+async function readUsr(scriptDir) {
+  try {
+    const entries = await fs.readdir(scriptDir);
+    const usr = entries.filter((name) => name.toLowerCase().endsWith(".usr")).sort()[0];
+    if (!usr) return { actions: null, extraFiles: [] };
+    return parseUsr(await fs.readFile(path.join(scriptDir, usr), "latin1"));
+  } catch {
+    return { actions: null, extraFiles: [] };
+  }
 }
 
 function isInitFile(name) {
@@ -45,8 +62,9 @@ function isEndFile(name) {
  * Daftar file `.c`/`.h`/config di folder script (rekursif, kedalaman terbatas).
  *
  * @param {string} scriptDir
+ * @param {Set<string>} extraListed path (huruf kecil) dari `[ExtraFiles]`; ikut didaftar apa pun ekstensinya
  */
-async function listFiles(scriptDir) {
+async function listFiles(scriptDir, extraListed = new Set()) {
   /** @type {Array<{ path: string, name: string, ext: string, kind: "script" | "config", size: number, mtimeMs: number }>} */
   const files = [];
   /** @type {string[]} */
@@ -80,7 +98,13 @@ async function listFiles(scriptDir) {
       if (!entry.isFile()) continue;
 
       const ext = path.extname(entry.name).toLowerCase();
-      if (!SCRIPT_EXTENSIONS.has(ext) && !CONFIG_EXTENSIONS.has(ext)) continue;
+      const relative = toPosix(path.relative(scriptDir, absolute));
+      const accepted =
+        SCRIPT_EXTENSIONS.has(ext) ||
+        CONFIG_EXTENSIONS.has(ext) ||
+        extraListed.has(relative.toLowerCase()) ||
+        (ext === ".js" && depth === 0);
+      if (!accepted) continue;
 
       // Skip preprocessed/combined files
       const lowerName = entry.name.toLowerCase();
@@ -88,7 +112,7 @@ async function listFiles(scriptDir) {
 
       const stats = await fs.stat(absolute);
       files.push({
-        path: toPosix(path.relative(scriptDir, absolute)),
+        path: relative,
         name: entry.name,
         ext,
         kind: classify(ext),
@@ -320,40 +344,35 @@ function collectActions(files) {
   return actions.map((file) => ({ name: path.basename(file.name, ".c"), file: file.path }));
 }
 
-/**
- * Kategori file untuk UI grouping
- * @param {string} name
- * @param {string} ext
- * @param {string} kind
- * @param {string | null} mainActionFile
- * @returns {"action-utama" | "action-general" | "parameter" | "config"}
- */
-function categorizeFile(name, ext, kind, mainActionFile) {
-  const lower = name.toLowerCase();
-  if (ext === ".dat") return "parameter";
-  if (ext === ".c") {
-    if (lower === "vuser_init.c" || lower === "vuser_end.c") return "config";
-    if (mainActionFile && name === mainActionFile) return "action-utama";
-    return "action-general";
-  }
-  return "config";
-}
-
 export async function loadProject(scriptDir) {
-  const { files, warnings } = await listFiles(scriptDir);
+  const usr = await readUsr(scriptDir);
+  const extraListed = new Set(usr.extraFiles.map((file) => file.toLowerCase()));
+  const { files, warnings } = await listFiles(scriptDir, extraListed);
   const runLogic = await resolveRunLogic(scriptDir, files);
 
   const runActions = runLogic.actions;
   const actions = runActions.length > 0 ? runActions : collectActions(files);
 
-  // Identify main action file from Run Logic
-  const mainActionFile = runLogic.actions.length > 0 ? runLogic.actions[0].file : null;
-
-  // Add category to each file
-  const categorizedFiles = files.map((file) => ({
-    ...file,
-    category: categorizeFile(file.name, file.ext, file.kind, mainActionFile),
-  }));
+  const rootFile = (name) => files.find((file) => file.path === name)?.path ?? null;
+  const ctx = {
+    init: runLogic.init ?? rootFile("vuser_init.c"),
+    end: runLogic.end ?? rootFile("vuser_end.c"),
+    runActions: actions.map((action) => action.file),
+    listed: usr.actions,
+    extraListed: new Set(usr.extraFiles),
+  };
+  /** @type {Map<string, string>} */
+  const texts = new Map();
+  for (const file of files) {
+    if (file.ext !== ".c" || file.path.includes("/") || file.size > MAX_SCAN_BYTES) continue;
+    try {
+      texts.set(file.path, await fs.readFile(path.join(scriptDir, file.path), "latin1"));
+    } catch {
+      // File tak terbaca: dilewati, hanya memengaruhi daftar pemanggil.
+    }
+  }
+  const layout = layoutFiles(files, ctx, texts);
+  const categorizedFiles = files.map((file) => ({ ...file, ...layout.get(file.path) }));
 
   const { parameters, warnings: parameterWarnings } = await loadParameters(scriptDir, files);
 

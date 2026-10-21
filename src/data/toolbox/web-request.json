@@ -1,0 +1,343 @@
+[
+  {
+    "name": "web_url",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_url( const char *StepName, const char *url, <List of Attributes>, [EXTRARES, <List of Resource Attributes>,] LAST );",
+    "description": "Performs an HTTP GET to load a web page (or resource) from the specified URL. Supports the HTTP, HTTPS, and FTP protocols and is used in both URL-based and HTML-based recording modes. StepName becomes the step label and the automatic transaction name.",
+    "args": [
+      { "name": "URL", "desc": "The target address (HTTP, HTTPS, or FTP)." },
+      { "name": "TargetFrame", "desc": "The name of the frame that contains the link or resource." },
+      { "name": "Resource", "desc": "0 = not a resource, 1 = the URL is a resource." },
+      { "name": "RecContentType", "desc": "The Content-Type header value of the response at recording time (for example, text/html)." },
+      { "name": "Referer", "desc": "The URL of the referring page." },
+      { "name": "Snapshot", "desc": "The name of the snapshot file (.inf) used for correlation." },
+      { "name": "Mode", "desc": "The recording level: HTML or HTTP." },
+      { "name": "FtpAscii", "desc": "\"1\" for ASCII-mode FTP transfer, \"0\" for binary." },
+      { "name": "UserAgent", "desc": "Identifies the executing component (for example, ActiveX)." }
+    ],
+    "example": "web_url(\"www.abc.com\",\n    \"URL=http://www.abc.com/\",\n    \"TargetFrame=\",\n    \"TargetBrowser=ABC Technologies\",\n    \"Resource=0\",\n    \"RecContentType=text/html\",\n    \"Snapshot=t1.inf\",\n    \"Mode=HTML\",\n    LAST );\n\nweb_url(\"Games\",\n    \"URL=ftp://joe:secret@mygames.com/games/archive/loderunner.exe\",\n    \"FtpAscii=1\",\n    LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_url.htm"
+  },
+  {
+    "name": "web_link",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_link(const char *StepName, <List of Attributes>, [EXTRARES, <List of Resource Attributes>,] LAST);",
+    "description": "Simulates a mouse click on a hyperlink specified by attributes, causing the browser to display a new page or frame. Recorded only in HTML-based recording mode and must be executed after a previous operation that provides context.",
+    "args": [
+      { "name": "Text", "desc": "The exact text displayed on the hyperlink." },
+      { "name": "Frame", "desc": "The value of the name attribute of the FRAME element." },
+      { "name": "TargetFrame", "desc": "The frame to which the link navigates." },
+      { "name": "Ordinal", "desc": "The sequence number used to distinguish between similar links." },
+      { "name": "ResourceByteLimit", "desc": "The resource download size limit, in bytes." }
+    ],
+    "example": "web_url(\"test.html\",\n    \"URL=http://localhost/test.html\",\n    \"Resource=0\",\n    \"RecContentType=text/html\",\n    \"Referer=\",\n    \"Mode=HTML\",\n    LAST );\n\nweb_link(\"Test1\",\n    \"Text=Test1\",\n    LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_link.htm"
+  },
+  {
+    "name": "web_image",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_image( const char *StepName, <List of Attributes>, [EXTRARES, <List of Resource Attributes>,] LAST );",
+    "description": "Simulates a mouse click on an image element, including client-side and server-side image maps. Recorded only in HTML-based recording mode.",
+    "args": [
+      { "name": "Alt", "desc": "The ALT attribute of the IMG element." },
+      { "name": "Src", "desc": "The SRC attribute or image file name (for example, button.gif)." },
+      { "name": "Frame", "desc": "The name of the frame that contains the image." },
+      { "name": "Ordinal", "desc": "The sequence number used to resolve ambiguity." },
+      { "name": "MapName", "desc": "The name of the associated map (client-side image map)." },
+      { "name": "AreaAlt", "desc": "The ALT attribute of the clicked area (client-side)." },
+      { "name": "AreaOrdinal", "desc": "The sequence number of the clicked area (client-side)." },
+      { "name": "XCoord", "desc": "The X coordinate of the click (server-side image map)." },
+      { "name": "YCoord", "desc": "The Y coordinate of the click (server-side image map)." }
+    ],
+    "example": "web_image(\"dpt_house.gif\",\n    \"Src=../gifs/dpt_house.gif\",\n    \"MapName=dpt_house\",\n    \"AreaOrdinal=4\",\n    LAST );\n\nweb_image(\"The Web Developer's Virtual Library\",\n    \"Alt=The Web Developer's Virtual Library\",\n    \"Ordinal=1\",\n    \"XCoord=91\",\n    \"YCoord=17\",\n    LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_image.htm"
+  },
+  {
+    "name": "web_image_check",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_image_check(const char *CheckName, <List of Attributes>, <\"Alt=alt\"|| \"Src=src\">, LAST);",
+    "description": "Verifies that a specific image exists in an HTML page. Either Alt or Src (or both) must be specified; if both are given, the check passes only when both match on a single image element.",
+    "args": [
+      { "name": "Alt", "desc": "The ALT text of the image to search for." },
+      { "name": "Src", "desc": "The SRC value of the image to search for." },
+      { "name": "Frame", "desc": "Limits the search scope when there are multiple frames." },
+      { "name": "expect", "desc": "The success condition: found (default) or notfound." },
+      { "name": "matchcase", "desc": "Sets case sensitivity." },
+      { "name": "repeat", "desc": "Continue searching after the first match (yes/no, default yes)." },
+      { "name": "report", "desc": "Report display: success, failure, or always (default)." },
+      { "name": "onfailure", "desc": "Set to abort to stop the script when the check fails." }
+    ],
+    "example": "web_url(\"index.html\", \"URL=http://localhost/ImagesAndMaps.html\",\n    \"TargetFrame=\", LAST );\n\nweb_image_check(\"Go2Venus\", \"Alt=Venus\", LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_image_check.htm"
+  },
+  {
+    "name": "web_submit_data",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_submit_data( const char *StepName_, const char *Action, <List of Attributes>, ITEMDATA, <List of data>, [ EXTRARES, <List of Resource Attributes>,] LAST );",
+    "description": "Submits a form \"unconditionally\", that is, without form context, so it can issue GET or POST requests without requiring a preceding form page. Field data is specified after the ITEMDATA marker, each item terminated by ENDITEM.",
+    "args": [
+      { "name": "Action", "desc": "The target URL for the form submission." },
+      { "name": "Method", "desc": "POST or GET (default POST)." },
+      { "name": "EncType", "desc": "The encoding: application/x-www-form-urlencoded or multipart/form-data." },
+      { "name": "EncodeAtSign", "desc": "Yes/No: encodes the @ character to its ASCII representation." },
+      { "name": "TargetFrame", "desc": "The name of the frame that contains the link or resource." },
+      { "name": "Referer", "desc": "The URL of the referring page." },
+      { "name": "Mode", "desc": "The recording level: HTML or HTTP." },
+      { "name": "Name / Value", "desc": "The field name and value (inside ITEMDATA)." },
+      { "name": "File / FilePath", "desc": "Marks the field as a file, and the path of the file to upload." },
+      { "name": "ContentType", "desc": "The MIME type for the file upload." }
+    ],
+    "example": "web_submit_data(\"default.aspx\",\n    \"Action=http://lazarus/flightnet/default.aspx\",\n    \"Method=POST\",\n    \"TargetFrame=\",\n    \"RecContentType=text/html\",\n    \"Referer=http://lazarus/flightnet/\",\n    \"Snapshot=t7.inf\",\n    \"Mode=HTML\",\n    ITEMDATA,\n    \"Name=grpType\", \"Value=radRoundtrip\", ENDITEM,\n    \"Name=lstDepartingCity\", \"Value=DEN\", ENDITEM,\n    \"Name=lstDestinationCity\", \"Value=LAX\", ENDITEM,\n    \"Name=txtDepartureDate\", \"Value=8/19/2003\", ENDITEM,\n    \"Name=txtReturnDate\", \"Value=8/19/2003\", ENDITEM,\n    \"Name=btnAvailableFlights\", \"Value=Next >\", ENDITEM,\n    LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_submit_data.htm"
+  },
+  {
+    "name": "web_submit_form",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_submit_form( const char *StepName, <List of Attributes>, <List of Hidden Fields>, ITEMDATA, <List of Data Fields>, [ EXTRARES, <List of Resource Attributes>,] LAST );",
+    "description": "Submits an HTML form. Can be executed only after a previous operation (it requires page context) and is recorded in HTML-based recording mode. Form fields are specified after ITEMDATA, each terminated by ENDITEM.",
+    "args": [
+      { "name": "StepName", "desc": "The form name in the graphical script; used as the transaction name." },
+      { "name": "Action", "desc": "The target URL, matching the ACTION attribute of the FORM element." },
+      { "name": "Frame", "desc": "The name of the frame in which the operation was recorded." },
+      { "name": "TargetFrame", "desc": "The frame to which the form is submitted." },
+      { "name": "Ordinal", "desc": "The sequence number, used when other attributes are not enough to identify the form uniquely." },
+      { "name": "ResourceByteLimit", "desc": "The resource size limit, in bytes." },
+      { "name": "UserAgent", "desc": "The browser identification string." },
+      { "name": "name / value", "desc": "The field name and value (inside ITEMDATA)." }
+    ],
+    "example": "web_url(\"dogbert\", \"URL=http://dogbert/\", LAST );\nweb_link(\"Departments:\", \"Text=Departments:\", LAST );\nweb_url(\"index.html\", \"URL=http://dogbert/groups/library/index.html\", LAST );\nweb_link(\"Book Search:\", \"Text= Book Search:\", LAST );\nweb_submit_form(\"db2net.exe\",\n    ITEMDATA,\n    \"name=library.TITLE\", \"value=Practical UNIX Security\", ENDITEM,\n    \"name=library.AUTHOR_S_\", \"value=Garfinkel\", ENDITEM,\n    \"name=library.SUBJECTS\", \"value=\", ENDITEM,\n    LAST );",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_submit_form.htm"
+  },
+  {
+    "name": "web_custom_request",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_custom_request(const char *RequestName, <List of Attributes>, [EXTRARES, <List of Resource Attributes>,] LAST);",
+    "description": "Creates a custom HTTP request with any method and any body. Typically generated for requests that other web functions cannot handle, such as REST/JSON, SOAP, or PUT/DELETE.",
+    "args": [
+      { "name": "URL", "desc": "The page location (HTTP, HTTPS, or FTP)." },
+      { "name": "Method", "desc": "Any HTTP method (GET, POST, PUT, and so on)." },
+      { "name": "Body / BodyBinary / BodyUnicode", "desc": "The request body content in various formats." },
+      { "name": "BodyFilePath", "desc": "The path of the file used as the request body." },
+      { "name": "EncType", "desc": "The Content-Type header value of the request." },
+      { "name": "RecContentType", "desc": "The Content-Type header value of the response at recording time." },
+      { "name": "Resource", "desc": "1 if the URL is a resource, 0 if not." },
+      { "name": "Referer", "desc": "The URL of the referring page." },
+      { "name": "TargetFrame", "desc": "The name of the frame that contains the link." },
+      { "name": "ResponseTime", "desc": "The name of the parameter in which to store the response time." }
+    ],
+    "example": "web_custom_request(\"web_custom_request_1\",\n    \"URL=http://web.kalimanjaro.aws.swinfra.net\",\n    \"Method=GET\",\n    \"TargetFrame=\",\n    \"Resource=0\",\n    \"Referer=\",\n    \"Body=\",\n    \"ResponseTime=kalimanjaroResponseTime\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_custom_request.htm"
+  },
+  {
+    "name": "web_rest",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_rest(const char *StepName, \"_URL_=<URL>\", \"_Method_=<HTML method>\", \"_EncType_=<encoding type>\",\"_Body_=<body of message>\", \"_Snapshot_=<snapshot file>\", [[ITEMDATA [[\"Name=<name>\", \"Value|FileName=<value>\", ENDITEM,]]]] [[HEADERS [[\"Name=<header name>\", \"Value=<value>\", ENDHEADER,]]]] LAST);",
+    "description": "Sends a REST API request with any HTTP method. This action function is not recorded automatically but can be added to the script manually. Key-value pairs can be specified through ITEMDATA and custom headers through HEADERS.",
+    "args": [
+      { "name": "URL", "desc": "The REST resource endpoint." },
+      { "name": "Method", "desc": "The HTTP verb: GET, POST, PUT, DELETE, HEAD, OPTIONS." },
+      { "name": "EncType", "desc": "The request encoding: multipart/form-data, application/x-www-form-urlencoded, or raw." },
+      { "name": "Body", "desc": "The request message body." },
+      { "name": "ResType", "desc": "The response type, for example JSON (as shown in the documentation example)." },
+      { "name": "ITEMDATA", "desc": "Name/Value (or FileName) pairs for POST data or URL parameters." },
+      { "name": "HEADERS", "desc": "Custom HTTP headers (Name/Value pairs terminated by ENDHEADER)." }
+    ],
+    "example": "web_rest(\"get all customers info\",\n    \"URL=http://myServer/customers?limit={limit}&offset={offset}\",\n    \"Method=GET\",\n    LAST);\n\nweb_rest(\"update customer info\",\n    \"URL=http://myServer/customers/{cust_id}\",\n    \"Method=PUT\",\n    \"ResType=JSON\",\n    \"Body={ \\\"address\\\":\\\"yyyy\\\" }\",\n    LAST);\n\nweb_rest(\"delete customer\",\n    \"URL=http://www.example.com/customers/{cust_id}\",\n    \"Method=DELETE\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_rest.htm"
+  },
+  {
+    "name": "web_websocket_connect",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_websocket_connect(\"ID=connection\", \"URI=ws://server:port\", [\"Origin=value\", \"SecWebSocketKey=value\", \"SecWebSocketProtocol=value\", \"SecWebSocketExtensions=value\", \"OnOpenCB=func_name\", \"OnMessageCB=func_name\", \"OnErrorCB=func_name\", \"OnCloseCB=func_name\"], LAST);",
+    "description": "Opens a WebSocket connection that can be used to send messages, using either the standard (ws://) or secure (wss://) protocol. Callbacks for the open, message, error, and close events can optionally be registered.",
+    "args": [
+      { "name": "ID", "desc": "The unique connection identifier (generated automatically during recording)." },
+      { "name": "URI", "desc": "The WebSocket endpoint (ws:// or wss://)." },
+      { "name": "Origin", "desc": "The Origin header value (optional)." },
+      { "name": "SecWebSocketKey", "desc": "The Sec-WebSocket-Key header (optional; added manually)." },
+      { "name": "SecWebSocketProtocol", "desc": "The Sec-WebSocket-Protocol header (optional)." },
+      { "name": "SecWebSocketExtensions", "desc": "The Sec-WebSocket-Extensions header (optional)." },
+      { "name": "OnOpenCB", "desc": "The callback for the OnOpen event (optional)." },
+      { "name": "OnMessageCB", "desc": "The callback for the OnMessage event (optional)." },
+      { "name": "OnErrorCB", "desc": "The callback for the OnError event (optional)." },
+      { "name": "OnCloseCB", "desc": "The callback for the OnClose event (optional)." }
+    ],
+    "example": "web_websocket_connect(\"ID=0\", \"URI=ws://pumpkin:9876/\", \"Origin=http://pumpkin:9876\", \"OnOpenCB=OnOpenCB0\", \"OnMessageCB=OnMessageCB0\", \"OnErrorCB=OnErrorCB0\", \"OnCloseCB=OnCloseCB0\", LAST);\nweb_websocket_send(\"ID=0\", \"Buffer=sample text message\", \"IsBinary=0\", LAST);\nlr_think_time(7);\nweb_websocket_close(\"ID=0\", \"Code=1000\", \"Reason=OK\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_websocket_connect.htm"
+  },
+  {
+    "name": "web_websocket_send",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_websocket_send(\"ID=connection ID\", [\"Buffer=message_Text\",] [\"Buffer/BIN=message_Text\",] [\"Buffer/File=file\",] \"IsBinary=0/1\", LAST);",
+    "description": "Sends a message to the server over an established WebSocket connection. At least one of Buffer or Buffer/BIN must be specified; if the send fails, the onErrorCB callback is invoked.",
+    "args": [
+      { "name": "ID", "desc": "The identifier of the target WebSocket connection." },
+      { "name": "Buffer", "desc": "The payload as a text string." },
+      { "name": "Buffer/BIN", "desc": "The payload in binary representation." },
+      { "name": "Buffer/File", "desc": "The path of a file (local or UNC) containing the message content." },
+      { "name": "IsBinary", "desc": "1 for a binary message, 0 for text." }
+    ],
+    "example": "web_websocket_send(\"ID=0\", \"Buffer=sample text message\", \"IsBinary=0\", LAST);\nweb_websocket_send(\"ID=0\", \"Buffer/File={myfile}\", \"IsBinary=0\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_websocket_send.htm"
+  },
+  {
+    "name": "web_websocket_close",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_websocket_close(\"ID=connection ID\", [\"Code=<4_digit_code>\",] [\"Reason=<reason for closure>\",] LAST);",
+    "description": "Closes the WebSocket connection to the server with the specified ID. The close code and reason are optional, and all arguments support standard parameterization.",
+    "args": [
+      { "name": "ID", "desc": "The identifier of the connection to close (required)." },
+      { "name": "Code", "desc": "The WebSocket close code, an integer from 1000 to 1011 (optional)." },
+      { "name": "Reason", "desc": "The reason for closing, as a string (optional)." }
+    ],
+    "example": "web_websocket_close(\"ID=0\", \"Code=1000\", \"Reason=OK\", LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_websocket_close.htm"
+  },
+  {
+    "name": "web_concurrent_start",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_concurrent_start( [char *ConcurrentGroupName,] NULL );",
+    "description": "Marks the start of a concurrent group. Functions inside the group are not executed immediately; they are registered and then run together when web_concurrent_end is called. The degree of parallelism depends on the emulated browser.",
+    "args": [
+      { "name": "ConcurrentGroupName", "desc": "The name of the concurrent group (optional)." },
+      { "name": "NULL", "desc": "The argument list terminator." }
+    ],
+    "example": "web_concurrent_start(\"DocParts\",NULL);\n    web_add_header(...);\n    web_url(..., \"URL=http://...url1\", ...);\n    web_add_header(...);\n    web_add_header(...);\n    web_url(..., \"URL=http://...url2\", ...);\n...\nweb_concurrent_end(NULL);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_concurrent_start.htm"
+  },
+  {
+    "name": "web_concurrent_end",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_concurrent_end(reserved);",
+    "description": "Marks the end of a concurrent group and triggers simultaneous execution of all functions registered between web_concurrent_start and web_concurrent_end. The number of parallel items depends on the emulated browser.",
+    "args": [
+      { "name": "reserved", "desc": "Set to NULL; reserved for future use." }
+    ],
+    "example": "web_concurrent_start(NULL);\n    web_add_header(...);\n    web_url(..., \"URL=http://...url1\", ...);\n    web_add_header(...);\n    web_add_header(...);\n    web_url(..., \"URL=http://...url2\", ...);\n...\nweb_concurrent_end(NULL);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_concurrent_end.htm"
+  },
+  {
+    "name": "web_js_run",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_js_run(\"Code=<JS code>\" | \"File=<file_name>\", [\"Domain=domain\",] [\"ResultParam=parameter name\",] [\"ActionStep=No|Yes\",] [SOURCES,[\"File=file_name\" | \"Code=code\", ENDITEM,]+] LAST)",
+    "description": "Runs the specified JavaScript code. The JavaScript context persists across subsequent web_js_run calls (functions and variables remain available). JavaScript must be enabled in the runtime settings; parameters are accessed through LR.getParam() and LR.setParam(), not standard parameterization.",
+    "args": [
+      { "name": "Code", "desc": "The literal JavaScript code to run." },
+      { "name": "File", "desc": "The path of the JavaScript file (relative to the Vuser directory)." },
+      { "name": "Domain", "desc": "The base URL used to resolve relative URLs in the code." },
+      { "name": "ResultParam", "desc": "The name of the parameter in which to store the JavaScript result." },
+      { "name": "ActionStep", "desc": "Yes/No: marks the step as an action function (default Yes)." },
+      { "name": "SOURCES", "desc": "The dependency section, evaluated before the main code." }
+    ],
+    "example": "// Hello world\nweb_js_run(\"Code= alert('Hello world');\", LAST);\n\n// Defining and invoking a function\nweb_js_run(\"Code= myFunc(1, 2);\",\n    \"ResultParam=Sum\",\n    \"ActionStep=NO\",\n    SOURCES,\n    \"Code= var myFunc = function(x,y) { return x+y; }\", ENDITEM,\n    LAST);\n\n// Running code from files\nweb_js_run(\n    \"File=autorun.js\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_js_run.htm"
+  },
+  {
+    "name": "web_js_reset",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_js_reset();",
+    "description": "Clears the Vuser's JavaScript engine context, discarding all stored variables and objects and reclaiming memory. Called automatically at the start of an iteration when \"Simulate a new user on each iteration\" is enabled; call it manually to prevent excessive memory usage.",
+    "args": [],
+    "example": "web_js_run(\"Code= alert('Hello world');\", LAST);\n\n// Reset\nweb_js_reset();",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_js_reset.htm"
+  },
+  {
+    "name": "web_sync",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_sync ( \"ParamCreated=param_name\", [\"RetryIntervalMs=integer,] [\"RetryTimeoutMs=integer,] LAST);",
+    "description": "Pauses Vuser script execution until a specified parameter is created by concurrent activity (for example, polling or push). Returns immediately if the parameter already exists; returns LR_FAIL if the timeout expires before the parameter is created.",
+    "args": [
+      { "name": "ParamCreated", "desc": "The name of the parameter to wait for." },
+      { "name": "RetryIntervalMs", "desc": "The delay between retries, in milliseconds (default 500)." },
+      { "name": "RetryTimeoutMs", "desc": "The maximum wait duration, in milliseconds (default 30000)." }
+    ],
+    "example": "lr_start_transaction(\"long poll\");\n\n//Wait for parameter to be created\nweb_sync(\"ParamCreated=ready\",\"RetryIntervalMs=3000\",\"RetryTimeoutMs=120000\",LAST);\n\nwait_time = lr_get_transaction_duration(\"long poll\");\nlr_end_transaction(\"long poll\", LR_AUTO);\n\nweb_stop_async(\"ID=LongPoll_0\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/async/lrFr_web_sync.htm"
+  },
+  {
+    "name": "web_stop_async",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_stop_async( \"ID=id\", LAST);",
+    "description": "Stops an asynchronous conversation along with all active and pending tasks in its conversation chain (including redirects and authentication). Returns LR_PASS if the conversation was canceled or does not exist.",
+    "args": [
+      { "name": "ID", "desc": "The conversation ID of the conversation to stop (can be parameterized, for example ID={idParam})." }
+    ],
+    "example": "web_stop_async(\"ID=Push_0\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/async/lrFr_web_stop_async.htm"
+  },
+  {
+    "name": "web_reg_async_attributes",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_reg_async_attributes( \"ID=id\", \"URL[/RE][/IC]=URL_or_RegEx_Pattern\", [\"Pattern=None|Push|Poll|LongPoll\", [\"PollIntervalMs=integer\"]], [\"XMLHttpRequest=No|Async|Sync\",] [\"CrossStep=No|Yes\",] [\"RequestCB=function_name\",] [\"ResponseHeadersCB=function_name\",] [\"ResponseBodyBufferCB=function_name\",] [\"ResponseCB=function_name\",] LAST);",
+    "description": "Registers that the next action starts an asynchronous conversation if it contains a request that matches the specified URL pattern. The asynchronous pattern (Push, Poll, LongPoll) and callbacks can be specified.",
+    "args": [
+      { "name": "ID", "desc": "The unique conversation identifier." },
+      { "name": "URL", "desc": "The target URL; use the /RE modifier for a regular expression and /IC for case-insensitive matching." },
+      { "name": "Pattern", "desc": "The asynchronous model: None, Push, Poll, or LongPoll." },
+      { "name": "PollIntervalMs", "desc": "The delay between polling cycles, in milliseconds." },
+      { "name": "XMLHttpRequest", "desc": "Treat as a JavaScript XMLHttpRequest (No/Async/Sync)." },
+      { "name": "CrossStep", "desc": "Yes/No: the step may complete before the server response is complete." },
+      { "name": "RequestCB", "desc": "The callback for modifying the request URL/body." },
+      { "name": "ResponseHeadersCB", "desc": "The callback invoked when the response headers are received." },
+      { "name": "ResponseBodyBufferCB", "desc": "The callback for the response body buffer." },
+      { "name": "ResponseCB", "desc": "The callback invoked at the end of the conversation." }
+    ],
+    "example": "web_reg_async_attributes(\"ID=Push_0\",\n    \"Pattern=Push\",\n    \"URL=http://push.myStream.com/myStream/STREAMING_IN_PROGRESS?LS_session=123456789ABCDE&LS_phase=2903&LS_domain=myStream.com&\",\n    \"RequestCB=Push_0_RequestCB\",\n    \"ResponseHeadersCB=Push_0_ResponseHeadersCB\",\n    \"ResponseBodyBufferCB=Push_0_ResponseBodyBufferCB\",\n    \"ResponseCB=Push_0_ResponseCB\",\n    LAST);",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/async/lrFr_web_reg_async_attributes.htm"
+  },
+  {
+    "name": "web_util_set_request_body",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_util_set_request_body(const char * aBodyStr);",
+    "description": "Sets a string as the body of the next request in an asynchronous conversation. Called from a Request Callback function; its argument supports standard parameterization.",
+    "args": [
+      { "name": "aBodyStr", "desc": "The string to use as the new request body." }
+    ],
+    "example": "int Push_0_RequestCB()\n{\n    //call web_util_set_request_body() here to modify request body:\n    web_util_set_request_body(\"<request body>\");\n\n    return WEB_ASYNC_CB_RC_OK;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/async/lrFr_web_util_set_request_body.htm"
+  },
+  {
+    "name": "web_util_set_request_header",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_util_set_request_header(const char *Header, const char *Content);",
+    "description": "Sets a custom HTTP header, given a header name and value, for the next request in an asynchronous conversation. Called from a Request Callback; both arguments support standard parameterization.",
+    "args": [
+      { "name": "Header", "desc": "The custom header name (for example, Accept, Accept-Encoding)." },
+      { "name": "Content", "desc": "The header value." }
+    ],
+    "example": "int Push_0_RequestCB()\n{\n    //call web_util_set_request_header() here to set request header:\n    web_util_set_request_header(\"<header_name>\", \"<header_value>\");\n\n    return WEB_ASYNC_CB_RC_OK;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/async/lrFr_web_util_set_request_header.htm"
+  },
+  {
+    "name": "web_util_set_request_url",
+    "category": "Web: Requests & Navigation",
+    "signature": "int web_util_set_request_url(const char *aUrlStr);",
+    "description": "Sets the URL for the next HTTP request in an asynchronous conversation. Accepts an absolute URL and encodes it automatically, so do not pass an already URL-encoded string. Called from a Request Callback.",
+    "args": [
+      { "name": "aUrlStr", "desc": "The absolute URL string, for example http://www.site.com/bin/cgi.exe?a=b (do not encode it beforehand)." }
+    ],
+    "example": "int Push_0_RequestCB()\n{\n    //call web_util_set_request_url() here to modify request url:\n    web_util_set_request_url(\"<request url>\");\n\n    return WEB_ASYNC_CB_RC_OK;\n}",
+    "exampleSource": "docs",
+    "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/async/lrFr_web_util_set_request_url.htm"
+  }
+]

@@ -16,7 +16,7 @@
         </div>
 
         <div class="min-w-[320px] flex-1">
-          <label for="scriptPath" class="mb-1 block font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[#7d8896]">Folder script VuGen</label>
+          <label for="scriptPath" class="mb-1 block font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[#7d8896]">Script folder</label>
           <input
             id="scriptPath"
             list="scriptPathHistory"
@@ -40,41 +40,57 @@
           Resume
         </button>
 
+        <div class="relative">
+          <button id="runSettingsBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="runSettingsPanel"
+            class="flex h-8 max-w-[360px] items-center gap-2 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3 text-[12px] font-medium hover:border-[#3a4553] aria-expanded:border-[#d2a24c]">
+            <span class="shrink-0">Run settings</span>
+            <span id="runSettingsSummary" class="min-w-0 truncate font-mono text-[10px] font-normal text-[#7d8896]"></span>
+            <span class="shrink-0 text-[9px] text-[#7d8896]" aria-hidden="true">▾</span>
+          </button>
+
+          <div id="runSettingsPanel" role="dialog" aria-label="Run settings" tabindex="-1" hidden
+            class="absolute left-0 top-full z-50 mt-1.5 w-[340px] rounded-[4px] border border-[#2a3644] bg-[#141922] shadow-[0_12px_32px_rgba(0,0,0,0.5)] outline-none">
+            <p id="runSettingsLock" hidden class="border-b border-[#232a33] bg-[#1b212b] px-3 py-1.5 text-[11px] text-[#e3c664]">Locked while a run is in progress.</p>
+
+            <div class="section-head border-b-0 pt-1">Iterations</div>
+            <div class="px-3 pb-2">
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">Iterations</span><span class="setting-hint">How many times Run Logic repeats.</span></span>
+                <input type="number" id="iterations" value="1" min="1" max="1000" class="ui-field w-20" />
+              </label>
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">Delay between iterations</span><span class="setting-hint">Pause before the next iteration, in ms.</span></span>
+                <input type="number" id="iterationDelay" value="0" min="0" max="60000" class="ui-field w-20" />
+              </label>
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">New user each iteration</span><span class="setting-hint">Start with fresh cookies and session.</span></span>
+                <input type="checkbox" id="newUserEachIteration" checked class="ui-toggle" />
+              </label>
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">Continue on error</span><span class="setting-hint">Keep running after a failed step.</span></span>
+                <input type="checkbox" id="continueOnError" class="ui-toggle" />
+              </label>
+            </div>
+
+            <div class="section-head border-t border-b-0 pt-1">Network</div>
+            <div class="px-3 pb-2">
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">Think time</span><span class="setting-hint">Run or skip lr_think_time pauses.</span></span>
+                <select id="thinkTime" class="ui-field w-24">
+                  <option value="ignore">Ignore</option>
+                  <option value="run">Run</option>
+                </select>
+              </label>
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">Insecure TLS</span><span class="setting-hint">Accept self-signed or invalid certificates.</span></span>
+                <input type="checkbox" id="insecureTLS" checked class="ui-toggle ui-toggle-warn" />
+              </label>
+            </div>
+          </div>
+        </div>
+
         <span id="status" data-state="checking" class="status-badge">…</span>
       </header>
-
-      <!-- Opsi run: satu baris; tombol sembunyikan di ujung kanan (hanya kontrolnya yang disembunyikan) -->
-      <div id="runOptions" class="flex items-center gap-x-5 border-b border-[#232a33] bg-[#141922] px-4 text-[11px] text-[#e6edf3]">
-        <div id="runOptionsControls" class="flex min-h-9 flex-1 flex-wrap items-center gap-x-5 gap-y-1 py-1">
-          <label class="flex items-center gap-2">
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Iterations</span>
-            <input type="number" id="iterations" value="1" min="1" max="1000" class="h-6 w-16 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[11px] text-[#e6edf3] outline-none focus:border-[#d2a24c]" />
-          </label>
-          <label class="flex items-center gap-2">
-            <input type="checkbox" id="continueOnError" class="accent-[#d2a24c]" />
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Continue on error</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Delay (ms)</span>
-            <input type="number" id="iterationDelay" value="0" min="0" max="60000" class="h-6 w-20 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[11px] text-[#e6edf3] outline-none focus:border-[#d2a24c]" />
-          </label>
-          <label class="flex items-center gap-2">
-            <input type="checkbox" id="newUserEachIteration" checked class="accent-[#d2a24c]" />
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">New user</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <input type="checkbox" id="insecureTLS" class="accent-[#d2a24c]" checked />
-            <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">Insecure TLS</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <select id="thinkTime" class="h-6 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[11px] text-[#e6edf3] outline-none focus:border-[#d2a24c]">
-              <option value="ignore">Think time: ignore</option>
-              <option value="run">Think time: run</option>
-            </select>
-          </label>
-        </div>
-        <button id="toggleOptions" type="button" class="ml-auto shrink-0 py-2 font-mono text-[10px] text-[#7d8896] hover:text-[#e6edf3]">▲ Hide options</button>
-      </div>
 
       <!-- ── Tiga area: kiri ±20%, tengah fleksibel, kanan ±34% ── -->
       <main class="grid min-h-0 flex-1 grid-cols-[minmax(250px,20%)_minmax(0,1fr)_minmax(340px,28%)]">
@@ -93,6 +109,7 @@
         <!-- Tengah: Editor (tab per file) -->
         <section class="flex min-h-0 flex-col bg-[#0e1116]">
           <div id="tabBar" class="flex h-9 shrink-0 items-center gap-1 border-b border-[#232a33] bg-[#141922] px-2"></div>
+          <div id="paramBar" class="hidden shrink-0 border-b border-[#232a33] bg-[#10151c] px-3 py-1.5"></div>
           <div id="editor" class="min-h-0 flex-1 overflow-hidden">
             <div class="grid h-full place-items-center text-[12px] text-[#5b6572]">No file opened.</div>
           </div>
@@ -106,6 +123,7 @@
             <div id="parameterPanel" class="h-full hidden"></div>
             <div id="logPanel" class="h-full hidden"></div>
             <div id="transactionsPanel" class="h-full hidden"></div>
+            <div id="toolboxPanel" class="h-full hidden"></div>
           </div>
         </section>
       </main>

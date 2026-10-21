@@ -1,28 +1,50 @@
 import { escapeHtml } from "../utils/html.js";
+import { fileTitle, groupFiles } from "../utils/fileGroups.js";
 
 /**
- * File tree: daftar file script, dikelompokkan per kategori (Action Utama, Action General, Parameter, Config).
+ * File tree: file script dikelompokkan per peran (Actions, Extra Files, Data, Settings).
+ * Grup bisa di-collapse; keadaan disimpan di localStorage.
  */
 
 const ACTIVE_CLASS = "bg-[#243044] text-[#e6edf3]";
 const IDLE_CLASS = "text-[#9aa7b8] hover:bg-[#1b212b]";
+const STORAGE_KEY = "vugen.fileTree.collapsed";
 
-/** @typedef {{ path: string, name: string, ext: string, kind: string, category: string }} FileItem */
-
-/** @type {Record<string, { label: string, order: number }>} */
-const CATEGORY_CONFIG = {
-  "action-utama": { label: "Main Action", order: 1 },
-  "action-general": { label: "General Action", order: 2 },
-  parameter: { label: "Parameter Files", order: 3 },
-  config: { label: "Config & Others", order: 4 },
+// Aktif = amber penuh, pasif = biru baja penuh, unlinked = cincin abu-abu.
+const STATE_ICON = {
+  active: "bg-[#d2a24c]",
+  passive: "bg-[#5b8db8]",
+  unlinked: "border border-[#5b6572]",
 };
+
+/** @typedef {{ path: string, name: string, ext: string, category?: string, state?: string, calledBy?: string[] }} FileItem */
+
+function loadCollapsed() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    return new Set(Array.isArray(raw) ? raw : []);
+  } catch {
+    return new Set();
+  }
+}
+
+const collapsed = loadCollapsed();
+
+function saveCollapsed() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...collapsed]));
+  } catch {
+    // Penyimpanan tidak tersedia: keadaan collapse hanya berlaku selama sesi.
+  }
+}
 
 /**
  * @param {HTMLElement} root
  * @param {{ files: FileItem[] } | null} project
  * @param {{ activePath: string | null, onOpenFile: (path: string) => void }} options
  */
-export function renderFileTree(root, project, { activePath, onOpenFile }) {
+export function renderFileTree(root, project, options) {
+  const { activePath, onOpenFile } = options;
   root.replaceChildren();
 
   if (!project) {
@@ -34,54 +56,52 @@ export function renderFileTree(root, project, { activePath, onOpenFile }) {
     return;
   }
 
-  /** @type {Map<string, FileItem[]>} */
-  const groups = new Map();
-  for (const file of project.files) {
-    const cat = file.category || "config";
-    if (!groups.has(cat)) groups.set(cat, []);
-    groups.get(cat)?.push(file);
-  }
+  for (const group of groupFiles(project.files)) {
+    const isCollapsed = collapsed.has(group.id);
 
-  // Sort categories by order
-  const sortedCats = [...groups.entries()].sort((a, b) => {
-    const orderA = CATEGORY_CONFIG[a[0]]?.order ?? 99;
-    const orderB = CATEGORY_CONFIG[b[0]]?.order ?? 99;
-    return orderA - orderB;
-  });
-
-  for (const [cat, files] of sortedCats) {
-    const config = CATEGORY_CONFIG[cat] || { label: cat, order: 99 };
-
-    const heading = document.createElement("div");
-    heading.className = "mb-1 mt-3 flex items-center gap-2 first:mt-0";
+    const heading = document.createElement("button");
+    heading.type = "button";
+    heading.className = "mb-1 mt-3 flex w-full items-center gap-1.5 text-left first:mt-0";
+    heading.setAttribute("aria-expanded", String(!isCollapsed));
+    if (group.hint) heading.title = group.hint;
     heading.innerHTML = `
-      <span class="shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]">${escapeHtml(config.label)}</span>
+      <span class="w-2.5 shrink-0 text-[9px] text-[#5b6572]" aria-hidden="true">${isCollapsed ? "▸" : "▾"}</span>
+      <span class="shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">${escapeHtml(group.label)}</span>
+      <span class="ui-count">${group.files.length}</span>
       <span class="h-px min-w-0 flex-1 bg-[#2a3644]"></span>
     `;
+    heading.addEventListener("click", () => {
+      if (collapsed.has(group.id)) collapsed.delete(group.id);
+      else collapsed.add(group.id);
+      saveCollapsed();
+      renderFileTree(root, project, options);
+    });
     root.append(heading);
 
-    // Sort files within category: main action first, then alphabetical
-    files.sort((a, b) => {
-      if (cat === "action-utama" || cat === "action-general") {
-        // Put vuser_init/vuser_end at end of action-general
-        const aSpecial = a.name.toLowerCase() === "vuser_init.c" || a.name.toLowerCase() === "vuser_end.c";
-        const bSpecial = b.name.toLowerCase() === "vuser_init.c" || b.name.toLowerCase() === "vuser_end.c";
-        if (aSpecial && !bSpecial) return 1;
-        if (!aSpecial && bSpecial) return -1;
-      }
-      return a.name.localeCompare(b.name);
-    });
+    if (isCollapsed) continue;
 
-    for (const file of files) {
+    for (const file of group.files) {
       const active = file.path === activePath;
+      const dim = file.state === "unlinked" && !active ? " opacity-60" : "";
       const item = document.createElement("button");
       item.type = "button";
-      item.className = `block w-full truncate rounded-[3px] px-2 py-1 text-left font-mono text-[12px] ${
+      item.className = `flex w-full items-center rounded-[3px] px-2 py-1 text-left font-mono text-[12px] ${
         active ? ACTIVE_CLASS : IDLE_CLASS
-      }`;
-      item.textContent = file.name;
-      item.title = file.path;
+      }${dim}`;
+      item.title = fileTitle(file);
       item.dataset.path = file.path;
+
+      if (group.id === "actions") {
+        const icon = document.createElement("span");
+        icon.className = `mr-2 h-[7px] w-[7px] shrink-0 rounded-full ${STATE_ICON[file.state ?? "active"]}`;
+        icon.setAttribute("aria-hidden", "true");
+        item.append(icon);
+      }
+      const label = document.createElement("span");
+      label.className = "min-w-0 truncate";
+      label.textContent = file.name;
+      item.append(label);
+
       item.addEventListener("click", () => onOpenFile(file.path));
       root.append(item);
     }

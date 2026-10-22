@@ -3,7 +3,7 @@
  * List view: semua parameter. Edit view: form edit untuk satu parameter.
  */
 
-import { SELECT_NEXT_ROW_OPTIONS, UPDATE_OPTIONS, OUT_OF_RANGE_OPTIONS } from "./paramBar.js";
+import { SELECT_NEXT_ROW_OPTIONS, UPDATE_OPTIONS, OUT_OF_RANGE_OPTIONS, sameLineCandidates, buildChange } from "./paramBar.js";
 import { escapeHtml } from "../utils/html.js";
 
 const GEAR_SVG = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path fill-rule="evenodd" d="M8 0a1 1 0 0 1 .894.553l.998 1.996a6.02 6.02 0 0 1 1.223.709l2.14-.535a1 1 0 0 1 1.098.48l1 1.732a1 1 0 0 1-.17 1.196l-1.55 1.55a6.13 6.13 0 0 1 0 1.638l1.55 1.55a1 1 0 0 1 .17 1.196l-1 1.732a1 1 0 0 1-1.097.48l-2.141-.534a6.02 6.02 0 0 1-1.223.708l-.998 1.996A1 1 0 0 1 8 16a1 1 0 0 1-.894-.553l-.998-1.996a6.02 6.02 0 0 1-1.223-.709l-2.14.535a1 1 0 0 1-1.098-.48l-1-1.732a1 1 0 0 1 .17-1.196l1.55-1.55a6.13 6.13 0 0 1 0-1.638L.617 5.13a1 1 0 0 1-.17-1.196l1-1.732a1 1 0 0 1 1.097-.48l2.141.534a6.02 6.02 0 0 1 1.223-.708L6.894.553A1 1 0 0 1 8 0Z"/></svg>`;
@@ -231,13 +231,35 @@ function renderDateEditView(param, footer, onSave) {
 }
 
 /**
+ * Buat opsi Select Next Row termasuk "Same line as" candidates.
+ * @param {any} param @param {any[]} all
+ */
+function selectNextRowOptions(param, all) {
+  const SAME = "same:";
+  const follows = param.selectNextRow === "SameLine";
+  const current = follows ? `${SAME}${param.sameLineAs}` : (param.selectNextRow ?? "Sequential");
+  const candidates = sameLineCandidates(param, all);
+  const sameOpts = candidates.map((c) => ({ value: `${SAME}${c.name}`, label: `Same line as ${c.name}` }));
+  if (follows && !sameOpts.some((o) => o.value === current)) {
+    sameOpts.push({ value: current, label: `Same line as ${param.sameLineAs}` });
+  }
+  const hint = sameOpts.length === 0
+    ? `<option disabled>Same line as… (needs another parameter with ${param.rows} rows)</option>`
+    : "";
+  return [...SELECT_NEXT_ROW_OPTIONS, ...sameOpts]
+    .map((o) => `<option value="${o.value}"${o.value === current ? " selected" : ""}>${o.label}</option>`)
+    .join("") + hint;
+}
+
+/**
  * Render edit view untuk parameter Table.
  * @param {any} param
+ * @param {any[]} allParams
  * @param {HTMLElement} footer
  * @param {(changes: Record<string, unknown>) => void} onSave
  * @returns {DocumentFragment}
  */
-function renderTableEditView(param, footer, onSave) {
+function renderTableEditView(param, allParams, footer, onSave) {
   const frag = document.createDocumentFragment();
 
   // ── Settings (fixed, tidak scroll) ──
@@ -251,7 +273,7 @@ function renderTableEditView(param, footer, onSave) {
     <div class="grid grid-cols-3 gap-3">
       <label class="flex flex-col gap-1">
         <span class="text-[10px] text-[#7d8896] uppercase tracking-wide">Select Next Row</span>
-        <select id="pm-select-next-row" class="ui-field w-full">${optionsHtml(SELECT_NEXT_ROW_OPTIONS, param.selectNextRow ?? "Sequential")}</select>
+        <select id="pm-select-next-row" class="ui-field w-full">${selectNextRowOptions(param, allParams)}</select>
       </label>
       <label class="flex flex-col gap-1">
         <span class="text-[10px] text-[#7d8896] uppercase tracking-wide">Update Value On</span>
@@ -301,7 +323,7 @@ function renderTableEditView(param, footer, onSave) {
     saveBtn.textContent = "Save";
     saveBtn.addEventListener("click", () => {
       onSave({
-        selectNextRow: selectNextRowEl?.value ?? "Sequential",
+        ...buildChange("selectNextRow", selectNextRowEl?.value ?? "Sequential"),
         updateValueOn: updateValueOnEl?.value ?? "EachIteration",
         outOfRangePolicy: outOfRangeEl?.value ?? "Cycle",
       });
@@ -411,7 +433,7 @@ export function openParamModal(parameters, onSave) {
     if (isDate) {
       content.append(renderDateEditView(param, footer, handleSave));
     } else {
-      content.append(renderTableEditView(param, footer, handleSave));
+      content.append(renderTableEditView(param, parameters, footer, handleSave));
     }
   }
 

@@ -21,6 +21,8 @@ let root = null;
 let groupSelect = null;
 /** @type {HTMLElement|null} */
 let stepListEl = null;
+/** @type {HTMLElement|null} */
+let resultBanner = null;
 /** @type {HTMLButtonElement|null} */
 let collapseAllBtn = null;
 /** @type {HTMLButtonElement|null} */
@@ -236,6 +238,48 @@ function selectStep(seq) {
 /** seq step terpilih pada render terakhir; berubah -> buka transaksinya & scroll ke barisnya */
 let lastSelectedSeq = null;
 
+/** Render banner status run (passed / failed / stopped / running) */
+function updateBanner(state) {
+  if (!resultBanner) return;
+  const run = state.currentRun;
+  const isRunning = state.isRunning;
+
+  if (!run) {
+    resultBanner.hidden = true;
+    return;
+  }
+
+  const status = run.status;
+  if (isRunning || status === "running") {
+    resultBanner.hidden = true;
+    return;
+  }
+
+  const steps = run.steps ?? [];
+  const okCount = steps.filter((s) => !s.error && s.response?.status >= 200 && s.response?.status < 400).length;
+  const durationSec = run.durationMs ? (run.durationMs / 1000).toFixed(1) + "s" : "";
+
+  const isPassed = status === "passed";
+  const isStopped = status === "stopped";
+
+  const icon = isPassed ? "✓" : isStopped ? "■" : "✗";
+  const label = isPassed ? "PASSED" : isStopped ? "STOPPED" : "FAILED";
+  const colorClass = isPassed
+    ? "bg-green-900/60 border-green-600 text-green-300"
+    : isStopped
+      ? "bg-yellow-900/60 border-yellow-600 text-yellow-300"
+      : "bg-red-900/60 border-red-700 text-red-300";
+  const iconColor = isPassed ? "text-green-400" : isStopped ? "text-yellow-400" : "text-red-400";
+
+  resultBanner.hidden = false;
+  resultBanner.className = `shrink-0 flex items-center gap-2 px-3 py-1.5 border-b ${colorClass}`;
+  resultBanner.innerHTML = `
+    <span class="text-[13px] font-bold ${iconColor}">${icon}</span>
+    <span class="font-mono text-[12px] font-bold tracking-wide">${label}</span>
+    <span class="ml-auto font-mono text-[11px] opacity-70">${okCount}/${steps.length} OK${durationSec ? " · " + durationSec : ""}</span>
+  `;
+}
+
 /** Render hanya bila data yang relevan berubah (store juga berubah tiap event log) */
 function render() {
   const state = getStore().get();
@@ -248,9 +292,11 @@ function render() {
 
   const key = [
     run?.runId ?? "",
+    run?.status ?? "",
     run?.steps?.length ?? 0,
     run?.transactions?.length ?? 0,
     run?.options?.iterations ?? 0,
+    state.isRunning ? "1" : "0",
     state.selectedIteration,
     state.selectedStep?.seq ?? "",
     state.pendingStep?.seq ?? "",
@@ -260,6 +306,7 @@ function render() {
   lastRenderKey = key;
 
   updateGroupSelector(state);
+  updateBanner(state);
   renderSteps(state);
 
   if (selectionChanged && state.selectedStep) {
@@ -277,6 +324,7 @@ export function createStepList(container, { onSelect } = {}) {
   lastRenderKey = "";
   root.innerHTML = `
     <div class="flex h-full flex-col bg-[#121821]">
+      <div id="runResultBanner" hidden class="shrink-0"></div>
       <div class="flex shrink-0 items-center gap-2 px-3 py-2">
         <label class="shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]" for="iterationSelect">View</label>
         <select id="iterationSelect" class="h-7 min-w-0 flex-1 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[12px] text-[#e6edf3] outline-none focus:border-[#d2a24c]">
@@ -289,6 +337,7 @@ export function createStepList(container, { onSelect } = {}) {
     </div>
   `;
 
+  resultBanner = root.querySelector("#runResultBanner");
   groupSelect = root.querySelector("#iterationSelect");
   stepListEl = root.querySelector("#stepListItems");
   collapseAllBtn = root.querySelector("#collapseAllBtn");
@@ -327,6 +376,7 @@ export function createStepList(container, { onSelect } = {}) {
       root = null;
       groupSelect = null;
       stepListEl = null;
+      resultBanner = null;
       collapseAllBtn = null;
       expandAllBtn = null;
       onSelectStep = null;

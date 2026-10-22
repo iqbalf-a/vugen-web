@@ -311,9 +311,20 @@ async function openProjectPath(path) {
   try {
     const project = await openProject(path);
     docs.clear();
+    eventSource?.close();
+    eventSource = null;
     store.set({
       project,
       activePath: null,
+      currentRunId: null,
+      currentRun: null,
+      selectedStep: null,
+      selectedIteration: 1,
+      isRunning: false,
+      isPaused: false,
+      pendingStep: null,
+      liveAt: null,
+      logCount: 0,
       health: project.warnings.length > 0 ? "warn" : "ok",
       status: `${project.files.length} file · Run Logic: ${project.runLogic.source}${
         project.warnings.length > 0 ? ` · ${project.warnings.length} warning` : ""

@@ -4,6 +4,7 @@
  */
 
 import { SELECT_NEXT_ROW_OPTIONS, UPDATE_OPTIONS, OUT_OF_RANGE_OPTIONS } from "./paramBar.js";
+import { escapeHtml } from "../utils/html.js";
 
 const GEAR_SVG = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path fill-rule="evenodd" d="M8 0a1 1 0 0 1 .894.553l.998 1.996a6.02 6.02 0 0 1 1.223.709l2.14-.535a1 1 0 0 1 1.098.48l1 1.732a1 1 0 0 1-.17 1.196l-1.55 1.55a6.13 6.13 0 0 1 0 1.638l1.55 1.55a1 1 0 0 1 .17 1.196l-1 1.732a1 1 0 0 1-1.097.48l-2.141-.534a6.02 6.02 0 0 1-1.223.708l-.998 1.996A1 1 0 0 1 8 16a1 1 0 0 1-.894-.553l-.998-1.996a6.02 6.02 0 0 1-1.223-.709l-2.14.535a1 1 0 0 1-1.098-.48l-1-1.732a1 1 0 0 1 .17-1.196l1.55-1.55a6.13 6.13 0 0 1 0-1.638L.617 5.13a1 1 0 0 1-.17-1.196l1-1.732a1 1 0 0 1 1.097-.48l2.141.534a6.02 6.02 0 0 1 1.223-.708L6.894.553A1 1 0 0 1 8 0Z"/></svg>`;
 
@@ -239,55 +240,53 @@ function renderDateEditView(param, footer, onSave) {
 function renderTableEditView(param, footer, onSave) {
   const frag = document.createDocumentFragment();
 
-  const container = document.createElement("div");
-  container.className = "px-4 py-4 flex flex-col gap-4";
-
-  // File info
-  const infoGroup = document.createElement("div");
-  infoGroup.className = "flex flex-col gap-1 rounded px-3 py-2.5 bg-[#141922] border border-[#232a33]";
-  infoGroup.innerHTML = `
-    <div class="flex items-center gap-2 text-[12px]">
-      <span class="text-[#5b6572]">File:</span>
-      <span class="font-mono text-[#e6edf3] truncate" title="${param.file || ""}">${param.file || "—"}</span>
+  // ── Settings (fixed, tidak scroll) ──
+  const settings = document.createElement("div");
+  settings.className = "shrink-0 px-4 pt-4 pb-3 flex flex-col gap-3 border-b border-[#232a33]";
+  settings.innerHTML = `
+    <div class="flex gap-4 text-[12px]">
+      <span class="text-[#5b6572]">File: <span class="font-mono text-[#e6edf3]" title="${param.file || ""}">${param.file || "—"}</span></span>
+      <span class="text-[#5b6572]">Rows: <span class="font-mono text-[#e6edf3]">${param.rows ?? "—"}</span></span>
     </div>
-    <div class="flex items-center gap-2 text-[12px]">
-      <span class="text-[#5b6572]">Rows:</span>
-      <span class="font-mono text-[#e6edf3]">${param.rows ?? "—"}</span>
+    <div class="grid grid-cols-3 gap-3">
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] text-[#7d8896] uppercase tracking-wide">Select Next Row</span>
+        <select id="pm-select-next-row" class="ui-field w-full">${optionsHtml(SELECT_NEXT_ROW_OPTIONS, param.selectNextRow ?? "Sequential")}</select>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] text-[#7d8896] uppercase tracking-wide">Update Value On</span>
+        <select id="pm-update-value-on" class="ui-field w-full">${optionsHtml(UPDATE_OPTIONS, param.updateValueOn ?? "EachIteration")}</select>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] text-[#7d8896] uppercase tracking-wide">When Out of Values</span>
+        <select id="pm-out-of-range" class="ui-field w-full">${optionsHtml(OUT_OF_RANGE_OPTIONS, param.outOfRangePolicy ?? "Cycle")}</select>
+      </label>
     </div>
   `;
 
-  // Select next row
-  const selectNextRowGroup = document.createElement("div");
-  selectNextRowGroup.className = "flex flex-col gap-1.5";
-  selectNextRowGroup.innerHTML = `
-    <label class="text-[11px] text-[#7d8896] uppercase tracking-wide">Select Next Row</label>
-    <select id="pm-select-next-row" class="ui-field w-full">
-      ${optionsHtml(SELECT_NEXT_ROW_OPTIONS, param.selectNextRow ?? "Sequential")}
-    </select>
-  `;
+  // ── Values list (scrollable) ──
+  const values = Array.isArray(param.values) ? param.values : [];
+  const valuesSection = document.createElement("div");
+  valuesSection.className = "flex min-h-0 flex-col";
 
-  // Update value on
-  const updateGroup = document.createElement("div");
-  updateGroup.className = "flex flex-col gap-1.5";
-  updateGroup.innerHTML = `
-    <label class="text-[11px] text-[#7d8896] uppercase tracking-wide">Update Value On</label>
-    <select id="pm-update-value-on" class="ui-field w-full">
-      ${optionsHtml(UPDATE_OPTIONS, param.updateValueOn ?? "EachIteration")}
-    </select>
-  `;
+  const valuesHeader = document.createElement("div");
+  valuesHeader.className = "shrink-0 px-4 py-1.5 text-[10px] uppercase tracking-wide text-[#5b6572] border-b border-[#1e2630]";
+  valuesHeader.textContent = `Values${values.length < (param.rows ?? 0) ? ` (showing ${values.length} of ${param.rows})` : ` (${values.length})`}`;
 
-  // When out of values
-  const outOfRangeGroup = document.createElement("div");
-  outOfRangeGroup.className = "flex flex-col gap-1.5";
-  outOfRangeGroup.innerHTML = `
-    <label class="text-[11px] text-[#7d8896] uppercase tracking-wide">When Out of Values</label>
-    <select id="pm-out-of-range" class="ui-field w-full">
-      ${optionsHtml(OUT_OF_RANGE_OPTIONS, param.outOfRangePolicy ?? "Cycle")}
-    </select>
-  `;
+  const valuesList = document.createElement("div");
+  valuesList.className = "overflow-y-auto";
+  valuesList.style.maxHeight = "220px";
+  valuesList.innerHTML = values.length === 0
+    ? `<div class="px-4 py-3 text-[12px] text-[#5b6572]">No values</div>`
+    : values.map((v, i) =>
+        `<div class="flex items-baseline gap-3 px-4 py-0.5 hover:bg-[#1e2630]">
+          <span class="w-8 shrink-0 text-right font-mono text-[10px] text-[#3d4753]">${i + 1}</span>
+          <span class="font-mono text-[12px] text-[#e6edf3] [overflow-wrap:anywhere]">${escapeHtml(String(v))}</span>
+        </div>`
+      ).join("");
 
-  container.append(infoGroup, selectNextRowGroup, updateGroup, outOfRangeGroup);
-  frag.append(container);
+  valuesSection.append(valuesHeader, valuesList);
+  frag.append(settings, valuesSection);
 
   // Wire up footer save button
   requestAnimationFrame(() => {

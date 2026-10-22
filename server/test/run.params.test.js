@@ -115,14 +115,14 @@ describe("GET /api/project: parameters", () => {
       const project = await (await fetch(url)).json();
 
       expect(project.parameterFiles).toBeUndefined();
-      // API tetap mendaftar semua kolom .dat (termasuk yang tidak dipakai run); nilai tidak dikirim
+      // API mendaftar semua kolom .dat; values dikirim (dibatasi 500 baris untuk modal UI)
       expect(project.parameters.map(({ name, file, rows, column }) => ({ name, file, rows, column }))).toEqual([
         { name: "Host", file: "hosts.dat", rows: 2, column: "Host" },
         { name: "pathSuffix", file: "hosts.dat", rows: 2, column: "pathSuffix" },
         { name: "subTrans", file: "subTrans.dat", rows: 1, column: "subTrans" },
       ]);
-      expect(project.parameters.every((p) => !("values" in p))).toBe(true);
-      expect(JSON.stringify(project)).not.toContain("localhost:18085"); // nilai tidak bocor ke browser
+      expect(project.parameters.every((p) => "values" in p && Array.isArray(p.values))).toBe(true);
+      // values dikirim ke browser untuk modal parameter (dibatasi 500 baris)
     } finally {
       server.closeAllConnections?.();
       await new Promise((resolve) => server.close(resolve));

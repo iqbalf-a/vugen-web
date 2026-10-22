@@ -141,6 +141,7 @@ const editor = createEditor(els.editor, {
     else breakpoints.delete(path);
   },
 });
+editor.setWordWrap(wordWrapEnabled);
 
 let lastPendingSeq = null;
 let lastLiveAt = null;

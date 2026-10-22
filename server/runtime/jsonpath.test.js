@@ -7,9 +7,9 @@ const DOC = {
     token: "T-1",
     profile: { kopraId: "K-9", companyId: "C-1", tags: ["a", "b"] },
     items: [
-      { id: 10, name: "satu", companyId: "C-2" },
-      { id: 20, name: "dua", extra: { companyId: "C-3" } },
-      { id: 30, name: "tiga" },
+      { id: 10, name: "satu", companyId: "C-2", progressPercentage: 50 },
+      { id: 20, name: "dua", extra: { companyId: "C-3" }, progressPercentage: 100 },
+      { id: 30, name: "tiga", progressPercentage: 0 },
     ],
     flag: true,
     nothing: null,
@@ -46,7 +46,7 @@ const CASES = [
   ["$..id", [10, 20, 30]],
   ["$..kopraId", ["K-9"]],
   ["$.data..companyId", ["C-1", "C-2", "C-3"]],
-  ["$..items[0]", [{ id: 10, name: "satu", companyId: "C-2" }]],
+  ["$..items[0]", [DOC.data.items[0]]],
   ["$..tags[0]", ["a"]],
   // tipe nilai
   ["$.data.flag", [true]],
@@ -77,6 +77,31 @@ describe("jsonpath: tabel kasus", () => {
   });
 });
 
+describe("jsonpath: filter [?(@.prop==value)]", () => {
+  it("filter dengan string literal", () => {
+    expect(run('$.data.items[?(@.name=="satu")]')).toEqual([DOC.data.items[0]]);
+  });
+  it("filter dengan single-quote", () => {
+    expect(run("$.data.items[?(@.name=='dua')]")).toEqual([DOC.data.items[1]]);
+  });
+  it("filter dengan nilai numerik (string-coerced)", () => {
+    expect(run("$.data.items[?(@.progressPercentage==100)]")).toEqual([DOC.data.items[1]]);
+  });
+  it("filter tidak cocok: array kosong", () => {
+    expect(run('$.data.items[?(@.name=="empat")]')).toEqual([]);
+  });
+  it("filter != mengeluarkan item yang tidak cocok", () => {
+    const result = run('$.data.items[?(@.name!="satu")]');
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("dua");
+  });
+  it("filter lalu akses properti via ..prop", () => {
+    // $..data[?(@.fileName=="file.txt")].progressPercentage — pola KOPRA
+    const doc = { result: { data: [{ fileName: "file.txt", progressPercentage: 75 }, { fileName: "other.txt", progressPercentage: 30 }] } };
+    expect(run('$..data[?(@.fileName=="file.txt")].progressPercentage', doc)).toEqual([75]);
+  });
+});
+
 describe("jsonpath: sintaks tidak didukung -> error yang jelas", () => {
   const BAD = [
     ["", /\$/],
@@ -87,7 +112,7 @@ describe("jsonpath: sintaks tidak didukung -> error yang jelas", () => {
     ["$.data[abc]", /tidak didukung/],
     ["$.data[-1]", /tidak didukung/],
     ["$.data[1:2]", /tidak didukung/],
-    ["$.data[?(@.a==1)]", /tidak didukung/],
+    ["$.data[?(@.a>1)]", /tidak didukung/],
     ["$.*", /\[\*\]/],
     ["$..*", /\[\*\]/],
     ["$.data['x]", /kutip/],

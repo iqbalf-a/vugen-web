@@ -174,9 +174,9 @@ describe("web_reg_save_param_json: tidak ketemu / bukan JSON", () => {
 
 describe("web_reg_save_param_json: registrasi tidak valid", () => {
   it("QueryString dengan sintaks tidak didukung -> error jelas (lempar, atau return 1 dengan continueOnError)", () => {
-    expect(() => api.web_reg_save_param_json("ParamName=x", "QueryString=$.a[?(@.b==1)]", "LAST")).toThrow(/tidak didukung/);
+    expect(() => api.web_reg_save_param_json("ParamName=x", "QueryString=$.a[?(@.b>1)]", "LAST")).toThrow(/tidak didukung/);
     env.ctx.runOptions.continueOnError = true;
-    expect(api.web_reg_save_param_json("ParamName=x", "QueryString=$.a[?(@.b==1)]", "LAST")).toBe(1);
+    expect(api.web_reg_save_param_json("ParamName=x", "QueryString=$.a[?(@.b>1)]", "LAST")).toBe(1);
     expect(env.logs.some(([level, msg]) => level === "error" && /web_reg_save_param_json gagal/.test(msg))).toBe(true);
   });
 

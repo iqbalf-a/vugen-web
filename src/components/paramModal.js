@@ -14,16 +14,31 @@ const GEAR_SVG = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentC
  * @param {number} offsetSec
  * @returns {string}
  */
+const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTHS_LONG = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DAYS_LONG = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
 function computePreview(format, offsetSec) {
   const d = new Date(Date.now() + offsetSec * 1000);
   const pad = (n) => String(n).padStart(2, "0");
+  const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
   return (format || "%Y/%m/%d")
-    .replace(/%Y/g, d.getFullYear())
+    .replace(/%Y/g, String(d.getFullYear()))
+    .replace(/%y/g, String(d.getFullYear()).slice(-2))
     .replace(/%m/g, pad(d.getMonth() + 1))
+    .replace(/%B/g, MONTHS_LONG[d.getMonth()])
+    .replace(/%b/g, MONTHS_SHORT[d.getMonth()])
     .replace(/%d/g, pad(d.getDate()))
+    .replace(/%e/g, String(d.getDate()))
+    .replace(/%j/g, String(dayOfYear).padStart(3, "0"))
+    .replace(/%A/g, DAYS_LONG[d.getDay()])
+    .replace(/%a/g, DAYS_SHORT[d.getDay()])
     .replace(/%H/g, pad(d.getHours()))
+    .replace(/%I/g, pad(d.getHours() % 12 || 12))
     .replace(/%M/g, pad(d.getMinutes()))
-    .replace(/%S/g, pad(d.getSeconds()));
+    .replace(/%S/g, pad(d.getSeconds()))
+    .replace(/%p/g, d.getHours() < 12 ? "AM" : "PM");
 }
 
 /**

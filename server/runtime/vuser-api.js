@@ -675,9 +675,12 @@ export function web_reg_save_param_json(...args) {
   if (!name) return concludeFailure("web_reg_save_param_json", "", "atribut ParamName wajib");
   if (!query) return concludeFailure("web_reg_save_param_json", "", `atribut QueryString wajib (ParamName=${name})`);
 
+  // Substitute {param} in query before compiling so filter values like {fileNameUpload} resolve correctly.
+  const resolvedQuery = substituteParams(query);
+
   let segments;
   try {
-    segments = compileJsonPath(query);
+    segments = compileJsonPath(resolvedQuery);
   } catch (error) {
     return concludeFailure("web_reg_save_param_json", "", `ParamName=${name}: ${error.message}`);
   }

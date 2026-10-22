@@ -21,6 +21,10 @@ let root = null;
 let groupSelect = null;
 /** @type {HTMLElement|null} */
 let stepListEl = null;
+/** @type {HTMLButtonElement|null} */
+let collapseAllBtn = null;
+/** @type {HTMLButtonElement|null} */
+let expandAllBtn = null;
 /** @type {Set<string>} nama transaksi yang ditutup user (default semua tertutup; state tampilan lokal) */
 const collapsedTransactions = new Set();
 /** @type {Set<string>} transaksi yang sudah pernah muncul di run ini; baru → auto-collapse */
@@ -278,6 +282,8 @@ export function createStepList(container, { onSelect } = {}) {
         <select id="iterationSelect" class="h-7 min-w-0 flex-1 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 text-[12px] text-[#e6edf3] outline-none focus:border-[#d2a24c]">
           <option value="1">Iteration 1</option>
         </select>
+        <button id="expandAllBtn" title="Expand all transactions" class="h-7 w-7 shrink-0 rounded-[3px] border border-[#232a33] bg-[#1b212b] text-[14px] text-[#7d8896] hover:border-[#d2a24c] hover:text-[#e6edf3]">▾</button>
+        <button id="collapseAllBtn" title="Collapse all transactions" class="h-7 w-7 shrink-0 rounded-[3px] border border-[#232a33] bg-[#1b212b] text-[14px] text-[#7d8896] hover:border-[#d2a24c] hover:text-[#e6edf3]">▸</button>
       </div>
       <div id="stepListItems" class="min-h-0 flex-1 overflow-y-auto font-mono text-[12px]"></div>
     </div>
@@ -285,6 +291,25 @@ export function createStepList(container, { onSelect } = {}) {
 
   groupSelect = root.querySelector("#iterationSelect");
   stepListEl = root.querySelector("#stepListItems");
+  collapseAllBtn = root.querySelector("#collapseAllBtn");
+  expandAllBtn = root.querySelector("#expandAllBtn");
+
+  collapseAllBtn.addEventListener("click", () => {
+    const state = getStore().get();
+    const run = state.currentRun;
+    const runLogic = state.project?.runLogic;
+    const group = state.selectedIteration;
+    const steps = (run?.steps ?? []).filter((step) => stepGroupOf(step, runLogic) === group);
+    for (const step of steps) collapsedTransactions.add(step.transaction || "No Transaction");
+    lastRenderKey = "";
+    render();
+  });
+
+  expandAllBtn.addEventListener("click", () => {
+    collapsedTransactions.clear();
+    lastRenderKey = "";
+    render();
+  });
 
   groupSelect.addEventListener("change", () => {
     const value = groupSelect.value;
@@ -302,6 +327,8 @@ export function createStepList(container, { onSelect } = {}) {
       root = null;
       groupSelect = null;
       stepListEl = null;
+      collapseAllBtn = null;
+      expandAllBtn = null;
       onSelectStep = null;
     },
     selectStep,

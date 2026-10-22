@@ -22,6 +22,8 @@ const KEY_ALIASES = {
   SelectNextRow: ["SelectNextRow"],
   GenerateNewVal: ["GenerateNewVal", "UpdateValueOn"],
   OutOfRangePolicy: ["OutOfRangePolicy", "WhenOutOfValues"],
+  Format: ["Format"],
+  Offset: ["Offset"],
 };
 
 const BOM = "\u00ef\u00bb\u00bf";
@@ -124,6 +126,17 @@ function buildEntries(all, param, changes) {
     const token = typeof changes.outOfRangePolicy === "string" ? OUT_OF_RANGE_TOKEN[changes.outOfRangePolicy] : undefined;
     if (!token) throw new HttpError(400, `When out of values must be one of: ${Object.keys(OUT_OF_RANGE_TOKEN).join(", ")}.`);
     entries.OutOfRangePolicy = token;
+  }
+
+  if (changes.format !== undefined) {
+    if (typeof changes.format !== "string") throw new HttpError(400, "format must be a string.");
+    entries.Format = changes.format;
+  }
+
+  if (changes.offset !== undefined) {
+    const n = Number(changes.offset);
+    if (!Number.isFinite(n)) throw new HttpError(400, "offset must be a number.");
+    entries.Offset = String(Math.round(n));
   }
 
   if (Object.keys(entries).length === 0) throw new HttpError(400, "No setting to change.");

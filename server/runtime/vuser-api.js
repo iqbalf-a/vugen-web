@@ -730,6 +730,7 @@ export function web_reg_find(...args) {
   const rule = {
     text: substituteParams(text),
     saveCount: opts.SaveCount || opts.savecount || null,
+    scope: String(opts.Search ?? opts.search ?? "ALL").toUpperCase(),
   };
 
   webRegFindRegistry.push(rule);
@@ -1088,10 +1089,21 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   // Process web_reg_find
   const checks = [];
   for (const rule of webRegFindRegistry) {
-    const found = bodyText.includes(rule.text);
-    checks.push({ type: "web_reg_find", text: rule.text, passed: found });
-    log(found ? "info" : "error", `web_reg_find: Text="${rule.text}" ${found ? "FOUND" : "NOT FOUND"}`);
-    if (!found) problems.push(`web_reg_find: teks "${rule.text}" tidak ditemukan`);
+    const searchIn = scopeText(rule.scope || "ALL");
+    const found = searchIn.includes(rule.text);
+    // SaveCount: hitung kemunculan, simpan ke parameter, tidak gagal jika count=0
+    if (rule.saveCount) {
+      let count = 0;
+      let pos = 0;
+      while ((pos = searchIn.indexOf(rule.text, pos)) !== -1) { count += 1; pos += rule.text.length; }
+      params.set(rule.saveCount, String(count), "web_reg_find (SaveCount)");
+      checks.push({ type: "web_reg_find", text: rule.text, passed: true, saveCount: rule.saveCount, count });
+      log("info", `web_reg_find: SaveCount=${rule.saveCount}=${count} Text="${rule.text}"`);
+    } else {
+      checks.push({ type: "web_reg_find", text: rule.text, passed: found });
+      log(found ? "info" : "error", `web_reg_find: Text="${rule.text}" ${found ? "FOUND" : "NOT FOUND"}`);
+      if (!found) problems.push(`web_reg_find: teks "${rule.text}" tidak ditemukan`);
+    }
   }
   webRegFindRegistry.length = 0;
 

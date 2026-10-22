@@ -363,8 +363,7 @@ export function openParamModal(parameters, onSave) {
 
   function showList() {
     editingParam = null;
-    const titleSpan = dialog.querySelector("#pm-title");
-    if (titleSpan) titleSpan.textContent = "Parameters";
+    header.replaceChildren(titleEl, closeBtn);
     footer.classList.add("hidden");
     footer.innerHTML = "";
     content.replaceChildren(renderListView(parameters, showEdit));

@@ -243,17 +243,6 @@ function renderPanelTabs() {
     btn.addEventListener("click", () => switchPanel(btn.dataset.panel));
   });
 
-  const paramsBtn = document.createElement("button");
-  paramsBtn.type = "button";
-  paramsBtn.title = "Manage parameters";
-  paramsBtn.className = "ml-auto flex items-center gap-1 rounded px-2 py-1 text-[11px] text-[#5b6572] hover:text-[#9aa7b8] transition-colors";
-  paramsBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path fill-rule="evenodd" d="M8 0a1 1 0 0 1 .894.553l.998 1.996a6.02 6.02 0 0 1 1.223.709l2.14-.535a1 1 0 0 1 1.098.48l1 1.732a1 1 0 0 1-.17 1.196l-1.55 1.55a6.13 6.13 0 0 1 0 1.638l1.55 1.55a1 1 0 0 1 .17 1.196l-1 1.732a1 1 0 0 1-1.097.48l-2.141-.534a6.02 6.02 0 0 1-1.223.708l-.998 1.996A1 1 0 0 1 8 16a1 1 0 0 1-.894-.553l-.998-1.996a6.02 6.02 0 0 1-1.223-.709l-2.14.535a1 1 0 0 1-1.098-.48l-1-1.732a1 1 0 0 1 .17-1.196l1.55-1.55a6.13 6.13 0 0 1 0-1.638L.617 5.13a1 1 0 0 1-.17-1.196l1-1.732a1 1 0 0 1 1.097-.48l2.141.534a6.02 6.02 0 0 1 1.223-.708L6.894.553A1 1 0 0 1 8 0Z"/></svg> Parameters`;
-  paramsBtn.addEventListener("click", () => {
-    const project = store.get().project;
-    if (!project) return;
-    openParamModal(project.parameters, changeParameter);
-  });
-  els.panelTabBar.appendChild(paramsBtn);
 }
 
 function switchPanel(panelId) {
@@ -526,7 +515,18 @@ function renderTabs() {
     document.addEventListener("click", close, true);
   });
 
-  actionsArea.append(wrapBtn, beautifyBtn, menuBtn);
+  const paramsBtn = document.createElement("button");
+  paramsBtn.type = "button";
+  paramsBtn.title = "Manage parameters";
+  paramsBtn.className = "flex items-center gap-1 rounded px-2 py-1 text-[11px] font-sans text-[#5b6572] hover:text-[#9aa7b8] transition-colors";
+  paramsBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path fill-rule="evenodd" d="M8 0a1 1 0 0 1 .894.553l.998 1.996a6.02 6.02 0 0 1 1.223.709l2.14-.535a1 1 0 0 1 1.098.48l1 1.732a1 1 0 0 1-.17 1.196l-1.55 1.55a6.13 6.13 0 0 1 0 1.638l1.55 1.55a1 1 0 0 1 .17 1.196l-1 1.732a1 1 0 0 1-1.097.48l-2.141-.534a6.02 6.02 0 0 1-1.223.708l-.998 1.996A1 1 0 0 1 8 16a1 1 0 0 1-.894-.553l-.998-1.996a6.02 6.02 0 0 1-1.223-.709l-2.14.535a1 1 0 0 1-1.098-.48l-1-1.732a1 1 0 0 1 .17-1.196l1.55-1.55a6.13 6.13 0 0 1 0-1.638L.617 5.13a1 1 0 0 1-.17-1.196l1-1.732a1 1 0 0 1 1.097-.48l2.141.534a6.02 6.02 0 0 1 1.223-.708L6.894.553A1 1 0 0 1 8 0Z"/></svg><span>Params</span>`;
+  paramsBtn.addEventListener("click", () => {
+    const project = store.get().project;
+    if (!project) return;
+    openParamModal(project.parameters, changeParameter);
+  });
+
+  actionsArea.append(wrapBtn, beautifyBtn, paramsBtn, menuBtn);
   els.tabBar.replaceChildren(tabsArea, actionsArea);
 }
 

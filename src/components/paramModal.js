@@ -372,8 +372,6 @@ export function openParamModal(parameters, onSave) {
   function showEdit(param) {
     editingParam = param;
     const isDate = param.type === "Time" || param.type === "Date";
-    const titleSpan = dialog.querySelector("#pm-title");
-    if (titleSpan) titleSpan.textContent = `Edit · {${param.name}}`;
 
     // Back button in header area — replace title temporarily
     const backBtn = document.createElement("button");

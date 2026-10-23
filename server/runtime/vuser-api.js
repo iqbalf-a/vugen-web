@@ -1066,46 +1066,54 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   if (resp.status >= 400) problems.push(`HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""}`);
 
   // Process correlations: extract values and save to params
-  for (const rule of correlationRegistry) {
-    if (rule.kind === "json") {
-      applyJsonRule(rule, resp, bodyText, contentType, problems);
-      continue;
+  try {
+    for (const rule of correlationRegistry) {
+      if (rule.kind === "json") {
+        applyJsonRule(rule, resp, bodyText, contentType, problems);
+        continue;
+      }
+      const { value, error } = extractCorrelation(rule, scopeText(rule.scope || "BODY"));
+      if (error) {
+        problems.push(`Correlation "${rule.name}": ${error}`);
+      } else if (value !== null) {
+        params.set(rule.saveParam, value, rule.regexp ? "web_reg_save_param (regexp)" : "web_reg_save_param (boundary)");
+        log("info", `Correlation: ${rule.saveParam} = "${value}"`);
+      } else {
+        log("warn", `Correlation "${rule.name}" (save as ${rule.saveParam}) not found`);
+      }
     }
-    const { value, error } = extractCorrelation(rule, scopeText(rule.scope || "BODY"));
-    if (error) {
-      problems.push(`Correlation "${rule.name}": ${error}`);
-    } else if (value !== null) {
-      params.set(rule.saveParam, value, rule.regexp ? "web_reg_save_param (regexp)" : "web_reg_save_param (boundary)");
-      log("info", `Correlation: ${rule.saveParam} = "${value}"`);
-    } else {
-      log("warn", `Correlation "${rule.name}" (save as ${rule.saveParam}) not found`);
-    }
+  } catch (err) {
+    log("error", `Correlation processing error: ${err.message}`);
+    problems.push(`Correlation error: ${err.message}`);
+  } finally {
+    correlationRegistry.length = 0;
   }
-  // Clear correlation registry after processing (one-time use per step)
-  correlationRegistry.length = 0;
 
   const resolvedStepName = substituteParams(stepName);
 
   // Process web_reg_find
   const checks = [];
-  for (const rule of webRegFindRegistry) {
-    const searchIn = scopeText(rule.scope || "ALL");
-    const found = searchIn.includes(rule.text);
-    // SaveCount: hitung kemunculan, simpan ke parameter, tidak gagal jika count=0
-    if (rule.saveCount) {
-      let count = 0;
-      let pos = 0;
-      while ((pos = searchIn.indexOf(rule.text, pos)) !== -1) { count += 1; pos += rule.text.length; }
-      params.set(rule.saveCount, String(count), "web_reg_find (SaveCount)");
-      checks.push({ type: "web_reg_find", text: rule.text, passed: true, saveCount: rule.saveCount, count });
-      log("info", `web_reg_find: SaveCount=${rule.saveCount}=${count} Text="${rule.text}"`);
-    } else {
-      checks.push({ type: "web_reg_find", text: rule.text, passed: found });
-      log(found ? "info" : "error", `web_reg_find: Text="${rule.text}" ${found ? "FOUND" : "NOT FOUND"}`);
-      if (!found) problems.push(`web_reg_find: teks "${rule.text}" tidak ditemukan`);
+  try {
+    for (const rule of webRegFindRegistry) {
+      const searchIn = scopeText(rule.scope || "ALL");
+      const found = searchIn.includes(rule.text);
+      // SaveCount: hitung kemunculan, simpan ke parameter, tidak gagal jika count=0
+      if (rule.saveCount) {
+        let count = 0;
+        let pos = 0;
+        while ((pos = searchIn.indexOf(rule.text, pos)) !== -1) { count += 1; pos += rule.text.length; }
+        params.set(rule.saveCount, String(count), "web_reg_find (SaveCount)");
+        checks.push({ type: "web_reg_find", text: rule.text, passed: true, saveCount: rule.saveCount, count });
+        log("info", `web_reg_find: SaveCount=${rule.saveCount}=${count} Text="${rule.text}"`);
+      } else {
+        checks.push({ type: "web_reg_find", text: rule.text, passed: found });
+        log(found ? "info" : "error", `web_reg_find: Text="${rule.text}" ${found ? "FOUND" : "NOT FOUND"}`);
+        if (!found) problems.push(`web_reg_find: teks "${rule.text}" tidak ditemukan`);
+      }
     }
+  } finally {
+    webRegFindRegistry.length = 0;
   }
-  webRegFindRegistry.length = 0;
 
   // Runner yang memberi seq dan menulis body; lewat IPC hanya metadata
   const seq = ++c.seq;

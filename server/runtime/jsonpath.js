@@ -1,5 +1,5 @@
 /**
- * runtime/jsonpath.js — Evaluator JSONPath subset (tanpa dependency) untuk `web_reg_save_param_json`.
+ * runtime/jsonpath.js — Evaluator JSONPath subset untuk `web_reg_save_param_json`.
  *
  * Sintaks yang didukung:
  *   $                          akar
@@ -8,13 +8,18 @@
  *   [n]                        elemen array ke-n (0-based, tidak negatif)
  *   [*]                        semua elemen array / semua nilai objek
  *   ['nama']                   anak bernama (juga ["nama"]), untuk nama dengan spasi/tanda baca
- *   [?(@.prop==value)]         filter: elemen array/objek di mana properti == value (string/number)
- *   [?(@.prop!="value")]       filter: elemen di mana properti != value
+ *   [?(@.prop==value)]         filter: elemen di mana properti cocok
+ *   [?(@.a=='x' && @.b!='y')] filter: kondisi AND majemuk
+ *   [?(@.prop=~/pattern/)]     filter: regex match
+ *   [?(!(@.prop=~/pattern/))]  filter: negated regex match
  *
  * Sintaks lain (slice, indeks negatif, `.*`) -> `compileJsonPath` melempar Error.
  */
 
-/** @typedef {{ type: "child", name: string } | { type: "descendant", name: string } | { type: "index", index: number } | { type: "wildcard" } | { type: "filter", property: string, op: string, value: string }} Segment */
+/**
+ * @typedef {{ property: string, op: "==" | "!=" | "=~", value: string, negate: boolean }} FilterCondition
+ * @typedef {{ type: "child", name: string } | { type: "descendant", name: string } | { type: "index", index: number } | { type: "wildcard" } | { type: "filter", conditions: FilterCondition[] }} Segment
+ */
 
 /**
  * @param {string} path
@@ -65,13 +70,8 @@ export function compileJsonPath(path) {
       } else if (/^(['"]).*\1$/s.test(inner) && inner.length >= 2) {
         segments.push({ type: "child", name: inner.slice(1, -1) });
       } else if (/^\?\(/.test(inner)) {
-        // Filter expression: [?(@.property=="value")] or [?(@.property==value)]
-        const filterMatch = inner.match(/^\?\(@\.(\w+)\s*(==|!=)\s*(?:"([^"]*)"|'([^']*)'|(\S+?))\s*\)$/);
-        if (!filterMatch) {
-          throw new Error(`JSONPath: filter [${inner}] tidak didukung; hanya [?(@.prop==value)] di ${JSON.stringify(path)}`);
-        }
-        const [, property, op, dq, sq, bare] = filterMatch;
-        segments.push({ type: "filter", property, op, value: dq ?? sq ?? bare ?? "" });
+        const conditions = parseFilterExpr(inner, path);
+        segments.push({ type: "filter", conditions });
       } else {
         throw new Error(`JSONPath: isi kurung [${inner}] tidak didukung (hanya [n], [*], ['nama'], [?(...)]) di ${JSON.stringify(path)}`);
       }
@@ -82,6 +82,60 @@ export function compileJsonPath(path) {
   }
 
   return segments;
+}
+
+/**
+ * Parse [?(...)] filter expression menjadi daftar FilterCondition.
+ * Support: ==, !=, =~  dan &&  dan !(...) untuk negasi.
+ */
+function parseFilterExpr(inner, path) {
+  // inner = "?(@.a == 'x' && !(@.b =~ /pat/))"
+  const expr = inner.slice(2, -1).trim(); // hapus "?(" dan ")"
+  const parts = splitTopLevel(expr, "&&");
+  const conditions = [];
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+
+    // Negasi: !(@.prop op value)
+    const negMatch = trimmed.match(/^!\((.+)\)$/);
+    const negate = !!negMatch;
+    const condExpr = negate ? negMatch[1].trim() : trimmed;
+
+    // @.property op value
+    // op: ==, !=, =~
+    // value: 'str', "str", /regex/, bare
+    const condMatch = condExpr.match(
+      /^@\.(\w+)\s*(==|!=|=~)\s*(?:'([^']*)'|"([^"]*)"|\/([^/]*)\/|(\S+?))$/
+    );
+    if (!condMatch) {
+      throw new Error(`JSONPath: kondisi filter "${condExpr}" tidak didukung di ${JSON.stringify(path)}`);
+    }
+    const [, property, op, sq, dq, regex, bare] = condMatch;
+    const value = sq ?? dq ?? regex ?? bare ?? "";
+    conditions.push({ property, op, value, negate });
+  }
+
+  return conditions;
+}
+
+/** Split string `s` oleh `sep` hanya di level parentheses 0 (tidak dalam kurung). */
+function splitTopLevel(s, sep) {
+  const parts = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth--;
+    else if (depth === 0 && s.startsWith(sep, i)) {
+      parts.push(s.slice(start, i).trim());
+      i += sep.length - 1;
+      start = i + 1;
+    }
+  }
+  parts.push(s.slice(start).trim());
+  return parts.filter(Boolean);
 }
 
 const UNCLOSED_QUOTE = -2;
@@ -120,6 +174,23 @@ function scan(node, name, out) {
   for (const child of Object.values(node)) scan(child, name, out);
 }
 
+/** Evaluasi satu FilterCondition terhadap item. */
+function evalCondition(item, cond) {
+  if (!Object.hasOwn(item, cond.property)) return false;
+  const str = String(item[cond.property]);
+  let match;
+  switch (cond.op) {
+    case "==": match = str === cond.value; break;
+    case "!=": match = str !== cond.value; break;
+    case "=~": {
+      try { match = new RegExp(cond.value).test(str); } catch { match = false; }
+      break;
+    }
+    default: match = false;
+  }
+  return cond.negate ? !match : match;
+}
+
 /**
  * @param {unknown} root
  * @param {Segment[]} segments hasil `compileJsonPath`
@@ -151,10 +222,7 @@ export function queryJsonPath(root, segments) {
           const items = Array.isArray(node) ? node : (isContainer(node) ? Object.values(node) : []);
           for (const item of items) {
             if (!isContainer(item)) continue;
-            const itemVal = Object.hasOwn(item, segment.property) ? String(item[segment.property]) : undefined;
-            if (itemVal === undefined) continue;
-            if (segment.op === "==" && itemVal === segment.value) next.push(item);
-            else if (segment.op === "!=" && itemVal !== segment.value) next.push(item);
+            if (segment.conditions.every((c) => evalCondition(item, c))) next.push(item);
           }
           break;
         }

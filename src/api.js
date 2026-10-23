@@ -142,6 +142,15 @@ export function getRunEvents(runId, scriptPath, onEvent) {
   });
 }
 
+export function fetchLibraryChannels() {
+  return requestJson("/api/library");
+}
+
+/** @param {string} channel */
+export function fetchLibraryScripts(channel) {
+  return requestJson(`/api/library?channel=${encodeURIComponent(channel)}`);
+}
+
 /**
  * GET request with query params, returns arrayBuffer
  * @param {string} path

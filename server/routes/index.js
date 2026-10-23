@@ -13,6 +13,7 @@
 
 import { requestUrl, sendError, sendJson } from "../http-utils.js";
 import { getFile, putFile } from "./file.js";
+import { getLibraryChannels, getLibraryScripts } from "./library.js";
 import { putParameter } from "./parameter.js";
 import { getProject } from "./project.js";
 import { handleRunEvents, handleRunGet, handleRunPost, handleRunResume, handleRunStepBody, handleRunStop } from "./run.js";
@@ -27,6 +28,13 @@ const routes = [
     },
   },
   { methods: ["GET"], path: "/project", handler: getProject },
+  {
+    methods: ["GET"],
+    path: "/library",
+    handler(req, res, url) {
+      return url.searchParams.has("channel") ? getLibraryScripts(req, res, url) : getLibraryChannels(req, res, url);
+    },
+  },
   { methods: ["GET"], path: "/file", handler: getFile },
   { methods: ["PUT"], path: "/file", handler: putFile },
   { methods: ["PUT"], path: "/parameter", handler: putParameter },

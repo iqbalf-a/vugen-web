@@ -28,6 +28,7 @@ import { createParamBar } from "./components/paramBar.js";
 import { openParamModal } from "./components/paramModal.js";
 import { createToolboxPanel } from "./components/toolboxPanel.js";
 import { createRunSettings } from "./components/runSettings.js";
+import { toggleLibraryPicker } from "./components/libraryPicker.js";
 import { initStore } from "./store.js";
 import { extractSymbols } from "./utils/vugenComplete.js";
 
@@ -214,6 +215,14 @@ async function revealStep(step) {
   await openDoc(step.file);
   editor.focusLine(step.line);
 }
+
+const browseBtn = document.querySelector("#browseBtn");
+browseBtn?.addEventListener("click", () => {
+  toggleLibraryPicker(browseBtn, (scriptPath) => {
+    els.scriptPath.value = scriptPath;
+    openProjectPath(scriptPath);
+  });
+});
 
 createToolbar({
   input: els.scriptPath,

@@ -1,8 +1,12 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import { vugenPlugin } from "./server/vite-plugin.js";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Inject .env vars into process.env so server-side handlers can read them
+  const env = loadEnv(mode, process.cwd(), "");
+  Object.assign(process.env, env);
+  return {
   plugins: [tailwindcss(), vugenPlugin()],
   server: {
     host: "127.0.0.1",
@@ -19,4 +23,5 @@ export default defineConfig({
     testTimeout: 20000,
     hookTimeout: 20000,
   },
+  };
 });

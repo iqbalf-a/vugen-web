@@ -29,6 +29,7 @@ import { openParamModal } from "./components/paramModal.js";
 import { createToolboxPanel } from "./components/toolboxPanel.js";
 import { createRunSettings } from "./components/runSettings.js";
 import { toggleLibraryPicker } from "./components/libraryPicker.js";
+import { showOpeningDialog, completeOpeningDialog, failOpeningDialog } from "./components/openingDialog.js";
 import { initStore } from "./store.js";
 import { extractSymbols } from "./utils/vugenComplete.js";
 
@@ -147,12 +148,15 @@ editor.setWordWrap(wordWrapEnabled);
 let lastPendingSeq = null;
 let lastLiveAt = null;
 
+const browseBtn = document.querySelector("#browseBtn");
+
 store.subscribe((state) => {
   els.status.textContent = state.status;
   els.status.dataset.state = state.health;
   els.runBtn.disabled = state.isRunning || !state.project;
   els.stopBtn.disabled = !state.isRunning;
   els.resumeBtn.disabled = !state.isPaused;
+  if (browseBtn) browseBtn.disabled = state.isRunning;
   editor.setRunning(state.isRunning);
   runSettings.setLocked(state.isRunning);
   renderParamBar(state);
@@ -216,7 +220,6 @@ async function revealStep(step) {
   editor.focusLine(step.line);
 }
 
-const browseBtn = document.querySelector("#browseBtn");
 browseBtn?.addEventListener("click", () => {
   toggleLibraryPicker(browseBtn, (scriptPath) => {
     els.scriptPath.value = scriptPath;
@@ -317,9 +320,11 @@ function refreshCompletions() {
 
 async function openProjectPath(path) {
   store.set({ health: "checking", status: `Opening ${path}…` });
+  showOpeningDialog(path);
 
   try {
     const project = await openProject(path);
+    completeOpeningDialog();
     docs.clear();
     eventSource?.close();
     eventSource = null;
@@ -350,6 +355,7 @@ async function openProjectPath(path) {
     const first = project.actions[0]?.file ?? project.files.find((file) => file.ext === ".c")?.path;
     if (first) await openDoc(first);
   } catch (error) {
+    failOpeningDialog();
     store.set({ health: "error", status: `Failed to open folder: ${messageOf(error)}` });
   }
 }

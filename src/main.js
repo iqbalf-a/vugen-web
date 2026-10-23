@@ -291,26 +291,57 @@ createLogPanel(els.logPanel);
 createTransactionsPanel(els.transactionsPanel);
 createToolboxPanel(els.toolboxPanel);
 
+// ── Profile dropdown ──────────────────────────────────────────────────────────
+const profileBtn = document.querySelector("#profileBtn");
+const profileMenu = document.querySelector("#profileMenu");
+const profileNameEl = document.querySelector("#profileName");
+const profileAvatarEl = document.querySelector("#profileAvatar");
+const profileMenuNameEl = document.querySelector("#profileMenuName");
+
+function setActiveProfile(profile) {
+  if (!profile) return;
+  if (profileBtn) profileBtn.hidden = false;
+  if (profileNameEl) profileNameEl.textContent = profile;
+  if (profileAvatarEl) profileAvatarEl.textContent = profile.slice(0, 2).toUpperCase();
+  if (profileMenuNameEl) profileMenuNameEl.textContent = profile;
+}
+
+profileBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  profileMenu.hidden = !profileMenu.hidden;
+});
+
+document.addEventListener("pointerdown", (e) => {
+  if (!profileMenu?.hidden && !profileMenu.contains(e.target) && e.target !== profileBtn) {
+    profileMenu.hidden = true;
+  }
+}, { capture: true });
+
+document.querySelector("#switchProfileBtn")?.addEventListener("click", async () => {
+  profileMenu.hidden = true;
+  const profile = await showProfilePicker();
+  if (profile) setActiveProfile(profile);
+});
+
+document.querySelector("#logoutBtn")?.addEventListener("click", async () => {
+  profileMenu.hidden = true;
+  await logout();
+  showProfilePickerAfterLogout();
+});
+
 // Cek session — tampilkan picker bila belum login
 (async () => {
   try {
     const { profile } = await getSession();
-    if (!profile) await showProfilePicker();
-    else {
-      const ind = document.querySelector("#profileIndicator");
-      const nameEl = document.querySelector("#profileName");
-      if (ind) ind.hidden = false;
-      if (nameEl) nameEl.textContent = profile;
+    if (!profile) {
+      await showProfilePicker();
+    } else {
+      setActiveProfile(profile);
     }
   } catch {
     await showProfilePicker();
   }
 })();
-
-document.querySelector("#logoutBtn")?.addEventListener("click", async () => {
-  await logout();
-  showProfilePickerAfterLogout();
-});
 
 void checkHealth();
 

@@ -120,10 +120,35 @@
 
         <span id="status" data-state="checking" class="status-badge">…</span>
 
-        <div id="profileIndicator" hidden class="ml-auto flex shrink-0 items-center gap-2 rounded-[3px] border border-[#232a33] bg-[#1b212b] pl-3 pr-1 py-1">
-          <span class="font-mono text-[11px] text-[#7d8896]">Profile:</span>
-          <span id="profileName" class="font-mono text-[11px] font-semibold text-[#d2a24c]"></span>
-          <button id="logoutBtn" title="Ganti profile" class="rounded px-1.5 py-0.5 text-[10px] text-[#5b6572] hover:text-[#e6edf3]">↩</button>
+        <div class="relative ml-auto shrink-0">
+          <button id="profileBtn" hidden
+            class="flex items-center gap-2 rounded-[3px] border border-[#2a3644] bg-[#1b212b] py-1 pl-2 pr-2.5 hover:border-[#3d4f63]">
+            <div id="profileAvatar"
+              class="flex h-6 w-6 items-center justify-center rounded-full bg-[#2a3420] font-mono text-[10px] font-bold uppercase text-[#d2a24c]">
+            </div>
+            <span id="profileName" class="font-mono text-[12px] font-medium text-[#e6edf3]"></span>
+            <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" class="text-[#5b6572]" aria-hidden="true">
+              <path d="M0 0.5L4 4.5L8 0.5H0Z"/>
+            </svg>
+          </button>
+
+          <div id="profileMenu" hidden
+            class="absolute right-0 top-full z-50 mt-1.5 w-44 rounded-[4px] border border-[#2a3644] bg-[#141922] shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
+            <div class="border-b border-[#232a33] px-3 py-2">
+              <div class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]">Masuk sebagai</div>
+              <div id="profileMenuName" class="mt-0.5 font-mono text-[13px] font-semibold text-[#d2a24c]"></div>
+            </div>
+            <div class="py-1">
+              <button id="switchProfileBtn"
+                class="w-full px-3 py-2 text-left text-[12px] text-[#c9d1d9] hover:bg-[#1e2734] hover:text-[#e6edf3]">
+                Ganti Profile
+              </button>
+              <button id="logoutBtn"
+                class="w-full px-3 py-2 text-left text-[12px] text-[#7d8896] hover:bg-[#1e2734] hover:text-red-400">
+                Keluar
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 

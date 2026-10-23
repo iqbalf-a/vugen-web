@@ -19,7 +19,7 @@ function closeOverlay() {
 async function doLogin(profile) {
   await login(profile);
   closeOverlay();
-  resolveLogin?.();
+  resolveLogin?.(profile);
 }
 
 function renderAdminPanel(container) {
@@ -103,7 +103,7 @@ async function renderPicker(isAdmin = false) {
           <div id="adminArea"></div>
           <div class="mt-6 border-t border-[#232a33] pt-4 text-center">
             <button id="backToPickerBtn" class="font-mono text-[11px] text-[#7d8896] hover:text-[#e6edf3]">
-              ← Masuk sebagai user biasa
+              Masuk sebagai user biasa
             </button>
           </div>
         ` : `

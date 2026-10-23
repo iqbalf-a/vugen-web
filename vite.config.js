@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   return {
   plugins: [tailwindcss(), vugenPlugin()],
   server: {
-    host: "127.0.0.1",
+    host: "0.0.0.0",
     port: 5173,
     // Aturan 7 (plan §4): hasil run dan Save tidak boleh memicu reload di tengah run.
     watch: {

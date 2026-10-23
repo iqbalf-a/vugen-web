@@ -14,7 +14,7 @@ import path from "node:path";
 import { apiRouter } from "../routes/index.js";
 import { startRun } from "../runs/execute.js";
 import { getRun, killAllRuns, runningRunCount, stopRun } from "../runs/registry.js";
-import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
+import { runCacheDirFor, resolveScriptDir } from "../project/paths.js";
 import { startMockServer, stopMockServer } from "./mock.js";
 
 const SLOW_DIR = path.resolve("server/test/__fixtures__/slow-script");
@@ -73,7 +73,7 @@ describe("lifecycle run", () => {
     expect(result.status).toBe("stopped");
     expect(run.history.at(-1)).toMatchObject({ type: "done", data: { status: "stopped" } });
 
-    const runJson = path.join(cacheDirFor(await resolveScriptDir(SLOW_DIR)), "runs", run.runId, "run.json");
+    const runJson = path.join(runCacheDirFor(await resolveScriptDir(SLOW_DIR)), "runs", run.runId, "run.json");
     const saved = JSON.parse(await fs.readFile(runJson, "utf8"));
     expect(saved.status).toBe("stopped");
 

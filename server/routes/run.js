@@ -11,10 +11,7 @@
  * Orkestrasi run (compile, fork, akumulasi event, saveRun) ada di `runs/execute.js`.
  */
 
-import { promises as fs } from "node:fs";
-import path from "node:path";
-
-import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
+import { runCacheDirFor, resolveScriptDir } from "../project/paths.js";
 import { isValidRunId, loadRun, loadStepBody } from "../runs/store.js";
 import { startRun } from "../runs/execute.js";
 import { getRun, stopRun, resumeRun } from "../runs/registry.js";
@@ -42,7 +39,7 @@ export async function handleRunPost(req, res) {
   }
 
   try {
-    const run = await startRun({ scriptDir: body.path, options: body.options });
+    const run = await startRun({ scriptDir: body.path, options: body.options, profile: req.profile ?? "_" });
     sendJson(res, 200, { runId: run.runId });
   } catch (error) {
     if (error.status) throw error;
@@ -104,25 +101,9 @@ export async function handleRunGet(req, res, url, { id: runId }) {
   if (!requireRunId(res, runId)) return;
 
   const scriptDir = url.searchParams.get("path") ? await resolveScriptDir(url.searchParams.get("path")).catch(() => null) : null;
-  if (!scriptDir) {
-    // Try to find runId in any cache
-    const cacheRoot = path.resolve(".cache");
-    try {
-      const entries = await fs.readdir(cacheRoot, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const cacheDir = path.join(cacheRoot, entry.name);
-          const run = await loadRun(cacheDir, runId);
-          if (run) return sendJson(res, 200, run);
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return sendError(res, 404, `Run ${runId} tidak ditemukan`);
-  }
+  if (!scriptDir) return sendError(res, 400, "Parameter 'path' wajib diisi");
 
-  const cacheDir = cacheDirFor(scriptDir);
+  const cacheDir = runCacheDirFor(scriptDir, req.profile ?? "_");
   const run = await loadRun(cacheDir, runId);
   if (!run) return sendError(res, 404, `Run ${runId} tidak ditemukan`);
 
@@ -141,7 +122,7 @@ export async function handleRunStepBody(req, res, url, { id: runId, seq }) {
     return sendError(res, 400, "Parameter 'path' wajib diisi untuk akses body");
   }
 
-  const cacheDir = cacheDirFor(scriptDir);
+  const cacheDir = runCacheDirFor(scriptDir, req.profile ?? "_");
   const body = await loadStepBody(cacheDir, runId, Number(seq));
   if (!body) return sendError(res, 404, `Body step ${seq} tidak ditemukan`);
 

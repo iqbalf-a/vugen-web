@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 
 import { compileScript } from "../compiler/transpile.js";
 import { loadProject } from "../project/loader.js";
-import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
+import { cacheDirFor, runCacheDirFor, resolveScriptDir } from "../project/paths.js";
 import { KEEP_AFTER_DONE_MS, registerRun, retireRun } from "./registry.js";
 import { addLog, addStep, addTransaction, createRunResult, finalizeRun, pruneOldRuns, saveRun } from "./store.js";
 
@@ -58,13 +58,15 @@ function normalizeOptions(options = {}) {
  * @param {{ scriptDir: string, options?: Partial<RunOptions> }} params
  * @returns {Promise<RunHandle>}
  */
-export async function startRun({ scriptDir, options = {} }) {
+export async function startRun({ scriptDir, options = {}, profile = "_" }) {
   const dir = await resolveScriptDir(scriptDir);
   const project = await loadProject(dir);
-  const cacheDir = cacheDirFor(dir);
+  const buildCacheDir = cacheDirFor(dir);          // shared: compiled JS
+  const cacheDir = runCacheDirFor(dir, profile);   // per-user: run results + body files
+  await fs.mkdir(buildCacheDir, { recursive: true });
   await fs.mkdir(cacheDir, { recursive: true });
 
-  const compileResult = await compileScript({ scriptDir: dir, cacheDir, files: project.files });
+  const compileResult = await compileScript({ scriptDir: dir, cacheDir: buildCacheDir, files: project.files });
 
   // File .dat bisa berisi parameter yang tidak dipakai script ini (sisa/tidak dideklarasikan di .prm):
   // hanya yang dirujuk script (`{nama}`) yang dimuat sebagai parameter.

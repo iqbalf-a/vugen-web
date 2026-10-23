@@ -17,6 +17,14 @@ import { getLibraryChannels, getLibraryScripts } from "./library.js";
 import { putParameter } from "./parameter.js";
 import { getProject } from "./project.js";
 import { handleRunEvents, handleRunGet, handleRunPost, handleRunResume, handleRunStepBody, handleRunStop } from "./run.js";
+import {
+  getProfileFromCookie,
+  handleSessionGet, handleSessionPost, handleSessionDelete,
+  handleProfilesGet, handleProfilesPost, handleProfilesDelete,
+} from "./session.js";
+
+/** Path yang tidak membutuhkan session aktif */
+const PUBLIC_PATHS = new Set(["/health", "/session", "/profiles"]);
 
 /** @type {ApiRoute[]} */
 const routes = [
@@ -27,6 +35,14 @@ const routes = [
       sendJson(res, 200, { ok: true });
     },
   },
+  { methods: ["GET", "POST", "DELETE"], path: "/session", handler(req, res) {
+    if (req.method === "POST") return handleSessionPost(req, res);
+    if (req.method === "DELETE") return handleSessionDelete(req, res);
+    return handleSessionGet(req, res);
+  }},
+  { methods: ["GET"], path: "/profiles", handler: handleProfilesGet },
+  { methods: ["POST"], path: "/profiles", handler: handleProfilesPost },
+  { methods: ["DELETE"], path: "/profiles/:name", handler: handleProfilesDelete },
   { methods: ["GET"], path: "/project", handler: getProject },
   {
     methods: ["GET"],
@@ -89,6 +105,14 @@ export function apiRouter(req, res) {
   const url = requestUrl(req);
   const pathname = normalizePath(url.pathname);
   const method = req.method ?? "GET";
+
+  // Baca profile dari cookie; skip auth saat test (VITEST) atau VUGEN_NO_AUTH
+  req.profile = getProfileFromCookie(req);
+  const skipAuth = process.env.VITEST || process.env.VUGEN_NO_AUTH === "1";
+  if (!skipAuth && !PUBLIC_PATHS.has(pathname) && !req.profile) {
+    sendError(res, 401, "Sesi tidak ditemukan. Pilih profile untuk melanjutkan.");
+    return;
+  }
 
   // Semua route yang cocok dengan path (method dicek setelahnya untuk 405)
   const forPath = routes

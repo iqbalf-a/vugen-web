@@ -39,6 +39,11 @@ export function cacheDirFor(scriptDir) {
   return path.join(cacheRoot(), cacheKeyFor(scriptDir));
 }
 
+/** Direktori run per-profile: `.cache/<hash>/profiles/<profile>` */
+export function runCacheDirFor(scriptDir, profile = "_") {
+  return path.join(cacheDirFor(scriptDir), "profiles", profile);
+}
+
 /** Ubah pemisah path Windows jadi `/` agar konsisten di API dan cache. */
 export function toPosix(value) {
   return value.split(path.sep).join("/");

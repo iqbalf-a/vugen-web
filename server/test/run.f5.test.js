@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { startRun } from "../runs/execute.js";
-import { cacheDirFor, resolveScriptDir } from "../project/paths.js";
+import { runCacheDirFor, resolveScriptDir } from "../project/paths.js";
 import { startMockServer, stopMockServer } from "./mock.js";
 
 const F5_DIR = path.resolve("samples/f5");
@@ -49,7 +49,7 @@ describe("run samples/f5", () => {
 
     const run = await startRun({ scriptDir: F5_DIR, options: { iterations: 1 } });
     // saat event "done" diterima, run.json sudah harus ada di disk (tidak ada race)
-    const runJsonPath = path.join(cacheDirFor(await resolveScriptDir(F5_DIR)), "runs", run.runId, "run.json");
+    const runJsonPath = path.join(runCacheDirFor(await resolveScriptDir(F5_DIR)), "runs", run.runId, "run.json");
     let runJsonExistedOnDone = false;
     run.events.on("event", (event) => {
       if (event.type === "done") runJsonExistedOnDone = existsSync(runJsonPath);
@@ -83,7 +83,7 @@ describe("run samples/f5", () => {
     expect(byName.login.request.bodyPreview).toContain(`csrf=${result.params.csrf}`);
 
     // body tersimpan di steps/<seq>.body
-    const runDir = path.join(cacheDirFor(await resolveScriptDir(F5_DIR)), "runs", result.runId);
+    const runDir = path.join(runCacheDirFor(await resolveScriptDir(F5_DIR)), "runs", result.runId);
     const body1 = await fs.readFile(path.join(runDir, "steps", "1.body"), "utf8");
     expect(body1).toContain("Mock Login Page");
     expect(byName.home.response.bodyFile).toBeTruthy();

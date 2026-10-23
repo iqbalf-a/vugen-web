@@ -142,6 +142,41 @@ export function getRunEvents(runId, scriptPath, onEvent) {
   });
 }
 
+export function getSession() {
+  return requestJson("/api/session");
+}
+
+/** @param {string} profile */
+export function login(profile) {
+  return requestJson("/api/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile }),
+  });
+}
+
+export function logout() {
+  return requestJson("/api/session", { method: "DELETE" });
+}
+
+export function fetchProfileList() {
+  return requestJson("/api/profiles");
+}
+
+/** @param {string} name */
+export function addProfile(name) {
+  return requestJson("/api/profiles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+}
+
+/** @param {string} name */
+export function removeProfile(name) {
+  return requestJson(`/api/profiles/${encodeURIComponent(name)}`, { method: "DELETE" });
+}
+
 export function fetchLibraryChannels() {
   return requestJson("/api/library");
 }

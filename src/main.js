@@ -30,6 +30,8 @@ import { createToolboxPanel } from "./components/toolboxPanel.js";
 import { createRunSettings } from "./components/runSettings.js";
 import { toggleLibraryPicker } from "./components/libraryPicker.js";
 import { showOpeningDialog, completeOpeningDialog, failOpeningDialog } from "./components/openingDialog.js";
+import { showProfilePicker, showProfilePickerAfterLogout } from "./components/profilePicker.js";
+import { getSession, logout } from "./api.js";
 import { initStore } from "./store.js";
 import { extractSymbols } from "./utils/vugenComplete.js";
 
@@ -288,6 +290,27 @@ createParameterPanel(els.parameterPanel);
 createLogPanel(els.logPanel);
 createTransactionsPanel(els.transactionsPanel);
 createToolboxPanel(els.toolboxPanel);
+
+// Cek session — tampilkan picker bila belum login
+(async () => {
+  try {
+    const { profile } = await getSession();
+    if (!profile) await showProfilePicker();
+    else {
+      const ind = document.querySelector("#profileIndicator");
+      const nameEl = document.querySelector("#profileName");
+      if (ind) ind.hidden = false;
+      if (nameEl) nameEl.textContent = profile;
+    }
+  } catch {
+    await showProfilePicker();
+  }
+})();
+
+document.querySelector("#logoutBtn")?.addEventListener("click", async () => {
+  await logout();
+  showProfilePickerAfterLogout();
+});
 
 void checkHealth();
 

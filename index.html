@@ -15,33 +15,56 @@
           <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">run + snapshot</span>
         </div>
 
-        <div class="min-w-[320px] flex-1">
-          <label for="scriptPath" class="mb-1 block font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[#7d8896]">Script folder</label>
-          <input
-            id="scriptPath"
-            list="scriptPathHistory"
-            placeholder="C:\path\to\script"
-            spellcheck="false"
-            class="h-8 w-full rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 font-mono text-[12.5px] text-[#e6edf3] outline-none placeholder:text-[#5b6572] focus:border-[#d2a24c]"
-          />
-          <datalist id="scriptPathHistory"></datalist>
+        <!-- Zone 1: lokasi script (input + open + browse) -->
+        <div class="flex min-w-[320px] flex-1 items-end gap-1.5">
+          <div class="min-w-0 flex-1">
+            <label for="scriptPath" class="mb-1 block font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[#7d8896]">Script folder</label>
+            <input
+              id="scriptPath"
+              list="scriptPathHistory"
+              placeholder="C:\path\to\script"
+              spellcheck="false"
+              class="h-8 w-full rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2 font-mono text-[12.5px] text-[#e6edf3] outline-none placeholder:text-[#5b6572] focus:border-[#d2a24c]"
+            />
+            <datalist id="scriptPathHistory"></datalist>
+          </div>
+          <!-- ghost: action ringan, menjalankan isi input -->
+          <button id="openBtn" type="button"
+            class="h-8 shrink-0 rounded-[3px] border border-[#2a3644] bg-transparent px-3 text-[12px] font-medium text-[#c9d1d9] hover:border-[#3d4f63] hover:text-[#e6edf3] focus-visible:outline focus-visible:outline-[#d2a24c]">
+            Open
+          </button>
+          <!-- text-button: shortcut convenience, bobot paling ringan -->
+          <button id="browseBtn" type="button" title="Pilih script dari library server"
+            class="h-8 shrink-0 rounded-[3px] border border-transparent px-2.5 text-[12px] font-medium text-[#7d8896] hover:border-[#2a3644] hover:text-[#c9d1d9] disabled:cursor-not-allowed disabled:opacity-40">
+            Browse ↓
+          </button>
         </div>
 
-        <button id="openBtn" type="button" class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3 text-[12px] font-medium hover:border-[#3a4553]">
-          Open Folder
-        </button>
-        <button id="browseBtn" type="button" title="Pilih script dari library server" class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3 text-[12px] font-medium text-[#7d8896] hover:border-[#3a4553] hover:text-[#e6edf3] disabled:cursor-not-allowed disabled:opacity-40">
-          Browse
-        </button>
-        <button id="runBtn" type="button" disabled class="h-8 rounded-[3px] border border-[#d2a24c] bg-[#d2a24c] px-3.5 text-[12px] font-bold text-[#1c1200] disabled:cursor-not-allowed disabled:opacity-50">
-          Run
-        </button>
-        <button id="stopBtn" type="button" disabled class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-50">
-          Stop
-        </button>
-        <button id="resumeBtn" type="button" disabled class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-50">
-          Resume
-        </button>
+        <!-- Pemisah dua zone -->
+        <div class="h-8 w-px shrink-0 self-end bg-[#2a3644]"></div>
+
+        <!-- Zone 2: kontrol eksekusi (run / stop / resume) -->
+        <div class="flex shrink-0 items-end gap-1.5">
+          <!-- primary action: gold fill -->
+          <button id="runBtn" type="button" disabled
+            class="h-8 rounded-[3px] border border-[#d2a24c] bg-[#d2a24c] px-4 text-[12px] font-bold tracking-wide text-[#1c1200] hover:bg-[#e0b05a] disabled:cursor-not-allowed disabled:opacity-40">
+            ▶ Run
+          </button>
+          <!-- destructive: merah saat aktif, redup saat disabled -->
+          <button id="stopBtn" type="button" disabled
+            class="h-8 rounded-[3px] border px-3 text-[12px] font-medium
+                   border-red-900/70 text-red-400 hover:border-red-600 hover:text-red-300
+                   disabled:cursor-not-allowed disabled:border-[#232a33] disabled:text-[#5b6572] disabled:opacity-30">
+            ■ Stop
+          </button>
+          <!-- recovery: amber saat aktif, redup saat disabled -->
+          <button id="resumeBtn" type="button" disabled
+            class="h-8 rounded-[3px] border px-3 text-[12px] font-medium
+                   border-[#d2a24c]/50 text-[#d2a24c] hover:border-[#d2a24c] hover:text-[#e0b05a]
+                   disabled:cursor-not-allowed disabled:border-[#232a33] disabled:text-[#5b6572] disabled:opacity-30">
+            Resume
+          </button>
+        </div>
 
         <div class="relative">
           <button id="runSettingsBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="runSettingsPanel"

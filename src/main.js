@@ -300,7 +300,7 @@ async function checkHealth() {
     const { ok } = await getHealth();
     store.set(
       ok
-        ? { health: "ok", status: "API ready. Enter a script folder path and click Open Folder." }
+        ? { health: "ok", status: "API ready. Enter a script folder path and click Open, or use Browse." }
         : { health: "warn", status: "API returned an unexpected response" },
     );
   } catch (error) {

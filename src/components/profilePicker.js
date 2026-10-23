@@ -195,11 +195,3 @@ export function showProfilePicker() {
   });
 }
 
-/** Tampilkan picker setelah logout */
-export function showProfilePickerAfterLogout() {
-  resolveLogin = null;
-  if (overlay) {
-    overlay.hidden = false;
-    renderPicker(false);
-  }
-}

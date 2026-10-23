@@ -41,6 +41,13 @@ function cRows(step) {
   return (step?.vars ?? []).map((variable) => ({ name: variable.name, value: variable.value, hint: variable.type }));
 }
 
+const VALUE_MAX = 120;
+
+function truncateValue(value) {
+  if (value.length <= VALUE_MAX) return { display: value, truncated: false };
+  return { display: value.slice(0, VALUE_MAX) + "…", truncated: true };
+}
+
 /** Tabel Name / Value; header Name dapat diklik untuk mengurutkan */
 function tableHtml(rows) {
   const sorted = sortByName(rows, sortDirection);
@@ -55,13 +62,18 @@ function tableHtml(rows) {
       </thead>
       <tbody>
         ${sorted
-          .map(
-            (row) => `
-        <tr class="param-row border-t border-[#232a33] align-top hover:bg-[#161c24]">
+          .map((row) => {
+            const { display, truncated } = truncateValue(row.value);
+            return `
+        <tr class="param-row group relative border-t border-[#232a33] align-top hover:bg-[#161c24]">
           <td class="param-name px-3 py-1 font-mono text-[#aab4c0] [overflow-wrap:anywhere]" title="${escapeHtml(row.hint)}">${escapeHtml(row.name)}</td>
-          <td class="param-value px-3 py-1 font-mono text-green-300 [overflow-wrap:anywhere]">${escapeHtml(row.value)}</td>
-        </tr>`,
-          )
+          <td class="param-value relative px-3 py-1 font-mono text-green-300 [overflow-wrap:anywhere]">
+            <span${truncated ? ` title="${escapeHtml(row.value)}"` : ""}>${escapeHtml(display)}</span>
+            <button class="copy-btn absolute right-2 top-1 hidden rounded px-1.5 py-0.5 text-[10px] font-medium text-[#7d8896] hover:bg-[#2a3644] hover:text-[#e6edf3] group-hover:inline-block"
+                    data-value="${escapeHtml(row.value)}" title="Copy value">Copy</button>
+          </td>
+        </tr>`;
+          })
           .join("")}
       </tbody>
     </table>
@@ -117,6 +129,17 @@ function render() {
     sortDirection = sortDirection === "asc" ? "desc" : "asc";
     lastRenderKey = "";
     render();
+  });
+  contentEl.querySelectorAll(".copy-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(btn.dataset.value).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = "Copied!";
+        btn.classList.add("text-green-400");
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove("text-green-400"); }, 1200);
+      });
+    });
   });
 }
 

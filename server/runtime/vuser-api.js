@@ -1255,6 +1255,7 @@ export async function web_js_run(...args) {
   const { log, params, scriptDir } = needCtx();
 
   let mainCode = "";
+  let resultParam = "";
   /** @type {Array<{type:"code"|"file", value:string}>} */
   const sourceItems = [];
   let inSources = false;
@@ -1270,6 +1271,8 @@ export async function web_js_run(...args) {
       else mainCode = code;
     } else if (arg.startsWith("File=") && inSources) {
       sourceItems.push({ type: "file", value: arg.slice(5) });
+    } else if (arg.startsWith("ResultParam=")) {
+      resultParam = arg.slice(12);
     }
   }
 
@@ -1299,8 +1302,17 @@ export async function web_js_run(...args) {
   });
 
   try {
-    for (const code of [...sources, mainCode]) {
+    for (const code of sources) {
       if (code.trim() !== "") vm.runInContext(code, context, { timeout: JS_RUN_TIMEOUT_MS });
+    }
+    let result;
+    if (mainCode.trim() !== "") {
+      result = vm.runInContext(mainCode, context, { timeout: JS_RUN_TIMEOUT_MS });
+    }
+    if (resultParam && result !== undefined && result !== null) {
+      const strVal = String(result);
+      params.set(resultParam, strVal, "web_js_run (ResultParam)");
+      log("info", `web_js_run: ResultParam ${resultParam} = "${strVal}"`);
     }
     return 0;
   } catch (error) {

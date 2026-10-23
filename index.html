@@ -35,8 +35,9 @@
           </button>
           <!-- text-button: shortcut convenience, bobot paling ringan -->
           <button id="browseBtn" type="button" title="Pilih script dari library server"
-            class="h-8 shrink-0 rounded-[3px] border border-transparent px-2.5 text-[12px] font-medium text-[#7d8896] hover:border-[#2a3644] hover:text-[#c9d1d9] disabled:cursor-not-allowed disabled:opacity-40">
-            Browse ↓
+            class="flex h-8 shrink-0 items-center gap-1 rounded-[3px] border border-transparent px-2.5 text-[12px] font-medium text-[#7d8896] hover:border-[#2a3644] hover:text-[#c9d1d9] disabled:cursor-not-allowed disabled:opacity-40">
+            Browse
+            <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" aria-hidden="true"><path d="M0 0.5L4 4.5L8 0.5H0Z"/></svg>
           </button>
         </div>
 
@@ -47,15 +48,17 @@
         <div class="flex shrink-0 items-end gap-1.5">
           <!-- primary action: gold fill -->
           <button id="runBtn" type="button" disabled
-            class="h-8 rounded-[3px] border border-[#d2a24c] bg-[#d2a24c] px-4 text-[12px] font-bold tracking-wide text-[#1c1200] hover:bg-[#e0b05a] disabled:cursor-not-allowed disabled:opacity-40">
-            ▶ Run
+            class="flex h-8 items-center gap-1.5 rounded-[3px] border border-[#d2a24c] bg-[#d2a24c] px-4 text-[12px] font-bold tracking-wide text-[#1c1200] hover:bg-[#e0b05a] disabled:cursor-not-allowed disabled:opacity-40">
+            <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor" aria-hidden="true"><path d="M0 0.5L9 5L0 9.5V0.5Z"/></svg>
+            Run
           </button>
           <!-- destructive: merah saat aktif, redup saat disabled -->
           <button id="stopBtn" type="button" disabled
-            class="h-8 rounded-[3px] border px-3 text-[12px] font-medium
+            class="flex h-8 items-center gap-1.5 rounded-[3px] border px-3 text-[12px] font-medium
                    border-red-900/70 text-red-400 hover:border-red-600 hover:text-red-300
                    disabled:cursor-not-allowed disabled:border-[#232a33] disabled:text-[#5b6572] disabled:opacity-30">
-            ■ Stop
+            <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor" aria-hidden="true"><rect width="9" height="9" rx="1"/></svg>
+            Stop
           </button>
           <!-- recovery: amber saat aktif, redup saat disabled -->
           <button id="resumeBtn" type="button" disabled

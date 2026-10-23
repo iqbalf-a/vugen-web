@@ -250,7 +250,7 @@ export async function loadParameters(scriptDir, files) {
       // Type=Time: nilai dihitung dari waktu saat ini + offset, tanpa file .dat
       if (section.type === "Time") {
         if (paramsByName.has(section.name)) {
-          warnings.push(`Parameter "${section.name}" (Time) diabaikan; sudah ada.`);
+          warnings.push(`Parameter "${section.name}" (Time) ignored; already exists.`);
           continue;
         }
         const value = computeTimeValue(section.format, section.offset);
@@ -283,7 +283,7 @@ export async function loadParameters(scriptDir, files) {
       const datPath = candidates[0] ?? null;
 
       if (!datPath) {
-        warnings.push(`Parameter "${section.name}": file ${section.table} tidak ditemukan`);
+        warnings.push(`Parameter "${section.name}": file ${section.table} not found`);
         continue;
       }
 
@@ -292,13 +292,13 @@ export async function loadParameters(scriptDir, files) {
 
       const col = pickColumn(columns, section.columnName);
       if (!col) {
-        warnings.push(`Parameter "${section.name}": kolom "${section.columnName}" tidak ditemukan di ${datPath}`);
+        warnings.push(`Parameter "${section.name}": column "${section.columnName}" not found in ${datPath}`);
         continue;
       }
 
       if (paramsByName.has(section.name)) {
-        const prevSource = paramsByName.get(section.name) ?? "sumber lain";
-        warnings.push(`Parameter "${section.name}" di ${datPath} diabaikan; sudah ada dari ${prevSource}`);
+        const prevSource = paramsByName.get(section.name) ?? "another source";
+        warnings.push(`Parameter "${section.name}" in ${datPath} ignored; already exists from ${prevSource}`);
         continue;
       }
 

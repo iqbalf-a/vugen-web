@@ -70,7 +70,7 @@ const els = {
 
 const { paramsSectionBtn } = els;
 if (Object.entries(els).some(([k, v]) => k !== "paramsSectionBtn" && v === null)) {
-  throw new Error("Shell HTML tidak lengkap: ada elemen yang tidak ditemukan.");
+  throw new Error("Shell HTML incomplete: some elements were not found.");
 }
 
 paramsSectionBtn?.addEventListener("click", () => {

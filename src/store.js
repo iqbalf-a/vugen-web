@@ -52,7 +52,7 @@ export function initStore(initial) {
 
 /** Akses store singleton */
 export function getStore() {
-  if (!_store) throw new Error("Store belum diinisialisasi. Panggil initStore() dulu.");
+  if (!_store) throw new Error("Store not initialized. Call initStore() first.");
   return _store;
 }
 

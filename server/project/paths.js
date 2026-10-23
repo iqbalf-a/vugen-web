@@ -61,16 +61,16 @@ function isInside(parent, child) {
  */
 export async function resolveScriptDir(input) {
   if (typeof input !== "string" || input.trim() === "") {
-    throw new HttpError(400, "Parameter path wajib diisi.");
+    throw new HttpError(400, "Parameter 'path' is required.");
   }
   const absolute = path.resolve(input.trim());
   let stats;
   try {
     stats = await fs.stat(absolute);
   } catch {
-    throw new HttpError(400, `Folder tidak ditemukan: ${absolute}`);
+    throw new HttpError(400, `Folder not found: ${absolute}`);
   }
-  if (!stats.isDirectory()) throw new HttpError(400, `Bukan folder: ${absolute}`);
+  if (!stats.isDirectory()) throw new HttpError(400, `Not a folder: ${absolute}`);
   return fs.realpath(absolute);
 }
 
@@ -84,30 +84,30 @@ export async function resolveScriptDir(input) {
  */
 export async function resolveScriptFile(scriptDir, relativePath) {
   if (typeof relativePath !== "string" || relativePath.trim() === "") {
-    throw new HttpError(400, "Parameter file wajib diisi.");
+    throw new HttpError(400, "Parameter 'file' is required.");
   }
   const relative = relativePath.trim();
   if (path.isAbsolute(relative)) {
-    throw new HttpError(400, "Path file harus relatif terhadap folder script.");
+    throw new HttpError(400, "File path must be relative to the script folder.");
   }
 
   const candidate = path.resolve(scriptDir, relative);
   if (!isInside(scriptDir, candidate)) {
-    throw new HttpError(400, "Akses di luar folder script ditolak.");
+    throw new HttpError(400, "Access outside the script folder is not allowed.");
   }
 
   let real;
   try {
     real = await fs.realpath(candidate);
   } catch {
-    throw new HttpError(404, `File tidak ditemukan: ${relative}`);
+    throw new HttpError(404, `File not found: ${relative}`);
   }
   if (!isInside(scriptDir, real)) {
-    throw new HttpError(400, "Akses di luar folder script ditolak (symlink).");
+    throw new HttpError(400, "Access outside the script folder is not allowed (symlink).");
   }
 
   const stats = await fs.stat(real);
-  if (!stats.isFile()) throw new HttpError(400, `Bukan file: ${relative}`);
+  if (!stats.isFile()) throw new HttpError(400, `Not a file: ${relative}`);
 
   return { absolute: real, relative: toPosix(path.relative(scriptDir, real)), stats };
 }

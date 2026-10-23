@@ -23,7 +23,7 @@ import { sendJson, sendError, startSse, readJsonBody } from "../http-utils.js";
  */
 function requireRunId(res, runId) {
   if (isValidRunId(runId)) return true;
-  sendError(res, 400, "runId tidak valid");
+  sendError(res, 400, "invalid runId");
   return false;
 }
 
@@ -35,7 +35,7 @@ function requireRunId(res, runId) {
 export async function handleRunPost(req, res) {
   const body = await readJsonBody(req);
   if (!body || !body.path) {
-    return sendError(res, 400, "Parameter 'path' wajib diisi");
+    return sendError(res, 400, "Parameter 'path' is required");
   }
 
   try {
@@ -43,7 +43,7 @@ export async function handleRunPost(req, res) {
     sendJson(res, 200, { runId: run.runId });
   } catch (error) {
     if (error.status) throw error;
-    sendError(res, 500, `Gagal memulai run: ${error.message}`);
+    sendError(res, 500, `Failed to start run: ${error.message}`);
   }
 }
 
@@ -53,7 +53,7 @@ export async function handleRunPost(req, res) {
 export async function handleRunEvents(req, res, _url, { id: runId }) {
   if (!requireRunId(res, runId)) return;
   const run = getRun(runId);
-  if (!run) return sendError(res, 404, `Run ${runId} tidak ditemukan`);
+  if (!run) return sendError(res, 404, `Run ${runId} not found`);
 
   const sse = startSse(req, res);
 
@@ -78,7 +78,7 @@ export async function handleRunEvents(req, res, _url, { id: runId }) {
 export async function handleRunStop(req, res, _url, { id: runId }) {
   if (!requireRunId(res, runId)) return;
   if (!stopRun(runId)) {
-    return sendError(res, 404, `Run ${runId} tidak ditemukan atau sudah selesai`);
+    return sendError(res, 404, `Run ${runId} not found or already finished`);
   }
   sendJson(res, 200, { ok: true, message: "Stop signal sent" });
 }
@@ -101,11 +101,11 @@ export async function handleRunGet(req, res, url, { id: runId }) {
   if (!requireRunId(res, runId)) return;
 
   const scriptDir = url.searchParams.get("path") ? await resolveScriptDir(url.searchParams.get("path")).catch(() => null) : null;
-  if (!scriptDir) return sendError(res, 400, "Parameter 'path' wajib diisi");
+  if (!scriptDir) return sendError(res, 400, "Parameter 'path' is required");
 
   const cacheDir = runCacheDirFor(scriptDir, req.profile ?? "_");
   const run = await loadRun(cacheDir, runId);
-  if (!run) return sendError(res, 404, `Run ${runId} tidak ditemukan`);
+  if (!run) return sendError(res, 404, `Run ${runId} not found`);
 
   sendJson(res, 200, run);
 }
@@ -115,16 +115,16 @@ export async function handleRunGet(req, res, url, { id: runId }) {
  */
 export async function handleRunStepBody(req, res, url, { id: runId, seq }) {
   if (!requireRunId(res, runId)) return;
-  if (!/^[1-9][0-9]*$/.test(String(seq))) return sendError(res, 400, "seq tidak valid");
+  if (!/^[1-9][0-9]*$/.test(String(seq))) return sendError(res, 400, "invalid seq");
 
   const scriptDir = url.searchParams.get("path") ? await resolveScriptDir(url.searchParams.get("path")).catch(() => null) : null;
   if (!scriptDir) {
-    return sendError(res, 400, "Parameter 'path' wajib diisi untuk akses body");
+    return sendError(res, 400, "Parameter 'path' is required to access body");
   }
 
   const cacheDir = runCacheDirFor(scriptDir, req.profile ?? "_");
   const body = await loadStepBody(cacheDir, runId, Number(seq));
-  if (!body) return sendError(res, 404, `Body step ${seq} tidak ditemukan`);
+  if (!body) return sendError(res, 404, `Body for step ${seq} not found`);
 
   res.setHeader("Content-Type", "application/octet-stream");
   res.end(body);

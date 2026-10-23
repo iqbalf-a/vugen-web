@@ -25,9 +25,9 @@ export async function profileExists(name) {
 
 /** Kembalikan pesan error bila nama tidak valid, null bila OK */
 export function validateProfileName(name) {
-  if (typeof name !== "string" || name.trim() === "") return "Nama profile wajib diisi";
+  if (typeof name !== "string" || name.trim() === "") return "Profile name is required";
   const n = name.trim().toLowerCase();
-  if (!/^[a-z0-9_-]{2,32}$/.test(n)) return "Nama profile: 2–32 karakter, huruf kecil/angka/strip/underscore";
-  if (n === "admin") return "Nama 'admin' adalah reserved";
+  if (!/^[a-z0-9_-]{2,32}$/.test(n)) return "Profile name: 2–32 characters, lowercase letters/digits/dash/underscore";
+  if (n === "admin") return "The name 'admin' is reserved";
   return null;
 }

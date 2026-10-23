@@ -82,7 +82,7 @@ async function listFiles(scriptDir, extraListed = new Set()) {
       entries = await fs.readdir(dir, { withFileTypes: true });
     } catch (error) {
       const shown = toPosix(path.relative(scriptDir, dir)) || ".";
-      warnings.push(`Tidak bisa membaca ${shown}: ${error.message}`);
+      warnings.push(`Could not read ${shown}: ${error.message}`);
       return;
     }
 
@@ -289,7 +289,7 @@ async function resolveRunLogic(scriptDir, files) {
   if (entries.length === 0) {
     if (configCandidates.length > 0) {
       warnings.push(
-        `Run Logic tidak terbaca dari ${configCandidates.map((file) => file.path).join(", ")}; memakai fallback vuser_init/Action/vuser_end. Format perlu diverifikasi dengan script VuGen nyata.`,
+        `Run Logic could not be read from ${configCandidates.map((file) => file.path).join(", ")}; using fallback vuser_init/Action/vuser_end. Format needs to be verified against a real VuGen script.`,
       );
     }
     entries = [known.has("vuser_init.c") ? { key: "init", file: "vuser_init.c" } : null, { key: "action", file: "Action.c" }, known.has("vuser_end.c") ? { key: "end", file: "vuser_end.c" } : null].filter(
@@ -300,7 +300,7 @@ async function resolveRunLogic(scriptDir, files) {
 
   const missing = entries.filter((entry) => !known.has(entry.file));
   if (missing.length > 0) {
-    warnings.push(`Run Logic menunjuk file yang tidak ada: ${missing.map((entry) => entry.file).join(", ")}.`);
+    warnings.push(`Run Logic references files that do not exist: ${missing.map((entry) => entry.file).join(", ")}.`);
   }
 
   return buildRunLogic("config", configFile, entries, warnings);

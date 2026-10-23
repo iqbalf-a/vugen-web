@@ -110,7 +110,7 @@ export function apiRouter(req, res) {
   req.profile = getProfileFromCookie(req);
   const skipAuth = process.env.VITEST || process.env.VUGEN_NO_AUTH === "1";
   if (!skipAuth && !PUBLIC_PATHS.has(pathname) && !req.profile) {
-    sendError(res, 401, "Sesi tidak ditemukan. Pilih profile untuk melanjutkan.");
+    sendError(res, 401, "Session not found. Select a profile to continue.");
     return;
   }
 
@@ -119,13 +119,13 @@ export function apiRouter(req, res) {
     .map((route) => ({ route, params: matchRoute(pathname, route.path) }))
     .filter((entry) => entry.params !== null);
   if (forPath.length === 0) {
-    sendError(res, 404, `Route tidak ditemukan: ${method} ${pathname}.`);
+    sendError(res, 404, `Route not found: ${method} ${pathname}.`);
     return;
   }
 
   const matched = forPath.find((entry) => entry.route.methods.includes(method));
   if (!matched) {
-    sendError(res, 405, `Method ${method} tidak didukung untuk ${pathname}.`);
+    sendError(res, 405, `Method ${method} not supported for ${pathname}.`);
     return;
   }
 
@@ -133,7 +133,7 @@ export function apiRouter(req, res) {
     .then(() => matched.route.handler(req, res, url, matched.params))
     .catch((error) => {
       const status = statusOf(error);
-      if (status >= 500) console.error(`[api] ${method} ${pathname} gagal:`, error);
+      if (status >= 500) console.error(`[api] ${method} ${pathname} failed:`, error);
       if (res.headersSent) {
         res.end();
         return;

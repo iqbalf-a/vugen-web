@@ -25,15 +25,15 @@ async function doLogin(profile) {
 function renderAdminPanel(container) {
   container.innerHTML = `
     <div class="mb-4 flex items-center justify-between">
-      <span class="font-mono text-[11px] uppercase tracking-[0.08em] text-[#d2a24c]">Admin — Kelola Profile</span>
+      <span class="font-mono text-[11px] uppercase tracking-[0.08em] text-[#d2a24c]">Admin — Manage Profiles</span>
     </div>
     <div id="adminProfileList" class="mb-4 space-y-1.5"></div>
     <div class="flex gap-2">
-      <input id="newProfileInput" type="text" placeholder="nama profile baru"
+      <input id="newProfileInput" type="text" placeholder="new profile name"
         class="h-8 flex-1 rounded-[3px] border border-[#2a3644] bg-[#1b212b] px-2.5 font-mono text-[12px] text-[#e6edf3] outline-none placeholder:text-[#5b6572] focus:border-[#d2a24c]" />
       <button id="addProfileBtn"
         class="h-8 rounded-[3px] border border-[#d2a24c] bg-[#d2a24c] px-3 text-[12px] font-bold text-[#1c1200] hover:bg-[#e0b05a]">
-        Tambah
+        Add
       </button>
     </div>
     <p id="adminError" class="mt-2 hidden text-[11px] text-red-400"></p>
@@ -50,7 +50,7 @@ function renderAdminPanel(container) {
       <div class="flex items-center justify-between rounded-[3px] border border-[#2a3644] px-3 py-1.5">
         <span class="font-mono text-[12px] text-[#e6edf3]">${p}</span>
         <button data-del="${p}"
-          class="text-[11px] text-[#7d8896] hover:text-red-400">Hapus</button>
+          class="text-[11px] text-[#7d8896] hover:text-red-400">Delete</button>
       </div>
     `).join("");
 
@@ -95,7 +95,7 @@ async function renderPicker(isAdmin = false) {
         <div class="mb-8 text-center">
           <div class="text-[22px] font-bold tracking-tight">VuGen Web</div>
           <div class="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[#7d8896]">
-            ${isAdmin ? "Admin — Kelola Profile" : "Pilih Profile"}
+            ${isAdmin ? "Admin — Manage Profiles" : "Select Profile"}
           </div>
         </div>
 
@@ -103,7 +103,7 @@ async function renderPicker(isAdmin = false) {
           <div id="adminArea"></div>
           <div class="mt-6 border-t border-[#232a33] pt-4 text-center">
             <button id="backToPickerBtn" class="font-mono text-[11px] text-[#7d8896] hover:text-[#e6edf3]">
-              Masuk sebagai user biasa
+              Continue as regular user
             </button>
           </div>
         ` : `
@@ -124,11 +124,11 @@ async function renderPicker(isAdmin = false) {
           <div class="border-t border-[#232a33] pt-4">
             <label class="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.08em] text-[#5b6572]">Admin access</label>
             <div class="flex gap-2">
-              <input id="adminInput" type="text" placeholder="ketik admin lalu Enter"
+              <input id="adminInput" type="text" placeholder="type admin then Enter"
                 class="h-8 flex-1 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-2.5 font-mono text-[12px] text-[#e6edf3] outline-none placeholder:text-[#3d4553] focus:border-[#d2a24c]" />
               <button id="adminEnterBtn"
                 class="h-8 rounded-[3px] border border-[#232a33] bg-[#1b212b] px-3 text-[12px] font-medium text-[#7d8896] hover:border-[#3a4553] hover:text-[#e6edf3]">
-                Masuk
+                Sign In
               </button>
             </div>
             <p id="adminErr" class="mt-1.5 hidden text-[11px] text-red-400"></p>
@@ -159,7 +159,7 @@ async function renderPicker(isAdmin = false) {
     const val = adminInput.value.trim().toLowerCase();
     adminErr.classList.add("hidden");
     if (val !== "admin") {
-      adminErr.textContent = "Hanya 'admin' yang diizinkan di sini";
+      adminErr.textContent = "Only 'admin' is allowed here";
       adminErr.classList.remove("hidden");
       return;
     }

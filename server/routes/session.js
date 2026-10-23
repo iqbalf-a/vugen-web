@@ -37,8 +37,8 @@ export async function handleSessionGet(req, res) {
 export async function handleSessionPost(req, res) {
   const body = await readJsonBody(req);
   const name = typeof body?.profile === "string" ? body.profile.trim() : "";
-  if (!name) return sendError(res, 400, "Field 'profile' wajib diisi");
-  if (!(await profileExists(name))) return sendError(res, 404, `Profile "${name}" tidak ditemukan`);
+  if (!name) return sendError(res, 400, "Field 'profile' is required");
+  if (!(await profileExists(name))) return sendError(res, 404, `Profile "${name}" not found`);
   setCookie(res, name);
   sendJson(res, 200, { profile: name });
 }
@@ -53,21 +53,21 @@ export async function handleProfilesGet(_req, res) {
 }
 
 export async function handleProfilesPost(req, res) {
-  if (req.profile !== "admin") return sendError(res, 403, "Hanya admin yang dapat menambah profile");
+  if (req.profile !== "admin") return sendError(res, 403, "Only admin can add profiles");
   const body = await readJsonBody(req);
   const name = typeof body?.name === "string" ? body.name.trim().toLowerCase() : "";
   const err = validateProfileName(name);
   if (err) return sendError(res, 400, err);
   const profiles = await listProfiles();
-  if (profiles.includes(name)) return sendError(res, 409, `Profile "${name}" sudah ada`);
+  if (profiles.includes(name)) return sendError(res, 409, `Profile "${name}" already exists`);
   await saveProfiles([...profiles, name].sort());
   sendJson(res, 201, { profile: name });
 }
 
 export async function handleProfilesDelete(req, res, _url, { name }) {
-  if (req.profile !== "admin") return sendError(res, 403, "Hanya admin yang dapat menghapus profile");
+  if (req.profile !== "admin") return sendError(res, 403, "Only admin can delete profiles");
   const profiles = await listProfiles();
-  if (!profiles.includes(name)) return sendError(res, 404, `Profile "${name}" tidak ditemukan`);
+  if (!profiles.includes(name)) return sendError(res, 404, `Profile "${name}" not found`);
   await saveProfiles(profiles.filter((p) => p !== name));
   sendJson(res, 200, { ok: true });
 }

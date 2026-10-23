@@ -17,11 +17,11 @@ let pctEl = null;
 let tickTimer = null;
 
 const STAGES = [
-  { pct: 10, label: "Membaca daftar file…" },
-  { pct: 30, label: "Memuat parameter .prm / .dat…" },
-  { pct: 55, label: "Menganalisis run logic…" },
-  { pct: 75, label: "Kompilasi script…" },
-  { pct: 92, label: "Menyiapkan tampilan…" },
+  { pct: 10, label: "Reading file list…" },
+  { pct: 30, label: "Loading parameters .prm / .dat…" },
+  { pct: 55, label: "Analyzing run logic…" },
+  { pct: 75, label: "Compiling script…" },
+  { pct: 92, label: "Preparing view…" },
 ];
 
 let stageIdx = 0;
@@ -59,13 +59,13 @@ function ensureOverlay() {
 
   overlay.innerHTML = `
     <div class="w-[420px] rounded-[6px] border border-[#2a3644] bg-[#141922] shadow-[0_20px_48px_rgba(0,0,0,0.7)] px-6 py-5">
-      <div class="mb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[#7d8896]">Membuka script</div>
+      <div class="mb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[#7d8896]">Opening script</div>
       <div id="openDlgPath" class="mb-4 truncate font-mono text-[12px] text-[#e6edf3]"></div>
       <div class="mb-2 h-2 w-full overflow-hidden rounded-full bg-[#232a33]">
         <div id="openDlgBar" class="h-full rounded-full bg-[#d2a24c] transition-[width] duration-75 ease-linear" style="width:0%"></div>
       </div>
       <div class="flex items-center justify-between">
-        <span id="openDlgStage" class="font-mono text-[11px] text-[#7d8896]">Memulai…</span>
+        <span id="openDlgStage" class="font-mono text-[11px] text-[#7d8896]">Starting…</span>
         <span id="openDlgPct" class="font-mono text-[11px] tabular-nums text-[#7d8896]">0%</span>
       </div>
     </div>
@@ -85,7 +85,7 @@ export function showOpeningDialog(scriptPath) {
   ensureOverlay();
   stageIdx = 0;
   currentPct = 0;
-  setProgress(0, "Memulai…");
+  setProgress(0, "Starting…");
 
   const pathEl = overlay.querySelector("#openDlgPath");
   if (pathEl) pathEl.textContent = scriptPath;
@@ -98,7 +98,7 @@ export function showOpeningDialog(scriptPath) {
 /** Selesai sukses — lompat ke 100%, tutup setelah sebentar. */
 export function completeOpeningDialog() {
   clearTimeout(tickTimer);
-  setProgress(100, "Selesai!");
+  setProgress(100, "Done!");
   tickTimer = setTimeout(() => {
     if (overlay) overlay.hidden = true;
   }, 400);

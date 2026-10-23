@@ -37,7 +37,7 @@ async function showScripts(channel) {
       </div>
       <div class="max-h-[360px] overflow-y-auto py-1">
         ${scripts.length === 0
-          ? `<div class="px-4 py-3 text-[12px] text-[#5b6572]">Tidak ada script di channel ini.</div>`
+          ? `<div class="px-4 py-3 text-[12px] text-[#5b6572]">No scripts in this channel.</div>`
           : scripts.map(({ name, path }) => `
             <div class="lib-item cursor-pointer px-4 py-1.5 font-mono text-[12px] text-[#c9d1d9] hover:bg-[#1e2734] hover:text-[#e6edf3]"
                  data-path="${path.replace(/"/g, "&quot;")}">
@@ -68,7 +68,7 @@ async function showChannels() {
     const { channels } = await fetchLibraryChannels();
     panel.innerHTML = `
       <div class="border-b border-[#232a33] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em] text-[#7d8896]">
-        Pilih Channel
+        Select Channel
       </div>
       <div class="max-h-[360px] overflow-y-auto py-1">
         ${channels.map((ch) => `

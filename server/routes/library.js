@@ -20,7 +20,7 @@ async function isScriptDir(dirPath) {
 export async function getLibraryChannels(_req, res) {
   const root = libraryRoot();
   if (!root) {
-    sendError(res, 503, "VUGEN_SCRIPT_LIBRARY tidak dikonfigurasi di .env");
+    sendError(res, 503, "VUGEN_SCRIPT_LIBRARY is not configured in .env");
     return;
   }
   try {
@@ -31,7 +31,7 @@ export async function getLibraryChannels(_req, res) {
       .sort();
     sendJson(res, 200, { channels });
   } catch (err) {
-    sendError(res, 500, `Gagal membaca library: ${err.message}`);
+    sendError(res, 500, `Failed to read library: ${err.message}`);
   }
 }
 
@@ -39,12 +39,12 @@ export async function getLibraryChannels(_req, res) {
 export async function getLibraryScripts(req, res, url) {
   const root = libraryRoot();
   if (!root) {
-    sendError(res, 503, "VUGEN_SCRIPT_LIBRARY tidak dikonfigurasi di .env");
+    sendError(res, 503, "VUGEN_SCRIPT_LIBRARY is not configured in .env");
     return;
   }
   const channel = url.searchParams.get("channel");
   if (!channel) {
-    sendError(res, 400, "Parameter 'channel' wajib diisi");
+    sendError(res, 400, "Parameter 'channel' is required");
     return;
   }
   const channelPath = path.join(root, channel);
@@ -61,6 +61,6 @@ export async function getLibraryScripts(req, res, url) {
     const scripts = checked.filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
     sendJson(res, 200, { channel, scripts });
   } catch (err) {
-    sendError(res, 500, `Gagal membaca channel "${channel}": ${err.message}`);
+    sendError(res, 500, `Failed to read channel "${channel}": ${err.message}`);
   }
 }

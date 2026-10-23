@@ -215,7 +215,7 @@ class Parser {
       body.push(this.parseTopLevel());
       if (this.pos === before) {
         const token = this.next();
-        this.warn(token, `Token tidak terduga: ${token.raw}`);
+        this.warn(token, `Unexpected token: ${token.raw}`);
         body.push({ type: "Unsupported", raw: token.raw, file: this.file, line: token.line });
       }
     }
@@ -295,7 +295,7 @@ class Parser {
 
   skipBalanced(open, close) {
     if (!this.checkValue(open)) {
-      this.warn(this.peek(), `Tanda ${open} tidak ditemukan.`);
+      this.warn(this.peek(), `Opening '${open}' not found.`);
       return;
     }
     let depth = 0;
@@ -307,7 +307,7 @@ class Parser {
         if (depth === 0) return;
       }
     }
-    this.warn(this.peek(), `Tanda ${close} tidak ditemukan.`);
+    this.warn(this.peek(), `Closing '${close}' not found.`);
   }
 
   /**
@@ -428,7 +428,7 @@ class Parser {
       endLine = this.peek().line;
       this.next();
     } else {
-      this.warn(this.peek(), "Tanda } tidak ditemukan.");
+      this.warn(this.peek(), "Missing closing '}'.");
     }
 
     return { type: "BlockStatement", body, file: this.file, line: open.line, endLine };
@@ -438,7 +438,7 @@ class Parser {
   readParenRaw() {
     const open = this.peek();
     if (open.value !== "(") {
-      this.warn(open, "Tanda ( tidak ditemukan.");
+      this.warn(open, "Missing opening '('.");
       return { raw: "", line: open.line };
     }
 
@@ -466,7 +466,7 @@ class Parser {
     const open = this.peek();
     const startPos = this.pos;
     if (open.value !== "(") {
-      this.warn(open, "Tanda ( tidak ditemukan.");
+      this.warn(open, "Missing opening '('.");
       return { ok: false, test: null, header: { raw: "", line: open.line } };
     }
 
@@ -481,7 +481,7 @@ class Parser {
     this.pos = startPos;
     this.warnings.length = warningCount;
     const header = this.readParenRaw();
-    this.warn(open, `Kondisi tidak bisa diparse, statement dilewati: ${header.raw}`);
+    this.warn(open, `Condition could not be parsed, statement skipped: ${header.raw}`);
     return { ok: false, test: null, header };
   }
 
@@ -545,7 +545,7 @@ class Parser {
       this.pos = startPos;
       this.warnings.length = warningCount;
       header = this.readParenRaw();
-      this.warn(open, `Header for tidak bisa diparse, statement dilewati: ${header.raw}`);
+      this.warn(open, `for header could not be parsed, statement skipped: ${header.raw}`);
     }
 
     const body = this.parseStatement();
@@ -569,7 +569,7 @@ class Parser {
       this.next();
       cond = this.parseCondition();
     } else {
-      this.warn(this.peek(), "`while` tidak ditemukan pada do-while.");
+      this.warn(this.peek(), "`while` not found in do-while.");
     }
     this.eatValue(";");
     if (!cond.ok) return this.unsupportedFrom(token);
@@ -605,10 +605,10 @@ class Parser {
       const statement = this.parseStatement();
       if (this.pos === before) this.next();
       if (current) current.consequent.push(statement);
-      else this.warn(head, "Statement sebelum `case` pertama pada switch diabaikan.");
+      else this.warn(head, "Statements before the first `case` in switch are ignored.");
     }
 
-    if (!this.eatValue("}")) this.warn(this.peek(), "Tanda } tidak ditemukan.");
+    if (!this.eatValue("}")) this.warn(this.peek(), "Missing closing '}'.");
     return { type: "SwitchStatement", header: cond.header, discriminant: cond.test, cases, raw: this.source.slice(token.start, this.endOffset()), file: this.file, line: token.line };
   }
 
@@ -697,7 +697,7 @@ class Parser {
     if (!inFor && !this.eatValue(";")) {
       // `;` hilang di akhir blok/file ditoleransi; selain itu bukan deklarasi sederhana.
       if (!this.atEnd() && !this.checkValue("}")) return fail();
-      this.warn(this.peek(), "Tanda ; tidak ditemukan (statement tetap diproses).");
+      this.warn(this.peek(), "Missing ';' (statement still processed).");
     }
     return { type: "VariableDeclaration", dataType, declarations, raw, file: this.file, line: startToken.line };
   }
@@ -737,7 +737,7 @@ class Parser {
   eatSemicolon() {
     if (this.eatValue(";")) return;
     if (!this.atEnd() && this.peek().value !== "}") {
-      this.warn(this.peek(), "Tanda ; tidak ditemukan (statement tetap diproses).");
+      this.warn(this.peek(), "Missing ';' (statement still processed).");
     }
   }
 
@@ -877,7 +877,7 @@ class Parser {
             args.push(argument);
           } while (this.eatValue(","));
         }
-        if (this.peek().value !== ")") this.warn(this.peek(), "Tanda ) tidak ditemukan pada pemanggilan fungsi.");
+        if (this.peek().value !== ")") this.warn(this.peek(), "Missing ')' in function call.");
         else this.next();
 
         node = {
@@ -896,7 +896,7 @@ class Parser {
       if (token.value === "[") {
         this.next();
         const property = this.parseExpression();
-        if (this.peek().value !== "]") this.warn(this.peek(), "Tanda ] tidak ditemukan.");
+        if (this.peek().value !== "]") this.warn(this.peek(), "Missing ']'.");
         else this.next();
         node = { type: "MemberExpression", object: node, property, computed: true, file: node.file, line: node.line };
         continue;
@@ -949,7 +949,7 @@ class Parser {
     if (token.value === "(") {
       const open = this.next();
       const inner = this.parseExpression();
-      if (this.peek().value !== ")") this.warn(this.peek(), "Tanda ) tidak ditemukan.");
+      if (this.peek().value !== ")") this.warn(this.peek(), "Missing ')'.");
       else this.next();
       if (!inner) return null;
       return { ...inner, start: open.start, end: this.endOffset(), paren: true };

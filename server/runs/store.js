@@ -124,7 +124,7 @@ export function decodeBody(buffer, contentType) {
  * @param {RunResult} runResult
  */
 export async function saveRun(cacheDir, runId, runResult) {
-  if (!isValidRunId(runId)) throw new Error(`runId tidak valid: ${runId}`);
+  if (!isValidRunId(runId)) throw new Error(`invalid runId: ${runId}`);
   const runDir = path.join(cacheDir, "runs", runId);
   await fs.mkdir(runDir, { recursive: true });
 
@@ -146,8 +146,8 @@ export async function saveRun(cacheDir, runId, runResult) {
  * @returns {Promise<{ bodyFile: string, size: number, truncated: boolean }>}
  */
 export async function saveStepBody(cacheDir, runId, seq, body) {
-  if (!isValidRunId(runId)) throw new Error(`runId tidak valid: ${runId}`);
-  if (!isValidSeq(seq)) throw new Error(`seq tidak valid: ${seq}`);
+  if (!isValidRunId(runId)) throw new Error(`invalid runId: ${runId}`);
+  if (!isValidSeq(seq)) throw new Error(`invalid seq: ${seq}`);
   const stepsDir = path.join(cacheDir, "runs", runId, "steps");
   await fs.mkdir(stepsDir, { recursive: true });
 

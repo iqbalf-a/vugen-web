@@ -114,11 +114,11 @@ describe("web_reg_save_param_json: nilai & atribut", () => {
     expect(params().o2).toBe("C-2");
   });
 
-  it("Ordinal di luar jumlah match = NotFound", async () => {
+  it("Ordinal di luar jumlah match = NotFound (hard fail, ignores continueOnError)", async () => {
     env.ctx.runOptions.continueOnError = true;
     api.web_reg_save_param_json("ParamName=o9", "QueryString=$..companyId", "Ordinal=9", "LAST");
-    await get();
-    expect(steps()[0].error).toMatch(/o9.*tidak ditemukan/);
+    await expect(get()).rejects.toThrow(/o9/);
+    expect(steps()[0].error).toMatch(/o9/);
     expect(env.ctx.params.has("o9")).toBe(false);
   });
 

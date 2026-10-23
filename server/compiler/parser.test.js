@@ -117,7 +117,7 @@ describe("parser: kontrol alur & unsupported", () => {
 
   it("memberi warning bila blok tidak ditutup tanpa crash", () => {
     const program = parse('Action() {\n lr_output_message("x");\n', { file: "broken.c" });
-    expect(program.warnings.some((warning) => /tidak ditemukan/.test(warning.message))).toBe(true);
+    expect(program.warnings.some((warning) => /closing|not found/i.test(warning.message))).toBe(true);
     expect(collectCalls(program).map((call) => call.name)).toEqual(["lr_output_message"]);
   });
 

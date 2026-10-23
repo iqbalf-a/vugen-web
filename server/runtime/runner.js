@@ -294,6 +294,7 @@ async function run(payload) {
       let failed = false;
       let errorMessage = null;
       let exit = null;
+      let errorThrown = false;
       try {
         await unit.fn();
       } catch (error) {
@@ -302,6 +303,7 @@ async function run(payload) {
           vuserApi.__endOpenTransactionsOnExit(error.status);
         } else {
           failed = true;
+          errorThrown = true;
           errorMessage = error.message;
           vu.log("error", `Iteration ${iteration} ${unit.name} failed: ${error.message}`);
           vuserApi.__failOpenTransactions();
@@ -316,7 +318,13 @@ async function run(payload) {
         status: failed ? "failed" : "passed",
         ...(errorMessage ? { error: errorMessage } : {}),
       });
-      return { failed, stopAll: Boolean(exit && (exit.mode === 0 || exit.mode >= 3)) };
+      // stopActions: stop remaining actions in this iteration (unhandled error)
+      // stopAll: stop all iterations (lr_exit with VUSER_ABORT / VUSER_END modes)
+      return {
+        failed,
+        stopActions: errorThrown,
+        stopAll: Boolean(exit && (exit.mode === 0 || exit.mode >= 3)),
+      };
     };
 
     // Status run = failed bila ada unit yang gagal. Stop dari user menghentikan proses ini (lihat handler "stop").
@@ -354,6 +362,7 @@ async function run(payload) {
           const result = await runUnit(actionFn, iter);
           anyFailed ||= result.failed;
           if (result.stopAll) { stopRun = true; break; }
+          if (result.stopActions) break; // error: skip remaining actions, continue iterations
         }
         if (stopRun) break;
 

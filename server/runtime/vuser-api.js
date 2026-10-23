@@ -1002,12 +1002,16 @@ function jsonValueToParam(value) {
  * @param {{ name: string, query: string, segments: any[], selectAll: boolean, ordinal: number, notFoundIsError: boolean }} rule
  * @param {string[]} problems alasan step gagal (diisi bila NotFound=Error)
  */
-function applyJsonRule(rule, resp, bodyText, contentType, problems) {
+/**
+ * @param {string[]} problems  — soft failures (dihormati oleh continueOnError)
+ * @param {string[]} hardProblems — hard failures (selalu stop, abaikan continueOnError)
+ */
+function applyJsonRule(rule, resp, bodyText, contentType, problems, hardProblems) {
   const { log, params } = needCtx();
 
   const notFound = (reason) => {
     const message = `web_reg_save_param_json "${rule.name}": ${reason}`;
-    if (rule.notFoundIsError) problems.push(message);
+    if (rule.notFoundIsError) hardProblems.push(message);
     else log("warn", message);
   };
 
@@ -1063,13 +1067,15 @@ async function handleResponse(stepName, resp, type, snapshotName) {
 
   /** Alasan step gagal (R6/R7) */
   const problems = [];
+  /** Hard failures: selalu stop, abaikan continueOnError (misal: NotFound=Error di web_reg_save_param_json) */
+  const hardProblems = [];
   if (resp.status >= 400) problems.push(`HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""}`);
 
   // Process correlations: extract values and save to params
   try {
     for (const rule of correlationRegistry) {
       if (rule.kind === "json") {
-        applyJsonRule(rule, resp, bodyText, contentType, problems);
+        applyJsonRule(rule, resp, bodyText, contentType, problems, hardProblems);
         continue;
       }
       const { value, error } = extractCorrelation(rule, scopeText(rule.scope || "BODY"));
@@ -1119,7 +1125,8 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   const seq = ++c.seq;
   const saved = await saveStepBody(c.cacheDir, c.runId, seq, resp.body);
   const sent = resp.request || { method: "", url: "", headers: {} };
-  const error = problems.length > 0 ? problems.join("; ") : null;
+  const allProblems = [...problems, ...hardProblems];
+  const error = allProblems.length > 0 ? allProblems.join("; ") : null;
 
   c.sendEvent("step", {
     seq,
@@ -1156,6 +1163,15 @@ async function handleResponse(stepName, resp, type, snapshotName) {
     vars: captureVars(c),
   });
   log("info", `${type} "${resolvedStepName}": ${resp.status} ${resp.statusText} (${resp.size} bytes)`);
+
+  // Hard failures: selalu stop tanpa memandang continueOnError
+  if (hardProblems.length > 0) {
+    markTransactionsFailed();
+    needCtx().stepFailures = (needCtx().stepFailures ?? 0) + 1;
+    const msg = hardProblems.join("; ");
+    log("error", `${type} "${resolvedStepName}" failed: ${msg} (NotFound=Error overrides continueOnError)`);
+    throw new Error(`${type} "${resolvedStepName}": ${msg}`);
+  }
 
   return error ? concludeFailure(type, resolvedStepName, error) : 0;
 }

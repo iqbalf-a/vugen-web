@@ -177,14 +177,17 @@ function renderDateEditView(param, footer, onSave) {
 
   if (storedSec !== 0) {
     if (storedSec % 31536000 === 0) {
-      offsetVal = storedSec / 31536000;
-      offsetUnit = "Years";
+      offsetVal = storedSec / 31536000; offsetUnit = "Years";
     } else if (storedSec % 2592000 === 0) {
-      offsetVal = storedSec / 2592000;
-      offsetUnit = "Months";
+      offsetVal = storedSec / 2592000; offsetUnit = "Months";
+    } else if (storedSec % 86400 === 0) {
+      offsetVal = storedSec / 86400; offsetUnit = "Days";
+    } else if (storedSec % 3600 === 0) {
+      offsetVal = storedSec / 3600; offsetUnit = "Hours";
+    } else if (storedSec % 60 === 0) {
+      offsetVal = storedSec / 60; offsetUnit = "Minutes";
     } else {
-      offsetVal = storedSec / 86400;
-      offsetUnit = "Days";
+      offsetVal = storedSec; offsetUnit = "Seconds";
     }
   }
 
@@ -220,6 +223,9 @@ function renderDateEditView(param, footer, onSave) {
         step="1"
       />
       <select id="pm-offset-unit" class="ui-field">
+        <option value="Seconds"${offsetUnit === "Seconds" ? " selected" : ""}>Seconds</option>
+        <option value="Minutes"${offsetUnit === "Minutes" ? " selected" : ""}>Minutes</option>
+        <option value="Hours"${offsetUnit === "Hours" ? " selected" : ""}>Hours</option>
         <option value="Days"${offsetUnit === "Days" ? " selected" : ""}>Days</option>
         <option value="Months"${offsetUnit === "Months" ? " selected" : ""}>Months</option>
         <option value="Years"${offsetUnit === "Years" ? " selected" : ""}>Years</option>
@@ -250,7 +256,7 @@ function renderDateEditView(param, footer, onSave) {
       const fmt = formatInput?.value || "%Y/%m/%d";
       const val = parseFloat(offsetValInput?.value || "0") || 0;
       const unit = offsetUnitSelect?.value || "Days";
-      const multiplier = unit === "Years" ? 31536000 : unit === "Months" ? 2592000 : 86400;
+      const multiplier = unit === "Years" ? 31536000 : unit === "Months" ? 2592000 : unit === "Hours" ? 3600 : unit === "Minutes" ? 60 : unit === "Seconds" ? 1 : 86400;
       const sec = Math.round(val * multiplier);
       if (previewEl) previewEl.textContent = computePreview(fmt, sec);
     }
@@ -270,7 +276,7 @@ function renderDateEditView(param, footer, onSave) {
       const fmt = formatInput?.value || "%Y/%m/%d";
       const val = parseFloat(offsetValInput?.value || "0") || 0;
       const unit = offsetUnitSelect?.value || "Days";
-      const multiplier = unit === "Years" ? 31536000 : unit === "Months" ? 2592000 : 86400;
+      const multiplier = unit === "Years" ? 31536000 : unit === "Months" ? 2592000 : unit === "Hours" ? 3600 : unit === "Minutes" ? 60 : unit === "Seconds" ? 1 : 86400;
       const sec = Math.round(val * multiplier);
       onSave({ format: fmt, offset: sec });
     });
@@ -571,16 +577,24 @@ function renderAddForm(footer, onAdd, onBack) {
     const extraEl = document.getElementById("pm-add-extra");
     const errorEl = document.getElementById("pm-add-error");
 
+    function previewBox(id, color) {
+      return `<div class="flex flex-col gap-1">
+        <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Preview</span>
+        <div id="${id}" class="rounded px-3 py-1.5 bg-[#141922] border border-[#232a33] font-mono text-[12px]" style="color:${color}"></div>
+      </div>`;
+    }
+
     function renderExtra() {
       if (!extraEl) return;
       const t = typeEl?.value;
       extraEl.innerHTML = "";
+
       if (t === "Time") {
         extraEl.innerHTML = `
           <label class="flex flex-col gap-1.5">
             <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Format</span>
             <input id="pm-add-fmt" type="text" class="ui-field w-full font-mono" value="%Y/%m/%d" placeholder="%Y/%m/%d"/>
-            <div class="text-[10px] text-[#5b6572]">%Y %m %d %H %M %S</div>
+            <div class="text-[10px] text-[#5b6572]">Tokens: %Y (year 4-digit) %y (2-digit) %m (month) %d (day) %H (hour) %M (min) %S (sec)</div>
           </label>
           <div class="flex items-center gap-2">
             <label class="flex flex-col gap-1 flex-1">
@@ -590,7 +604,7 @@ function renderAddForm(footer, onAdd, onBack) {
             <label class="flex flex-col gap-1">
               <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Unit</span>
               <select id="pm-add-offset-unit" class="ui-field">
-                <option>Days</option><option>Months</option><option>Years</option>
+                <option>Days</option><option>Months</option><option>Years</option><option>Hours</option><option>Minutes</option><option>Seconds</option>
               </select>
             </label>
           </div>
@@ -598,7 +612,27 @@ function renderAddForm(footer, onAdd, onBack) {
             <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Update Value On</span>
             <select id="pm-add-update" class="ui-field w-48">${optionsHtml(UPDATE_OPTIONS, "EachIteration")}</select>
           </label>
+          ${previewBox("pm-add-preview", "#d2a24c")}
         `;
+        requestAnimationFrame(() => {
+          const fmtEl = document.getElementById("pm-add-fmt");
+          const offValEl = document.getElementById("pm-add-offset-val");
+          const offUnitEl = document.getElementById("pm-add-offset-unit");
+          const prev = document.getElementById("pm-add-preview");
+          function upd() {
+            const fmt = fmtEl?.value || "%Y/%m/%d";
+            const v = parseFloat(offValEl?.value || "0") || 0;
+            const u = offUnitEl?.value || "Days";
+            const mul = u === "Years" ? 31536000 : u === "Months" ? 2592000 : u === "Hours" ? 3600 : u === "Minutes" ? 60 : u === "Seconds" ? 1 : 86400;
+            const sec = Math.round(v * mul);
+            if (prev) prev.textContent = computePreview(fmt, sec);
+          }
+          fmtEl?.addEventListener("input", upd);
+          offValEl?.addEventListener("input", upd);
+          offUnitEl?.addEventListener("change", upd);
+          upd();
+        });
+
       } else if (t === "RndNum") {
         extraEl.innerHTML = `
           <div class="grid grid-cols-2 gap-3">
@@ -615,7 +649,24 @@ function renderAddForm(footer, onAdd, onBack) {
             <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Update Value On</span>
             <select id="pm-add-update" class="ui-field w-48">${optionsHtml(UPDATE_OPTIONS, "EachIteration")}</select>
           </label>
+          ${previewBox("pm-add-preview", "#9b7ec8")}
         `;
+        requestAnimationFrame(() => {
+          const minEl = document.getElementById("pm-add-min");
+          const maxEl = document.getElementById("pm-add-max");
+          const prev = document.getElementById("pm-add-preview");
+          function upd() {
+            const lo = parseInt(minEl?.value || "0", 10);
+            const hi = parseInt(maxEl?.value || "100", 10);
+            const sample = Math.floor(Math.random() * (hi - lo + 1)) + lo;
+            const digits = String(Math.max(Math.abs(lo), Math.abs(hi))).replace("-","").length;
+            if (prev) prev.textContent = `sample: ${sample}  (max ${digits} digit${digits !== 1 ? "s" : ""})`;
+          }
+          minEl?.addEventListener("input", upd);
+          maxEl?.addEventListener("input", upd);
+          upd();
+        });
+
       } else if (t === "UniqueNumber") {
         extraEl.innerHTML = `
           <div class="grid grid-cols-2 gap-3">
@@ -628,17 +679,63 @@ function renderAddForm(footer, onAdd, onBack) {
               <input id="pm-add-block" type="number" class="ui-field font-mono" value="100" min="1" step="1"/>
             </label>
           </div>
+          ${previewBox("pm-add-preview", "#9b7ec8")}
         `;
+        requestAnimationFrame(() => {
+          const startEl = document.getElementById("pm-add-start");
+          const prev = document.getElementById("pm-add-preview");
+          function upd() {
+            const s = parseInt(startEl?.value || "0", 10);
+            if (prev) prev.textContent = `Iter 1 → ${s}  |  Iter 2 → ${s+1}  |  Iter 3 → ${s+2}  |  …`;
+          }
+          startEl?.addEventListener("input", upd);
+          upd();
+        });
+
       } else if (t === "Custom") {
         extraEl.innerHTML = `
           <label class="flex flex-col gap-1.5">
             <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Default Value</span>
             <input id="pm-add-defval" type="text" class="ui-field w-full font-mono" placeholder="nilai tetap"/>
+            <div class="text-[10px] text-[#5b6572]">Nilai ini sama di semua iterasi dan semua Vuser.</div>
           </label>
+          ${previewBox("pm-add-preview", "#5b8db8")}
         `;
-      } else {
-        // GroupName, Userid, Machine, IterationNumber: no extra fields
-        extraEl.innerHTML = `<div class="text-[11px] text-[#5b6572]">Tidak ada konfigurasi tambahan untuk tipe ini.</div>`;
+        requestAnimationFrame(() => {
+          const valEl = document.getElementById("pm-add-defval");
+          const prev = document.getElementById("pm-add-preview");
+          function upd() { if (prev) prev.textContent = valEl?.value || "(empty)"; }
+          valEl?.addEventListener("input", upd);
+          upd();
+        });
+
+      } else if (t === "GroupName") {
+        extraEl.innerHTML = `${previewBox("pm-add-preview", "#7c9e6b")}`;
+        requestAnimationFrame(() => {
+          const prev = document.getElementById("pm-add-preview");
+          if (prev) prev.textContent = `"none"  (tidak ada group saat run dari VuGen)`;
+        });
+
+      } else if (t === "Userid") {
+        extraEl.innerHTML = `${previewBox("pm-add-preview", "#7c9e6b")}`;
+        requestAnimationFrame(() => {
+          const prev = document.getElementById("pm-add-preview");
+          if (prev) prev.textContent = `"-1"  (ID Vuser saat replay dari VuGen)`;
+        });
+
+      } else if (t === "Machine") {
+        extraEl.innerHTML = `${previewBox("pm-add-preview", "#7c9e6b")}`;
+        requestAnimationFrame(() => {
+          const prev = document.getElementById("pm-add-preview");
+          if (prev) prev.textContent = `nama hostname server  (contoh: "MYSERVER-PC")`;
+        });
+
+      } else if (t === "IterationNumber") {
+        extraEl.innerHTML = `${previewBox("pm-add-preview", "#7c9e6b")}`;
+        requestAnimationFrame(() => {
+          const prev = document.getElementById("pm-add-preview");
+          if (prev) prev.textContent = `Iter 1 → "1"  |  Iter 2 → "2"  |  Iter 3 → "3"  |  …`;
+        });
       }
     }
 
@@ -662,7 +759,7 @@ function renderAddForm(footer, onAdd, onBack) {
         def.format = document.getElementById("pm-add-fmt")?.value || "%Y/%m/%d";
         const offVal = parseFloat(document.getElementById("pm-add-offset-val")?.value || "0") || 0;
         const offUnit = document.getElementById("pm-add-offset-unit")?.value || "Days";
-        const mul = offUnit === "Years" ? 31536000 : offUnit === "Months" ? 2592000 : 86400;
+        const mul = offUnit === "Years" ? 31536000 : offUnit === "Months" ? 2592000 : offUnit === "Hours" ? 3600 : offUnit === "Minutes" ? 60 : offUnit === "Seconds" ? 1 : 86400;
         def.offset = Math.round(offVal * mul);
         def.updateValueOn = document.getElementById("pm-add-update")?.value || "EachIteration";
       } else if (type === "RndNum") {

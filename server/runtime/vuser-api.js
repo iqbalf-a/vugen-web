@@ -727,10 +727,12 @@ export function web_reg_find(...args) {
     return -1;
   }
 
+  const failAttr = String(opts.Fail || opts.fail || "NotFound").toUpperCase();
   const rule = {
     text: substituteParams(text),
     saveCount: opts.SaveCount || opts.savecount || null,
     scope: String(opts.Search ?? opts.search ?? "ALL").toUpperCase(),
+    failOnFound: failAttr === "FOUND",
   };
 
   webRegFindRegistry.push(rule);
@@ -1112,9 +1114,17 @@ async function handleResponse(stepName, resp, type, snapshotName) {
         checks.push({ type: "web_reg_find", text: rule.text, passed: true, saveCount: rule.saveCount, count });
         log("info", `web_reg_find: SaveCount=${rule.saveCount}=${count} Text="${rule.text}"`);
       } else {
-        checks.push({ type: "web_reg_find", text: rule.text, passed: found });
-        log(found ? "info" : "error", `web_reg_find: Text="${rule.text}" ${found ? "FOUND" : "NOT FOUND"}`);
-        if (!found) problems.push(`web_reg_find: teks "${rule.text}" tidak ditemukan`);
+        // Fail=Found: gagal jika DITEMUKAN; default (Fail=NotFound): gagal jika tidak ditemukan
+        const passed = rule.failOnFound ? !found : found;
+        checks.push({ type: "web_reg_find", text: rule.text, passed, failOnFound: rule.failOnFound || false });
+        const status = found ? "FOUND" : "NOT FOUND";
+        log(passed ? "info" : "error", `web_reg_find: Text="${rule.text}" ${status}${rule.failOnFound ? " (Fail=Found)" : ""}`);
+        if (!passed) {
+          const msg = rule.failOnFound
+            ? `web_reg_find: teks "${rule.text}" ditemukan (Fail=Found)`
+            : `web_reg_find: teks "${rule.text}" tidak ditemukan`;
+          problems.push(msg);
+        }
       }
     }
   } finally {

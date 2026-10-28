@@ -118,6 +118,11 @@ describe("parsePrm", () => {
       sameLineAs: null,
       updateValueOn: "EachIteration",
       outOfRangePolicy: "Cycle",
+      min: null,
+      max: null,
+      startValue: null,
+      blockSize: null,
+      defaultValue: null,
     }]);
   });
 

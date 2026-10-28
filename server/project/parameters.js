@@ -16,9 +16,14 @@
  * @property {string} [column] - nama kolom header di .dat
  * @property {string|null} [prmFile] - .prm yang mendefinisikan parameter ini (null bila hanya dari header .dat)
  * @property {string[]} values - nilai per baris (hanya untuk runner; tidak dikirim ke browser)
- * @property {"Table"|"Time"|"Userid"} [type] - tipe dari .prm (default "Table")
+ * @property {"Table"|"Time"|"Userid"|"GroupName"|"IterationNumber"|"Machine"|"RndNum"|"UniqueNumber"|"Custom"} [type] - tipe dari .prm (default "Table")
  * @property {string} [timeFormat] - format string untuk Type=Time: %Y %m %d %H %M %S
  * @property {number} [timeOffsetSec] - offset detik untuk Type=Time (negatif = masa lalu)
+ * @property {number|null} [min] - nilai minimum untuk Type=RndNum
+ * @property {number|null} [max] - nilai maksimum untuk Type=RndNum
+ * @property {number|null} [startValue] - nilai awal blok untuk Type=UniqueNumber
+ * @property {number|null} [blockSize] - ukuran blok per Vuser untuk Type=UniqueNumber
+ * @property {string|null} [defaultValue] - nilai tetap untuk Type=Custom
  * @property {"Sequential"|"Random"|"Unique"|"SameLine"} [selectNextRow] - strategi pilih baris (default "Sequential")
  * @property {string|null} [sameLineAs] - parameter induk bila selectNextRow = "SameLine" (baris selalu sama dengan induk)
  * @property {"EachIteration"|"EachOccurrence"|"Once"} [updateValueOn] - kapan nilai diperbarui (default "EachIteration")
@@ -85,6 +90,11 @@ export function parsePrm(text) {
         sameLineAs: null,
         updateValueOn: "EachIteration",
         outOfRangePolicy: "Cycle",
+        min: null,
+        max: null,
+        startValue: null,
+        blockSize: null,
+        defaultValue: null,
       };
       sections.push(current);
       continue;
@@ -125,6 +135,21 @@ export function parsePrm(text) {
       case "whenoutofvalues":
       case "outofrangepolicy":
         current.outOfRangePolicy = OUT_OF_RANGE_TOKENS[val.toLowerCase()] ?? val;
+        break;
+      case "min":
+        current.min = val !== "" ? (parseInt(val, 10) || 0) : null;
+        break;
+      case "max":
+        current.max = val !== "" ? (parseInt(val, 10) || 0) : null;
+        break;
+      case "startvalue":
+        current.startValue = val !== "" ? (parseInt(val, 10) || 0) : null;
+        break;
+      case "blocksize":
+        current.blockSize = val !== "" ? (parseInt(val, 10) || 1) : null;
+        break;
+      case "defaultvalue":
+        current.defaultValue = val;
         break;
     }
   }
@@ -273,6 +298,35 @@ export async function loadParameters(scriptDir, files) {
         continue;
       }
 
+      // Tipe non-file (tidak butuh .dat): GroupName, Userid, Machine, IterationNumber, Custom, RndNum, UniqueNumber
+      const NON_FILE_TYPES = new Set(["GroupName", "Userid", "Machine", "IterationNumber", "Custom", "RndNum", "UniqueNumber"]);
+      if (NON_FILE_TYPES.has(section.type)) {
+        if (paramsByName.has(section.name)) {
+          warnings.push(`Parameter "${section.name}" (${section.type}) ignored; already exists.`);
+          continue;
+        }
+        paramsByName.set(section.name, `(${section.type})`);
+        parameters.push({
+          name: section.name,
+          file: "",
+          rows: 0,
+          values: [],
+          column: null,
+          prmFile: prmFile.path,
+          type: /** @type {any} */ (section.type),
+          min: section.min ?? null,
+          max: section.max ?? null,
+          startValue: section.startValue ?? null,
+          blockSize: section.blockSize ?? null,
+          defaultValue: section.defaultValue ?? null,
+          selectNextRow: "Sequential",
+          sameLineAs: null,
+          updateValueOn: /** @type {any} */ (section.updateValueOn ?? "EachIteration"),
+          outOfRangePolicy: "Cycle",
+        });
+        continue;
+      }
+
       if (section.type !== "Table" || !section.table) continue; // hanya Table type dengan file
 
       // Cari file .dat yang sesuai (match case-insensitive di root dan data/)
@@ -351,8 +405,9 @@ export async function loadParameters(scriptDir, files) {
     } catch {
       continue; // sudah dicatat di langkah 1
     }
+    const NON_FILE_TYPES_L3 = new Set(["Time", "GroupName", "Userid", "Machine", "IterationNumber", "Custom", "RndNum", "UniqueNumber"]);
     for (const section of parsePrm(prmText)) {
-      if (section.table || section.type === "Time") continue; // sudah diproses di langkah 1
+      if (section.table || NON_FILE_TYPES_L3.has(section.type)) continue; // sudah diproses di langkah 1
       const param = parameters.find((p) => p.name === section.name);
       if (!param) continue;
       param.prmFile = prmFile.path;

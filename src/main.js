@@ -8,6 +8,7 @@ import {
   readFile,
   saveFile,
   saveParameterSetting,
+  addParameter,
   startRun,
   stopRun,
   resumeRun,
@@ -76,7 +77,17 @@ if (Object.entries(els).some(([k, v]) => k !== "paramsSectionBtn" && v === null)
 paramsSectionBtn?.addEventListener("click", () => {
   const project = store.get().project;
   if (!project) return;
-  openParamModal(project.parameters, changeParameter);
+  openParamModal(project.parameters, changeParameter, async (paramDef) => {
+    try {
+      await addParameter({ path: project.path, ...paramDef });
+      const fresh = await openProject(project.path);
+      store.set({ project: fresh, health: "ok", status: `Parameter {${paramDef.name}} added.` });
+      return fresh.parameters;
+    } catch (error) {
+      store.set({ health: "error", status: `Failed to add {${paramDef.name}}: ${messageOf(error)}` });
+      throw error;
+    }
+  });
 });
 
 const runSettings = createRunSettings({

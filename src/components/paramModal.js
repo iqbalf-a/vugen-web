@@ -46,10 +46,24 @@ function computePreview(format, offsetSec) {
  * @param {string | undefined} type
  * @returns {string}
  */
+const TYPE_BADGE_MAP = {
+  Time: ["Date", "#d2a24c"],
+  Date: ["Date", "#d2a24c"],
+  GroupName: ["Group", "#7c9e6b"],
+  IterationNumber: ["Iter", "#7c9e6b"],
+  Machine: ["LG", "#7c9e6b"],
+  Userid: ["Vuser", "#7c9e6b"],
+  RndNum: ["Random", "#9b7ec8"],
+  UniqueNumber: ["Unique", "#9b7ec8"],
+  Custom: ["Custom", "#5b8db8"],
+};
+
 function typeBadge(type) {
   if (!type) return "";
-  if (type === "Time" || type === "Date") {
-    return `<span class="rounded px-1.5 py-0.5 text-[10px] font-mono text-[#d2a24c] bg-[#d2a24c]/10">Date</span>`;
+  const entry = TYPE_BADGE_MAP[type];
+  if (entry) {
+    const [label, color] = entry;
+    return `<span class="rounded px-1.5 py-0.5 text-[10px] font-mono" style="color:${color};background:${color}1a">${label}</span>`;
   }
   return `<span class="rounded px-1.5 py-0.5 text-[10px] font-mono text-[#5b8db8] bg-[#5b8db8]/10">Table</span>`;
 }
@@ -73,10 +87,23 @@ function optionsHtml(options, current) {
  * Render list view — daftar semua parameter.
  * @param {any[]} parameters
  * @param {(param: any) => void} onEdit
+ * @param {(() => void) | null} onShowAdd
  * @returns {DocumentFragment}
  */
-function renderListView(parameters, onEdit) {
+function renderListView(parameters, onEdit, onShowAdd) {
   const frag = document.createDocumentFragment();
+
+  if (onShowAdd) {
+    const addRow = document.createElement("div");
+    addRow.className = "px-4 py-2 border-b border-[#1e2630] flex justify-end";
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "flex items-center gap-1.5 rounded px-2.5 py-1 text-[11px] text-[#7d8896] hover:text-[#e6edf3] hover:bg-[#2a3644] transition-colors";
+    addBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Add Parameter`;
+    addBtn.addEventListener("click", onShowAdd);
+    addRow.append(addBtn);
+    frag.append(addRow);
+  }
 
   if (parameters.length === 0) {
     const empty = document.createElement("div");
@@ -106,6 +133,14 @@ function renderListView(parameters, onEdit) {
     fileArea.className = "min-w-0 flex-1 truncate text-[11px] text-[#5b6572] font-mono";
     if (isDate) {
       fileArea.textContent = param.timeFormat || "%Y/%m/%d";
+    } else if (param.type === "RndNum") {
+      fileArea.textContent = `${param.min ?? 0} – ${param.max ?? 100}`;
+    } else if (param.type === "UniqueNumber") {
+      fileArea.textContent = `start=${param.startValue ?? 0}, block=${param.blockSize ?? 100}`;
+    } else if (param.type === "Custom") {
+      fileArea.textContent = param.defaultValue ?? "";
+    } else if (["GroupName", "Machine", "Userid", "IterationNumber"].includes(param.type)) {
+      fileArea.textContent = "—";
     } else {
       fileArea.title = param.file || "";
       fileArea.textContent = param.file ? param.file.split("/").pop() ?? param.file : "—";
@@ -350,12 +385,330 @@ function renderTableEditView(param, allParams, footer, onSave) {
 }
 
 /**
+ * Render edit view untuk parameter info-only (GroupName, Userid, Machine, IterationNumber).
+ */
+function renderInfoEditView(param, footer) {
+  const msgs = {
+    GroupName: "Nilai: \"none\" — tidak ada Vuser Group saat run dari VuGen.",
+    Userid: "Nilai: \"-1\" — ID Vuser saat replay dari VuGen.",
+    Machine: "Nilai: nama hostname server yang menjalankan script.",
+    IterationNumber: "Nilai: 1, 2, 3, … — auto-increment tiap iterasi.",
+  };
+  const frag = document.createDocumentFragment();
+  const box = document.createElement("div");
+  box.className = "px-4 py-6 text-[12px] text-[#7d8896]";
+  box.textContent = msgs[param.type] ?? "No configurable settings for this parameter type.";
+  frag.append(box);
+  requestAnimationFrame(() => { footer.innerHTML = ""; });
+  return frag;
+}
+
+/**
+ * Render edit view untuk parameter RndNum (Random Number).
+ */
+function renderRndNumEditView(param, footer, onSave) {
+  const frag = document.createDocumentFragment();
+  const container = document.createElement("div");
+  container.className = "px-4 py-4 flex flex-col gap-4";
+  container.innerHTML = `
+    <div class="grid grid-cols-2 gap-3">
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Min</span>
+        <input id="pm-rnd-min" type="number" class="ui-field w-full font-mono" value="${param.min ?? 0}" step="1"/>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Max</span>
+        <input id="pm-rnd-max" type="number" class="ui-field w-full font-mono" value="${param.max ?? 100}" step="1"/>
+      </label>
+    </div>
+    <label class="flex flex-col gap-1.5">
+      <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Update Value On</span>
+      <select id="pm-rnd-update" class="ui-field w-48">${optionsHtml(UPDATE_OPTIONS, param.updateValueOn ?? "EachIteration")}</select>
+    </label>
+    <div class="flex flex-col gap-1.5">
+      <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Preview</span>
+      <div id="pm-rnd-preview" class="rounded px-3 py-2 bg-[#141922] border border-[#232a33] font-mono text-[13px] text-[#9b7ec8]"></div>
+    </div>
+  `;
+  frag.append(container);
+  requestAnimationFrame(() => {
+    const minEl = document.getElementById("pm-rnd-min");
+    const maxEl = document.getElementById("pm-rnd-max");
+    const updateEl = document.getElementById("pm-rnd-update");
+    const preview = document.getElementById("pm-rnd-preview");
+    function refreshPreview() {
+      const lo = parseInt(minEl?.value || "0", 10);
+      const hi = parseInt(maxEl?.value || "100", 10);
+      if (preview) preview.textContent = `example: ${Math.floor(Math.random() * (hi - lo + 1)) + lo}`;
+    }
+    minEl?.addEventListener("input", refreshPreview);
+    maxEl?.addEventListener("input", refreshPreview);
+    refreshPreview();
+    footer.innerHTML = "";
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "ui-btn ui-btn-primary";
+    saveBtn.textContent = "Save";
+    saveBtn.addEventListener("click", () => {
+      onSave({ min: parseInt(minEl?.value || "0", 10), max: parseInt(maxEl?.value || "100", 10), updateValueOn: updateEl?.value ?? "EachIteration" });
+    });
+    footer.append(saveBtn);
+  });
+  return frag;
+}
+
+/**
+ * Render edit view untuk parameter UniqueNumber.
+ */
+function renderUniqueNumEditView(param, footer, onSave) {
+  const frag = document.createDocumentFragment();
+  const container = document.createElement("div");
+  container.className = "px-4 py-4 flex flex-col gap-4";
+  container.innerHTML = `
+    <div class="grid grid-cols-2 gap-3">
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Start Value</span>
+        <input id="pm-uniq-start" type="number" class="ui-field w-full font-mono" value="${param.startValue ?? 0}" step="1"/>
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Block Size</span>
+        <input id="pm-uniq-block" type="number" class="ui-field w-full font-mono" value="${param.blockSize ?? 100}" min="1" step="1"/>
+      </label>
+    </div>
+    <div class="text-[11px] text-[#5b6572]">Setiap iterasi menggunakan angka berikutnya: Start, Start+1, Start+2, …</div>
+  `;
+  frag.append(container);
+  requestAnimationFrame(() => {
+    const startEl = document.getElementById("pm-uniq-start");
+    const blockEl = document.getElementById("pm-uniq-block");
+    footer.innerHTML = "";
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "ui-btn ui-btn-primary";
+    saveBtn.textContent = "Save";
+    saveBtn.addEventListener("click", () => {
+      onSave({ startValue: parseInt(startEl?.value || "0", 10), blockSize: parseInt(blockEl?.value || "100", 10) });
+    });
+    footer.append(saveBtn);
+  });
+  return frag;
+}
+
+/**
+ * Render edit view untuk parameter Custom (nilai tetap).
+ */
+function renderCustomEditView(param, footer, onSave) {
+  const frag = document.createDocumentFragment();
+  const container = document.createElement("div");
+  container.className = "px-4 py-4 flex flex-col gap-4";
+  container.innerHTML = `
+    <label class="flex flex-col gap-1.5">
+      <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Default Value</span>
+      <input id="pm-custom-val" type="text" class="ui-field w-full font-mono" value="${escapeHtml(param.defaultValue ?? "")}"/>
+      <div class="text-[10px] text-[#5b6572]">Nilai ini digunakan di semua iterasi dan semua Vuser.</div>
+    </label>
+  `;
+  frag.append(container);
+  requestAnimationFrame(() => {
+    const valEl = document.getElementById("pm-custom-val");
+    footer.innerHTML = "";
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "ui-btn ui-btn-primary";
+    saveBtn.textContent = "Save";
+    saveBtn.addEventListener("click", () => {
+      onSave({ defaultValue: valEl?.value ?? "" });
+    });
+    footer.append(saveBtn);
+  });
+  return frag;
+}
+
+const ADD_PARAM_TYPES = [
+  { value: "Time", label: "Date/Time" },
+  { value: "GroupName", label: "Group Name" },
+  { value: "IterationNumber", label: "Iteration Number" },
+  { value: "Machine", label: "Load Generator Name" },
+  { value: "RndNum", label: "Random Number" },
+  { value: "UniqueNumber", label: "Unique Number" },
+  { value: "Userid", label: "Vuser ID" },
+  { value: "Custom", label: "Custom (fixed value)" },
+];
+
+/**
+ * Render form Add Parameter.
+ * @param {HTMLElement} footer
+ * @param {(paramDef: object) => Promise<any[]>} onAdd - returns updated parameters array
+ * @param {() => void} onBack
+ */
+function renderAddForm(footer, onAdd, onBack) {
+  const frag = document.createDocumentFragment();
+  const container = document.createElement("div");
+  container.className = "px-4 py-4 flex flex-col gap-4";
+
+  const typeOpts = ADD_PARAM_TYPES.map(
+    (t) => `<option value="${t.value}">${t.label}</option>`
+  ).join("");
+
+  container.innerHTML = `
+    <label class="flex flex-col gap-1.5">
+      <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Parameter Name</span>
+      <input id="pm-add-name" type="text" class="ui-field w-full font-mono" placeholder="paramName"/>
+      <div class="text-[10px] text-[#5b6572]">Hanya huruf, angka, underscore. Digunakan sebagai &#123;paramName&#125; di script.</div>
+    </label>
+    <label class="flex flex-col gap-1.5">
+      <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Type</span>
+      <select id="pm-add-type" class="ui-field w-full">${typeOpts}</select>
+    </label>
+    <div id="pm-add-extra" class="flex flex-col gap-3"></div>
+    <div id="pm-add-error" class="hidden text-[11px] text-[#e05252]"></div>
+  `;
+  frag.append(container);
+
+  requestAnimationFrame(() => {
+    const nameEl = document.getElementById("pm-add-name");
+    const typeEl = document.getElementById("pm-add-type");
+    const extraEl = document.getElementById("pm-add-extra");
+    const errorEl = document.getElementById("pm-add-error");
+
+    function renderExtra() {
+      if (!extraEl) return;
+      const t = typeEl?.value;
+      extraEl.innerHTML = "";
+      if (t === "Time") {
+        extraEl.innerHTML = `
+          <label class="flex flex-col gap-1.5">
+            <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Format</span>
+            <input id="pm-add-fmt" type="text" class="ui-field w-full font-mono" value="%Y/%m/%d" placeholder="%Y/%m/%d"/>
+            <div class="text-[10px] text-[#5b6572]">%Y %m %d %H %M %S</div>
+          </label>
+          <div class="flex items-center gap-2">
+            <label class="flex flex-col gap-1 flex-1">
+              <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Offset</span>
+              <input id="pm-add-offset-val" type="number" class="ui-field font-mono" value="0" step="1"/>
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Unit</span>
+              <select id="pm-add-offset-unit" class="ui-field">
+                <option>Days</option><option>Months</option><option>Years</option>
+              </select>
+            </label>
+          </div>
+          <label class="flex flex-col gap-1.5">
+            <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Update Value On</span>
+            <select id="pm-add-update" class="ui-field w-48">${optionsHtml(UPDATE_OPTIONS, "EachIteration")}</select>
+          </label>
+        `;
+      } else if (t === "RndNum") {
+        extraEl.innerHTML = `
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-1.5">
+              <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Min</span>
+              <input id="pm-add-min" type="number" class="ui-field font-mono" value="0" step="1"/>
+            </label>
+            <label class="flex flex-col gap-1.5">
+              <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Max</span>
+              <input id="pm-add-max" type="number" class="ui-field font-mono" value="100" step="1"/>
+            </label>
+          </div>
+          <label class="flex flex-col gap-1.5">
+            <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Update Value On</span>
+            <select id="pm-add-update" class="ui-field w-48">${optionsHtml(UPDATE_OPTIONS, "EachIteration")}</select>
+          </label>
+        `;
+      } else if (t === "UniqueNumber") {
+        extraEl.innerHTML = `
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-1.5">
+              <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Start Value</span>
+              <input id="pm-add-start" type="number" class="ui-field font-mono" value="0" step="1"/>
+            </label>
+            <label class="flex flex-col gap-1.5">
+              <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Block Size</span>
+              <input id="pm-add-block" type="number" class="ui-field font-mono" value="100" min="1" step="1"/>
+            </label>
+          </div>
+        `;
+      } else if (t === "Custom") {
+        extraEl.innerHTML = `
+          <label class="flex flex-col gap-1.5">
+            <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Default Value</span>
+            <input id="pm-add-defval" type="text" class="ui-field w-full font-mono" placeholder="nilai tetap"/>
+          </label>
+        `;
+      } else {
+        // GroupName, Userid, Machine, IterationNumber: no extra fields
+        extraEl.innerHTML = `<div class="text-[11px] text-[#5b6572]">Tidak ada konfigurasi tambahan untuk tipe ini.</div>`;
+      }
+    }
+
+    typeEl?.addEventListener("change", renderExtra);
+    renderExtra();
+
+    footer.innerHTML = "";
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "ui-btn ui-btn-primary";
+    saveBtn.textContent = "Add";
+    saveBtn.addEventListener("click", async () => {
+      if (errorEl) errorEl.classList.add("hidden");
+      const name = nameEl?.value.trim() ?? "";
+      const type = typeEl?.value ?? "Custom";
+      if (!name) { if (errorEl) { errorEl.textContent = "Parameter name is required."; errorEl.classList.remove("hidden"); } return; }
+
+      const def = { name, type };
+
+      if (type === "Time") {
+        def.format = document.getElementById("pm-add-fmt")?.value || "%Y/%m/%d";
+        const offVal = parseFloat(document.getElementById("pm-add-offset-val")?.value || "0") || 0;
+        const offUnit = document.getElementById("pm-add-offset-unit")?.value || "Days";
+        const mul = offUnit === "Years" ? 31536000 : offUnit === "Months" ? 2592000 : 86400;
+        def.offset = Math.round(offVal * mul);
+        def.updateValueOn = document.getElementById("pm-add-update")?.value || "EachIteration";
+      } else if (type === "RndNum") {
+        def.min = parseInt(document.getElementById("pm-add-min")?.value || "0", 10);
+        def.max = parseInt(document.getElementById("pm-add-max")?.value || "100", 10);
+        def.updateValueOn = document.getElementById("pm-add-update")?.value || "EachIteration";
+      } else if (type === "UniqueNumber") {
+        def.startValue = parseInt(document.getElementById("pm-add-start")?.value || "0", 10);
+        def.blockSize = parseInt(document.getElementById("pm-add-block")?.value || "100", 10);
+      } else if (type === "Custom") {
+        def.defaultValue = document.getElementById("pm-add-defval")?.value ?? "";
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Adding…";
+      try {
+        const updatedParams = await onAdd(def);
+        if (updatedParams) {
+          parameters.length = 0;
+          parameters.push(...updatedParams);
+        }
+        onBack();
+      } catch (err) {
+        if (errorEl) {
+          errorEl.textContent = err?.message || "Failed to add parameter.";
+          errorEl.classList.remove("hidden");
+        }
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Add";
+      }
+    });
+    footer.append(saveBtn);
+  });
+
+  return frag;
+}
+
+/**
  * Buka modal manajemen parameter.
  * @param {any[]} parameters
  * @param {(name: string, changes: Record<string, unknown>) => void | Promise<void>} onSave
+ * @param {(paramDef: object) => Promise<any[]>} [onAdd]
  * @returns {{ destroy: () => void }}
  */
-export function openParamModal(parameters, onSave) {
+export function openParamModal(parameters, onSave, onAdd) {
   // Overlay
   const overlay = document.createElement("div");
   overlay.className = "fixed inset-0 z-50 flex items-center justify-center bg-black/60";
@@ -402,51 +755,59 @@ export function openParamModal(parameters, onSave) {
     header.replaceChildren(titleEl, closeBtn);
     footer.classList.add("hidden");
     footer.innerHTML = "";
-    content.replaceChildren(renderListView(parameters, showEdit));
+    content.replaceChildren(renderListView(parameters, showEdit, onAdd ? showAdd : null));
+  }
+
+  function makeBackHeader(labelText, labelType) {
+    const backBtn = document.createElement("button");
+    backBtn.type = "button";
+    backBtn.className = "flex items-center gap-1.5 text-[11px] text-[#7d8896] hover:text-[#e6edf3] transition-colors";
+    backBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M6 1L1 5l5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Back`;
+    backBtn.addEventListener("click", showList);
+    const newTitle = document.createElement("span");
+    newTitle.className = "flex items-center gap-2 text-[13px] font-medium text-[#e6edf3]";
+    newTitle.append(backBtn);
+    const paramLabel = document.createElement("span");
+    paramLabel.className = "font-mono text-[#e6edf3]";
+    paramLabel.textContent = labelText;
+    const badgeEl = document.createElement("span");
+    badgeEl.innerHTML = typeBadge(labelType);
+    newTitle.append(paramLabel, badgeEl);
+    return newTitle;
+  }
+
+  function showAdd() {
+    header.replaceChildren(makeBackHeader("Add Parameter", null), closeBtn);
+    footer.classList.remove("hidden");
+    footer.className = "flex justify-end gap-2 px-4 py-3 border-t border-[#232a33]";
+    content.replaceChildren(renderAddForm(footer, onAdd, showList));
   }
 
   function showEdit(param) {
     editingParam = param;
     const isDate = param.type === "Time" || param.type === "Date";
 
-    // Back button in header area — replace title temporarily
-    const backBtn = document.createElement("button");
-    backBtn.type = "button";
-    backBtn.className =
-      "flex items-center gap-1.5 text-[11px] text-[#7d8896] hover:text-[#e6edf3] transition-colors";
-    backBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M6 1L1 5l5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Back`;
-    backBtn.addEventListener("click", showList);
-
-    // Rebuild header title area
-    const newTitle = document.createElement("span");
-    newTitle.className = "flex items-center gap-2 text-[13px] font-medium text-[#e6edf3]";
-    newTitle.append(backBtn);
-    const paramLabel = document.createElement("span");
-    paramLabel.className = "font-mono text-[#e6edf3]";
-    paramLabel.textContent = `{${param.name}}`;
-    const typeBadgeEl = document.createElement("span");
-    typeBadgeEl.innerHTML = typeBadge(param.type);
-    newTitle.append(paramLabel, typeBadgeEl);
-
-    header.replaceChildren(newTitle, closeBtn);
-
+    header.replaceChildren(makeBackHeader(`{${param.name}}`, param.type), closeBtn);
     footer.classList.remove("hidden");
     footer.className = "flex justify-end gap-2 px-4 py-3 border-t border-[#232a33]";
 
     function handleSave(changes) {
       Promise.resolve(onSave(param.name, changes))
-        .then(() => {
-          // Refresh parameters list from updated param if possible
-          showList();
-        })
-        .catch(() => {
-          // keep edit view open on error
-        });
+        .then(() => showList())
+        .catch(() => {});
     }
 
     content.replaceChildren();
     if (isDate) {
       content.append(renderDateEditView(param, footer, handleSave));
+    } else if (param.type === "RndNum") {
+      content.append(renderRndNumEditView(param, footer, handleSave));
+    } else if (param.type === "UniqueNumber") {
+      content.append(renderUniqueNumEditView(param, footer, handleSave));
+    } else if (param.type === "Custom") {
+      content.append(renderCustomEditView(param, footer, handleSave));
+    } else if (["GroupName", "Userid", "Machine", "IterationNumber"].includes(param.type)) {
+      content.append(renderInfoEditView(param, footer));
     } else {
       content.append(renderTableEditView(param, parameters, footer, handleSave));
     }

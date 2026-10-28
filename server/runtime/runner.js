@@ -9,6 +9,7 @@
  */
 
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -80,14 +81,26 @@ function sendEvent(type, data, callback) {
   process.send({ type: "event", event: { type, data, ts: Date.now() } }, callback);
 }
 
+/** Integer acak inklusif dalam range [min, max]. */
+function randInRange(min, max) {
+  const lo = Math.ceil(min ?? 0);
+  const hi = Math.floor(max ?? 100);
+  return String(Math.floor(Math.random() * (hi - lo + 1)) + lo);
+}
+
 /**
  * Siapkan file parameter (.dat): urut per iterasi, nilai baris pertama langsung tersedia.
  * `parameters` berupa array [{ name, file, values, selectNextRow?, updateValueOn?, outOfRangePolicy? }].
  */
 function initParameterFiles(parameters) {
   vu.parameterFiles = new Map();
-  for (const { name, file, values, selectNextRow = "Sequential", sameLineAs = null, updateValueOn = "EachIteration", outOfRangePolicy = "Cycle", type, timeFormat, timeOffsetSec } of parameters ?? []) {
-    vu.parameterFiles.set(name, {
+  for (const p of parameters ?? []) {
+    const { name, file, values = [], selectNextRow = "Sequential", sameLineAs = null,
+            updateValueOn = "EachIteration", outOfRangePolicy = "Cycle",
+            type = "Table", timeFormat, timeOffsetSec = 0,
+            min = 0, max = 100, startValue = 0, blockSize = 100, defaultValue = "" } = p;
+
+    const state = {
       values,
       currentIndex: 0,
       file,
@@ -96,11 +109,47 @@ function initParameterFiles(parameters) {
       updateValueOn,
       outOfRangePolicy,
       usedIndices: selectNextRow === "Unique" ? new Set([0]) : null,
-      type: type || "Table",
+      type,
       timeFormat: timeFormat || null,
-      timeOffsetSec: timeOffsetSec ?? 0,
-    });
-    if (values.length > 0) vu.params.set(name, values[0], type === "Time" ? `Time: ${timeFormat}` : `.dat: ${file}`);
+      timeOffsetSec,
+      min, max,
+      startValue, blockSize,
+      defaultValue,
+      uniqueCounter: startValue,
+    };
+    vu.parameterFiles.set(name, state);
+
+    // Sett nilai awal sesuai tipe
+    switch (type) {
+      case "Time":
+        vu.params.set(name, computeTimeValue(timeFormat, timeOffsetSec), `Time: ${timeFormat}`);
+        break;
+      case "GroupName":
+        vu.params.set(name, "none", "GroupName");
+        break;
+      case "Userid":
+        vu.params.set(name, "-1", "Userid");
+        break;
+      case "Machine":
+        vu.params.set(name, os.hostname(), "Machine");
+        break;
+      case "IterationNumber":
+        vu.params.set(name, "1", "IterationNumber");
+        break;
+      case "Custom":
+        vu.params.set(name, defaultValue, "Custom");
+        break;
+      case "RndNum":
+        vu.params.set(name, randInRange(min, max), `RndNum [${min}-${max}]`);
+        break;
+      case "UniqueNumber":
+        state.uniqueCounter = startValue;
+        vu.params.set(name, String(state.uniqueCounter++), `UniqueNumber start=${startValue}`);
+        break;
+      default: // Table
+        if (values.length > 0) vu.params.set(name, values[0], `.dat: ${file}`);
+        break;
+    }
   }
 }
 
@@ -110,13 +159,31 @@ function initParameterFiles(parameters) {
  */
 function advanceParameterFiles() {
   for (const [name, param] of vu.parameterFiles) {
-    // Type=Time: recompute dari waktu saat ini + offset
-    if (param.type === "Time") {
-      if (param.updateValueOn !== "Once" && param.timeFormat) {
-        vu.params.set(name, computeTimeValue(param.timeFormat, param.timeOffsetSec), `Time: ${param.timeFormat}`);
-      }
-      continue;
+    // Tipe non-file: update sesuai aturannya masing-masing
+    switch (param.type) {
+      case "Time":
+        if (param.updateValueOn !== "Once" && param.timeFormat) {
+          vu.params.set(name, computeTimeValue(param.timeFormat, param.timeOffsetSec), `Time: ${param.timeFormat}`);
+        }
+        continue;
+      case "IterationNumber":
+        vu.params.set(name, String(vu.currentIteration), "IterationNumber");
+        continue;
+      case "RndNum":
+        if (param.updateValueOn !== "Once") {
+          vu.params.set(name, randInRange(param.min, param.max), `RndNum [${param.min}-${param.max}]`);
+        }
+        continue;
+      case "UniqueNumber":
+        vu.params.set(name, String(param.uniqueCounter++), `UniqueNumber start=${param.startValue}`);
+        continue;
+      case "GroupName":
+      case "Userid":
+      case "Machine":
+      case "Custom":
+        continue; // nilai statis, tidak berubah
     }
+
     if (param.selectNextRow === "SameLine") continue; // mengikuti induk, lihat di bawah
     if (param.updateValueOn === "Once") continue; // nilai tetap, tidak pernah maju
 

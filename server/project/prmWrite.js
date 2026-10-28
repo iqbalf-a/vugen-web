@@ -7,6 +7,7 @@
  */
 
 import { promises as fs } from "node:fs";
+import path from "node:path";
 
 import { loadProject } from "./loader.js";
 import { HttpError, resolveScriptFile } from "./paths.js";
@@ -24,6 +25,11 @@ const KEY_ALIASES = {
   OutOfRangePolicy: ["OutOfRangePolicy", "WhenOutOfValues"],
   Format: ["Format"],
   Offset: ["Offset"],
+  Min: ["Min"],
+  Max: ["Max"],
+  StartValue: ["StartValue"],
+  BlockSize: ["BlockSize"],
+  DefaultValue: ["DefaultValue"],
 };
 
 const BOM = "\u00ef\u00bb\u00bf";
@@ -139,6 +145,35 @@ function buildEntries(all, param, changes) {
     entries.Offset = String(Math.round(n));
   }
 
+  if (changes.min !== undefined) {
+    const n = Number(changes.min);
+    if (!Number.isFinite(n)) throw new HttpError(400, "min must be a number.");
+    entries.Min = String(Math.round(n));
+  }
+
+  if (changes.max !== undefined) {
+    const n = Number(changes.max);
+    if (!Number.isFinite(n)) throw new HttpError(400, "max must be a number.");
+    entries.Max = String(Math.round(n));
+  }
+
+  if (changes.startValue !== undefined) {
+    const n = Number(changes.startValue);
+    if (!Number.isFinite(n)) throw new HttpError(400, "startValue must be a number.");
+    entries.StartValue = String(Math.round(n));
+  }
+
+  if (changes.blockSize !== undefined) {
+    const n = Number(changes.blockSize);
+    if (!Number.isFinite(n) || n < 1) throw new HttpError(400, "blockSize must be a positive number.");
+    entries.BlockSize = String(Math.round(n));
+  }
+
+  if (changes.defaultValue !== undefined) {
+    if (typeof changes.defaultValue !== "string") throw new HttpError(400, "defaultValue must be a string.");
+    entries.DefaultValue = changes.defaultValue;
+  }
+
   if (Object.keys(entries).length === 0) throw new HttpError(400, "No setting to change.");
   return entries;
 }
@@ -177,4 +212,75 @@ export async function updateParameterSetting(scriptDir, name, changes) {
     await atomicWrite(absolute, buffer);
   }
   return { name, file: relative, ...entries };
+}
+
+const VALID_TYPES = new Set(["Time", "GroupName", "Userid", "Machine", "IterationNumber", "Custom", "RndNum", "UniqueNumber"]);
+
+/**
+ * Tambah parameter baru ke file `.prm` utama script.
+ * Tipe Table tidak didukung di sini — parameter Table dibuat via file .dat.
+ *
+ * @param {string} scriptDir realpath folder script
+ * @param {{ name: string, type: string, format?: string, offset?: number, updateValueOn?: string, min?: number, max?: number, startValue?: number, blockSize?: number, defaultValue?: string }} paramDef
+ */
+export async function addParameterToPrm(scriptDir, paramDef) {
+  const { name, type, format, offset, updateValueOn, min, max, startValue, blockSize, defaultValue } = paramDef;
+
+  if (!name || typeof name !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name.trim())) {
+    throw new HttpError(400, "Parameter name must start with a letter/underscore and contain only letters, digits, and underscores.");
+  }
+  if (!VALID_TYPES.has(type)) {
+    throw new HttpError(400, `Type must be one of: ${[...VALID_TYPES].join(", ")}.`);
+  }
+
+  // Cek duplikat
+  const project = await loadProject(scriptDir);
+  if (project.parameters.some((p) => p.name === name.trim())) {
+    throw new HttpError(409, `Parameter "${name}" already exists.`);
+  }
+
+  // Tentukan file .prm utama (nama folder = nama script)
+  const scriptName = path.basename(scriptDir);
+  const prmFileName = `${scriptName}.prm`;
+  const prmAbsolute = path.join(scriptDir, prmFileName);
+
+  let existing = "";
+  try {
+    const buf = await fs.readFile(prmAbsolute);
+    if ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff)) {
+      throw new HttpError(400, `UTF-16 .prm files can't be edited: ${prmFileName}`);
+    }
+    existing = buf.toString("latin1");
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    // File belum ada — mulai kosong
+  }
+
+  const eol = existing.includes("\r\n") ? "\r\n" : "\n";
+  let section = `${eol}[parameter:${name.trim()}]${eol}Type="${type}"${eol}`;
+
+  switch (type) {
+    case "Time":
+      section += `Format="${format || "%Y/%m/%d"}"${eol}`;
+      section += `Offset="${offset ?? 0}"${eol}`;
+      section += `GenerateNewVal="${updateValueOn || "EachIteration"}"${eol}`;
+      break;
+    case "RndNum":
+      section += `Min="${min ?? 0}"${eol}`;
+      section += `Max="${max ?? 100}"${eol}`;
+      section += `UpdateValueOn="${updateValueOn || "EachIteration"}"${eol}`;
+      break;
+    case "UniqueNumber":
+      section += `StartValue="${startValue ?? 0}"${eol}`;
+      section += `BlockSize="${blockSize ?? 100}"${eol}`;
+      break;
+    case "Custom":
+      section += `DefaultValue="${defaultValue ?? ""}"${eol}`;
+      break;
+    // GroupName, Userid, Machine, IterationNumber: tidak ada properti tambahan
+  }
+
+  const newContent = existing + section;
+  await atomicWrite(prmAbsolute, Buffer.from(newContent, "latin1"));
+  return { name: name.trim(), type, prmFile: prmFileName };
 }

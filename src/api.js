@@ -83,6 +83,17 @@ export function saveParameterSetting({ path, name, changes }) {
 }
 
 /**
+ * @param {{ path: string, name: string, type: string, [key: string]: unknown }} payload
+ */
+export function addParameter(payload) {
+  return requestJson("/api/parameter", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
  * @param {string} scriptPath
  * @param {Object} options
  */

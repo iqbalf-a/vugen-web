@@ -14,7 +14,7 @@
 import { requestUrl, sendError, sendJson } from "../http-utils.js";
 import { getFile, putFile } from "./file.js";
 import { getLibraryChannels, getLibraryScripts } from "./library.js";
-import { putParameter } from "./parameter.js";
+import { putParameter, postParameter } from "./parameter.js";
 import { getProject } from "./project.js";
 import { handleRunEvents, handleRunGet, handleRunPost, handleRunResume, handleRunStepBody, handleRunStop } from "./run.js";
 import {
@@ -54,6 +54,7 @@ const routes = [
   { methods: ["GET"], path: "/file", handler: getFile },
   { methods: ["PUT"], path: "/file", handler: putFile },
   { methods: ["PUT"], path: "/parameter", handler: putParameter },
+  { methods: ["POST"], path: "/parameter", handler: postParameter },
   { methods: ["POST"], path: "/run", handler: handleRunPost },
   { methods: ["GET"], path: "/run/:id/events", handler: handleRunEvents },
   { methods: ["POST"], path: "/run/:id/stop", handler: handleRunStop },

@@ -41,7 +41,12 @@ export function parametersForFile(parameters, activePath) {
  */
 export function sameLineCandidates(param, all) {
   if (all.some(other => other.selectNextRow === "SameLine" && other.sameLineAs === param.name)) return [];
-  return all.filter(other => other.name !== param.name && other.selectNextRow !== "SameLine" && other.rows === param.rows);
+  return all.filter(other =>
+    other.name !== param.name &&
+    other.file && other.file.endsWith(".dat") &&
+    other.selectNextRow !== "SameLine" &&
+    other.rows === param.rows
+  );
 }
 
 /** Ubah nilai sebuah select jadi payload perubahan untuk API. */

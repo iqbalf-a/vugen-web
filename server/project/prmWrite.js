@@ -214,6 +214,96 @@ export async function updateParameterSetting(scriptDir, name, changes) {
   return { name, file: relative, ...entries };
 }
 
+/**
+ * Buat parameter tipe File (Table): tulis file `.dat` baru + tambah seksi ke `.prm`.
+ *
+ * @param {string} scriptDir
+ * @param {{ name: string, values: string[], selectNextRow?: string, updateValueOn?: string, outOfRangePolicy?: string }} paramDef
+ */
+export async function addFileParameter(scriptDir, paramDef) {
+  const { name, values = [], selectNextRow = "Sequential", sameLineAs, updateValueOn = "EachIteration", outOfRangePolicy = "Cycle" } = paramDef;
+
+  if (!name || typeof name !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name.trim())) {
+    throw new HttpError(400, "Parameter name must start with a letter/underscore and contain only letters, digits, and underscores.");
+  }
+  if (!SELECT_NEXT_ROW.includes(selectNextRow)) {
+    throw new HttpError(400, `selectNextRow must be one of: ${SELECT_NEXT_ROW.join(", ")}.`);
+  }
+  if (!UPDATE_VALUE_ON.includes(updateValueOn)) {
+    throw new HttpError(400, `updateValueOn must be one of: ${UPDATE_VALUE_ON.join(", ")}.`);
+  }
+
+  const trimmedName = name.trim();
+
+  // Cek duplikat parameter
+  const project = await loadProject(scriptDir);
+  if (project.parameters.some((p) => p.name === trimmedName)) {
+    throw new HttpError(409, `Parameter "${trimmedName}" already exists.`);
+  }
+
+  // Validasi SameLine
+  if (selectNextRow === "SameLine") {
+    if (!sameLineAs) throw new HttpError(400, "sameLineAs is required when selectNextRow is SameLine.");
+    const parent = project.parameters.find((p) => p.name === sameLineAs);
+    if (!parent) throw new HttpError(404, `Parameter not found: ${sameLineAs}`);
+    if (parent.selectNextRow === "SameLine") {
+      throw new HttpError(409, `"${parent.name}" already follows "${parent.sameLineAs}", so it can't be a parent.`);
+    }
+    const newRows = values.filter((v) => String(v) !== "").length;
+    if (parent.rows !== newRows) {
+      throw new HttpError(409, `Row counts must match: new parameter has ${newRows} rows, "${parent.name}" has ${parent.rows}.`);
+    }
+  }
+
+  // Tulis file .dat (nama file = nama parameter)
+  const datFileName = `${trimmedName}.dat`;
+  const datAbsolute = path.join(scriptDir, datFileName);
+  try {
+    await fs.access(datAbsolute);
+    throw new HttpError(409, `File ${datFileName} already exists. Rename the existing file or choose a different parameter name.`);
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    // File belum ada — lanjut
+  }
+
+  const rows = values.map((v) => String(v)).filter((v) => v !== "");
+  const datContent = [trimmedName, ...rows].join("\r\n") + "\r\n";
+  await fs.writeFile(datAbsolute, datContent, "utf8");
+
+  // Tambah seksi .prm
+  const scriptName = path.basename(scriptDir);
+  const prmFileName = `${scriptName}.prm`;
+  const prmAbsolute = path.join(scriptDir, prmFileName);
+
+  let existing = "";
+  try {
+    const buf = await fs.readFile(prmAbsolute);
+    if ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff)) {
+      throw new HttpError(400, `UTF-16 .prm files can't be edited: ${prmFileName}`);
+    }
+    existing = buf.toString("latin1");
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+  }
+
+  const eol = existing.includes("\r\n") ? "\r\n" : "\n";
+  const orp = OUT_OF_RANGE_TOKEN[outOfRangePolicy] ?? "CycleInSequence";
+  const snrToken = selectNextRow === "SameLine"
+    ? `Same line as ${sameLineAs}`
+    : selectNextRow;
+  const section =
+    `${eol}[parameter:${trimmedName}]${eol}` +
+    `Type="Table"${eol}` +
+    `Table="${datFileName}"${eol}` +
+    `ColumnName="${trimmedName}"${eol}` +
+    `SelectNextRow="${snrToken}"${eol}` +
+    `GenerateNewVal="${updateValueOn}"${eol}` +
+    `OutOfRangePolicy="${orp}"${eol}`;
+
+  await atomicWrite(prmAbsolute, Buffer.from(existing + section, "latin1"));
+  return { name: trimmedName, type: "Table", file: datFileName, rows: rows.length };
+}
+
 const VALID_TYPES = new Set(["Time", "GroupName", "Userid", "Machine", "IterationNumber", "Custom", "RndNum", "UniqueNumber"]);
 
 /**

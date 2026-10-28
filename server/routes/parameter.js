@@ -7,7 +7,7 @@
 
 import { readJsonBody, sendJson } from "../http-utils.js";
 import { resolveScriptDir } from "../project/paths.js";
-import { updateParameterSetting, addParameterToPrm } from "../project/prmWrite.js";
+import { updateParameterSetting, addParameterToPrm, addFileParameter } from "../project/prmWrite.js";
 
 /**
  * @param {IncomingMessage} req
@@ -26,5 +26,9 @@ export async function putParameter(req, res) {
 export async function postParameter(req, res) {
   const body = await readJsonBody(req);
   const scriptDir = await resolveScriptDir(body?.path);
-  sendJson(res, 201, await addParameterToPrm(scriptDir, body));
+  if (body?.type === "Table") {
+    sendJson(res, 201, await addFileParameter(scriptDir, body));
+  } else {
+    sendJson(res, 201, await addParameterToPrm(scriptDir, body));
+  }
 }

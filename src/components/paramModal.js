@@ -531,6 +531,7 @@ function renderCustomEditView(param, footer, onSave) {
 }
 
 const ADD_PARAM_TYPES = [
+  { value: "Table", label: "File (Table)" },
   { value: "Time", label: "Date/Time" },
   { value: "GroupName", label: "Group Name" },
   { value: "IterationNumber", label: "Iteration Number" },
@@ -546,8 +547,9 @@ const ADD_PARAM_TYPES = [
  * @param {HTMLElement} footer
  * @param {(paramDef: object) => Promise<any[]>} onAdd - returns updated parameters array
  * @param {() => void} onBack
+ * @param {any[]} allParams - existing parameters untuk "Same line as" candidates
  */
-function renderAddForm(footer, onAdd, onBack) {
+function renderAddForm(footer, onAdd, onBack, allParams) {
   const frag = document.createDocumentFragment();
   const container = document.createElement("div");
   container.className = "px-4 py-4 flex flex-col gap-4";
@@ -736,6 +738,64 @@ function renderAddForm(footer, onAdd, onBack) {
           const prev = document.getElementById("pm-add-preview");
           if (prev) prev.textContent = `Iter 1 → "1"  |  Iter 2 → "2"  |  Iter 3 → "3"  |  …`;
         });
+
+      } else if (t === "Table") {
+        // "Same line as" candidates: hanya Table/File params yang tidak sedang mengikuti param lain
+        const sameLineCands = (allParams || []).filter((p) => p.file && p.file.endsWith(".dat") && p.selectNextRow !== "SameLine");
+        const sameLineOpts = sameLineCands.map((p) =>
+          `<option value="same:${p.name}">Same line as ${p.name} (${p.rows} rows)</option>`
+        ).join("");
+        const snrOpts = SELECT_NEXT_ROW_OPTIONS.map((o) => `<option value="${o.value}">${o.label}</option>`).join("") + sameLineOpts;
+
+        extraEl.innerHTML = `
+          <label class="flex flex-col gap-1.5">
+            <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Values <span class="normal-case">(one per line)</span></span>
+            <textarea id="pm-add-values" rows="10" class="ui-field w-full font-mono text-[12px] resize-y" placeholder="value1&#10;value2&#10;value3"></textarea>
+            <div id="pm-add-table-note" class="text-[10px] text-[#5b6572]">Creates <span id="pm-add-dat-name" class="font-mono text-[#7d8896]">{name}.dat</span> with 0 rows.</div>
+          </label>
+          <div class="grid grid-cols-3 gap-3">
+            <label class="flex flex-col gap-1">
+              <span class="text-[10px] text-[#7d8896] uppercase tracking-wide">Select Next Row</span>
+              <select id="pm-add-snr" class="ui-field w-full">${snrOpts}</select>
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-[10px] text-[#7d8896] uppercase tracking-wide">Update Value On</span>
+              <select id="pm-add-update" class="ui-field w-full">${optionsHtml(UPDATE_OPTIONS, "EachIteration")}</select>
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-[10px] text-[#7d8896] uppercase tracking-wide">When Out of Values</span>
+              <select id="pm-add-oor" class="ui-field w-full">${optionsHtml(OUT_OF_RANGE_OPTIONS, "Cycle")}</select>
+            </label>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-[11px] text-[#7d8896] uppercase tracking-wide">Preview</span>
+            <div id="pm-add-preview" class="rounded px-3 py-1.5 bg-[#141922] border border-[#232a33] font-mono text-[12px] text-[#5b8db8] whitespace-pre-wrap min-h-[36px]"></div>
+          </div>
+        `;
+        requestAnimationFrame(() => {
+          const valuesEl = document.getElementById("pm-add-values");
+          const snrEl = document.getElementById("pm-add-snr");
+          const updateEl = document.getElementById("pm-add-update");
+          const oorEl = document.getElementById("pm-add-oor");
+          const noteEl = document.getElementById("pm-add-table-note");
+          const datNameEl = document.getElementById("pm-add-dat-name");
+          const prev = document.getElementById("pm-add-preview");
+          function updTable() {
+            const rows = (valuesEl?.value || "").split("\n").map((v) => v.trim()).filter(Boolean);
+            const nm = nameEl?.value.trim() || "{name}";
+            if (datNameEl) datNameEl.textContent = `${nm}.dat`;
+            if (noteEl) noteEl.innerHTML = `Creates <span class="font-mono text-[#7d8896]">${nm}.dat</span> with ${rows.length} row${rows.length !== 1 ? "s" : ""}.`;
+            if (prev) prev.textContent = rows.slice(0, 5).join("\n") + (rows.length > 5 ? `\n… (${rows.length - 5} more)` : "");
+            // lock Update/OOR when "Same line as" is selected
+            const isSame = snrEl?.value.startsWith("same:");
+            if (updateEl) updateEl.disabled = isSame;
+            if (oorEl) oorEl.disabled = isSame;
+          }
+          valuesEl?.addEventListener("input", updTable);
+          nameEl?.addEventListener("input", updTable);
+          snrEl?.addEventListener("change", updTable);
+          updTable();
+        });
       }
     }
 
@@ -771,6 +831,18 @@ function renderAddForm(footer, onAdd, onBack) {
         def.blockSize = parseInt(document.getElementById("pm-add-block")?.value || "100", 10);
       } else if (type === "Custom") {
         def.defaultValue = document.getElementById("pm-add-defval")?.value ?? "";
+      } else if (type === "Table") {
+        const raw = document.getElementById("pm-add-values")?.value || "";
+        def.values = raw.split("\n").map((v) => v.trim()).filter(Boolean);
+        const snrVal = document.getElementById("pm-add-snr")?.value || "Sequential";
+        if (snrVal.startsWith("same:")) {
+          def.selectNextRow = "SameLine";
+          def.sameLineAs = snrVal.slice("same:".length);
+        } else {
+          def.selectNextRow = snrVal;
+        }
+        def.updateValueOn = document.getElementById("pm-add-update")?.value || "EachIteration";
+        def.outOfRangePolicy = document.getElementById("pm-add-oor")?.value || "Cycle";
       }
 
       saveBtn.disabled = true;
@@ -877,7 +949,7 @@ export function openParamModal(parameters, onSave, onAdd) {
     header.replaceChildren(makeBackHeader("Add Parameter", null), closeBtn);
     footer.classList.remove("hidden");
     footer.className = "flex justify-end gap-2 px-4 py-3 border-t border-[#232a33]";
-    content.replaceChildren(renderAddForm(footer, onAdd, showList));
+    content.replaceChildren(renderAddForm(footer, onAdd, showList, parameters));
   }
 
   function showEdit(param) {

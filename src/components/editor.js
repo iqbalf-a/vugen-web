@@ -15,6 +15,8 @@ import {
   Decoration,
   EditorView,
   GutterMarker,
+  MatchDecorator,
+  ViewPlugin,
   drawSelection,
   gutter,
   highlightActiveLine,
@@ -57,6 +59,52 @@ const PENDING_THEME = EditorView.baseTheme({
   "@keyframes cm-pending-pulse": {
     "0%,100%": { backgroundColor: "rgba(210,162,76,0.22)" },
     "50%": { backgroundColor: "rgba(210,162,76,0.40)" },
+  },
+});
+
+// ── Highlight parameter {nama} ────────────────────────────────────────────────
+const paramMark = Decoration.mark({ class: "cm-param-ref" });
+const paramMissingMark = Decoration.mark({ class: "cm-param-ref cm-param-ref--unknown" });
+
+/**
+ * Sorot referensi parameter seperti {date}. Nama yang ada di .prm/.dat disorot penuh;
+ * `{nama}` di dalam string literal yang tidak dikenal diberi gaya "unknown".
+ * @param {string[]} paramNames
+ */
+function makeParamHighlighter(paramNames) {
+  const known = new Set(paramNames);
+  const matcher = new MatchDecorator({
+    regexp: /\{(\w+)\}/g,
+    decorate(add, from, to, match, view) {
+      if (known.has(match[1])) return add(from, to, paramMark);
+      // Tidak dikenal: tandai hanya bila berada di dalam string literal pada baris tsb
+      const line = view.state.doc.lineAt(from);
+      const before = line.text.slice(0, from - line.from).replace(/\\./g, "");
+      if ((before.match(/"/g) || []).length % 2 === 1) add(from, to, paramMissingMark);
+    },
+  });
+  return ViewPlugin.fromClass(
+    class {
+      constructor(view) { this.decorations = matcher.createDeco(view); }
+      update(update) { this.decorations = matcher.updateDeco(update, this.decorations); }
+    },
+    { decorations: (v) => v.decorations },
+  );
+}
+
+const PARAM_THEME = EditorView.baseTheme({
+  ".cm-param-ref": {
+    color: "#7ee0a1",
+    backgroundColor: "rgba(126,224,161,0.14)",
+    borderRadius: "3px",
+    boxShadow: "0 0 0 1px rgba(126,224,161,0.35)",
+    fontWeight: "600",
+  },
+  ".cm-param-ref--unknown": {
+    color: "#f0a36b",
+    backgroundColor: "rgba(240,163,107,0.12)",
+    boxShadow: "0 0 0 1px rgba(240,163,107,0.35)",
+    textDecoration: "underline wavy rgba(240,163,107,0.7)",
   },
 });
 
@@ -230,6 +278,7 @@ export function createEditor(root, { onChange, onBreakpointsChange } = {}) {
   const wrapCompartment = new Compartment();
   const idleCompartment = new Compartment();
   const completionsCompartment = new Compartment();
+  const paramHighlightCompartment = new Compartment();
   const idleExtensions = [highlightActiveLine(), highlightSelectionMatches(), EditorState.readOnly.of(false)];
   const runningExtensions = [EditorState.readOnly.of(true)];
 
@@ -249,6 +298,8 @@ export function createEditor(root, { onChange, onBreakpointsChange } = {}) {
       EditorView.editable.of(true),
       wrapCompartment.of([]), // word wrap off by default
       completionsCompartment.of([]),
+      paramHighlightCompartment.of(makeParamHighlighter([])),
+      PARAM_THEME,
       pendingLineField,
       PENDING_THEME,
       bpField,
@@ -367,7 +418,10 @@ export function createEditor(root, { onChange, onBreakpointsChange } = {}) {
      */
     setCompletions(paramNames = [], varNames = []) {
       view.dispatch({
-        effects: completionsCompartment.reconfigure(makeCompletionExtension(paramNames, varNames)),
+        effects: [
+          completionsCompartment.reconfigure(makeCompletionExtension(paramNames, varNames)),
+          paramHighlightCompartment.reconfigure(makeParamHighlighter(paramNames)),
+        ],
       });
     },
 

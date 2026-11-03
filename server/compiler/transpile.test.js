@@ -204,3 +204,13 @@ describe("transpile: kasus umum (transpile-cases)", () => {
     expect(msgs).not.toContain("lain");
   });
 });
+
+describe("transpile: web_set_rts_key / web_get_int_property / HTTP_INFO_* / lr_set_transaction_status_by_name", () => {
+  it("didukung runtime; makro HTTP_INFO_RETURN_CODE jadi angka; fungsi user SetRpsResult tanpa warning", async () => {
+    const result = await transpileFixtureFiles(["rts-key.c"]);
+    expect(result.warnings.map((w) => w.message)).toEqual([]);
+    expect(result.code).toMatch(/__vu\.web_set_rts_key\(/);
+    expect(result.code).toMatch(/__vu\.web_get_int_property\(1\)/);
+    expect(result.code).toMatch(/__vu\.lr_set_transaction_status_by_name\(0,/);
+  });
+});

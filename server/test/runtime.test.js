@@ -775,3 +775,67 @@ describe("lr_paramarr_*", () => {
     expect(api.lr_paramarr_random("empty")).toBe(0);
   });
 });
+
+describe("web_set_rts_key + web_get_int_property", () => {
+  beforeEach(() => {
+    env.ctx.runOptions.continueOnError = true;
+  });
+
+  it("default: HTTP 500 menggagalkan step (kontrol)", async () => {
+    expect(await api.web_url("gagal", `URL=${BASE}/status/500`, "LAST")).not.toBe(0);
+  });
+
+  it("HttpErrorsAsWarnings=1: HTTP 500 hanya warning, step sukses & tanpa error", async () => {
+    expect(api.web_set_rts_key("key=HttpErrorsAsWarnings", "Value=1", "LAST")).toBe(0);
+    expect(await api.web_url("tetap_lanjut", `URL=${BASE}/status/500`, "LAST")).toBe(0);
+    expect(steps()[0].error).toBeFalsy();
+    expect(env.logs.some(([level, msg]) => level === "warn" && /HttpErrorsAsWarnings/.test(msg))).toBe(true);
+  });
+
+  it("Value=0 mengembalikan perilaku normal; nama key tidak peka huruf besar/kecil", async () => {
+    api.web_set_rts_key("key=httperrorsaswarnings", "Value=1", "LAST");
+    api.web_set_rts_key("key=HttpErrorsAsWarnings", "Value=0", "LAST");
+    expect(await api.web_url("gagal", `URL=${BASE}/status/500`, "LAST")).not.toBe(0);
+  });
+
+  it("web_get_int_property(RETURN_CODE=1) mengembalikan status response terakhir", async () => {
+    api.web_set_rts_key("key=HttpErrorsAsWarnings", "Value=1", "LAST");
+    await api.web_url("a", `URL=${BASE}/status/404`, "LAST");
+    expect(api.web_get_int_property(1)).toBe(404);
+    await api.web_url("b", `URL=${BASE}/echo-headers`, "LAST");
+    expect(api.web_get_int_property(1)).toBe(200);
+    expect(api.web_get_int_property(2)).toBeGreaterThan(0);
+  });
+
+  it("key lain tidak berefek dan tidak error", () => {
+    expect(api.web_set_rts_key("key=SomethingElse", "Value=1", "LAST")).toBe(0);
+  });
+});
+
+describe("lr_set_transaction_status(_by_name)", () => {
+  it("LR_FAIL paksa transaksi terbuka jadi Fail walau tidak ada step gagal (LR_AUTO)", () => {
+    api.lr_start_transaction("t1");
+    expect(api.lr_set_transaction_status_by_name(1, "t1")).toBe(0);
+    expect(api.lr_get_transaction_status("t1")).toBe(1);
+    api.lr_end_transaction("t1", 2);
+    expect(transactions()[0].status).toBe("Fail");
+  });
+
+  it("LR_PASS menimpa deteksi gagal; pola SetRpsResult (409 dianggap pass)", async () => {
+    env.ctx.runOptions.continueOnError = true;
+    api.lr_start_transaction("t2");
+    await api.web_url("x", `URL=${BASE}/status/409`, "LAST");
+    api.lr_set_transaction_status_by_name(0, "t2");
+    api.lr_end_transaction("t2", 2);
+    expect(transactions()[0].status).toBe("Pass");
+  });
+
+  it("transaksi tidak terbuka: warning tanpa efek; tanpa nama = transaksi terbuka terdalam", () => {
+    expect(api.lr_set_transaction_status_by_name(1, "tidak_ada")).toBe(1);
+    api.lr_start_transaction("a");
+    api.lr_start_transaction("b");
+    api.lr_set_transaction_status(1);
+    expect(api.lr_get_transaction_status("b")).toBe(1);
+    expect(api.lr_get_transaction_status("a")).toBe(0);
+  });
+});

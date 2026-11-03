@@ -43,6 +43,7 @@ const SNIPPETS = {
   web_add_auto_header:       '"${name}", "${value}"',
   web_remove_auto_header:    '"${name}", LAST',
   web_add_cookie:            '"${name}=${value}; path=/", LAST',
+  web_set_rts_key:           '"key=${HttpErrorsAsWarnings}", "Value=${1}", LAST',
   web_set_user:              '"${username}", "${password}", "${realm}"',
   lr_start_transaction:      '"${name}"',
   lr_end_transaction:        '"${name}", LR_AUTO',
@@ -96,6 +97,7 @@ const VUGEN_CONSTANTS = [
   "LR_AUTO", "LR_PASS", "LR_FAIL",
   "LR_EXIT_VUSER", "LR_EXIT_ACTION", "LR_EXIT_ACTION_AND_CONTINUE", "LR_EXIT_ITERATION_AND_CONTINUE",
   "LR_ABORT",
+  "HTTP_INFO_RETURN_CODE", "HTTP_INFO_DOWNLOAD_SIZE", "HTTP_INFO_DOWNLOAD_TIME",
   "ACTION_E_FUNC_ERR",
 ].map((name) => ({ label: name, type: "constant" }));
 

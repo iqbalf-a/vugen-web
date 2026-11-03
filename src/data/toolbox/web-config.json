@@ -304,6 +304,18 @@
     "docUrl": "https://admhelp.microfocus.com/vugen/en/25.1-25.3/help/function_reference/Content/FuncRef/web/lrFr_web_set_option.htm"
   },
   {
+    "name": "web_set_rts_key",
+    "category": "Web: Headers, Cookies, Cache & Settings",
+    "signature": "int web_set_rts_key(const char *key, const char *Value, LAST);",
+    "description": "Overrides a Run-Time Settings key from inside the script. Not covered in the official function reference. Most commonly used with key=HttpErrorsAsWarnings: with Value=1 an HTTP error status (>= 400) is reported as a warning instead of failing the step; Value=0 restores the default behavior. The setting stays in effect until changed again. In VuGen Web only HttpErrorsAsWarnings has an effect; other keys are logged and ignored.",
+    "args": [
+      { "name": "key", "desc": "Written as \"key=<SettingName>\", e.g. \"key=HttpErrorsAsWarnings\"." },
+      { "name": "Value", "desc": "Written as \"Value=<value>\", e.g. \"Value=1\"." }
+    ],
+    "example": "web_set_rts_key(\"key=HttpErrorsAsWarnings\", \"Value=1\", LAST);\nweb_url(\"maybe_404\", \"URL=http://host/missing\", LAST); // 404 -> warning, step continues\nweb_set_rts_key(\"key=HttpErrorsAsWarnings\", \"Value=0\", LAST);",
+    "exampleSource": "composed"
+  },
+  {
     "name": "web_set_pac",
     "category": "Web: Headers, Cookies, Cache & Settings",
     "signature": "int web_set_pac( const char *pacURL );",

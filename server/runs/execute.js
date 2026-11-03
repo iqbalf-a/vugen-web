@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { compileScript } from "../compiler/transpile.js";
 import { loadProject } from "../project/loader.js";
 import { cacheDirFor, runCacheDirFor, resolveScriptDir } from "../project/paths.js";
+import { RUNTIME_DEFAULTS, readRuntimeSettings } from "../project/runtimeSettings.js";
 import { KEEP_AFTER_DONE_MS, registerRun, retireRun } from "./registry.js";
 import { addLog, addStep, addTransaction, createRunResult, finalizeRun, pruneOldRuns, saveRun } from "./store.js";
 
@@ -39,7 +40,7 @@ export function generateRunId() {
  * @param {Partial<RunOptions>} [options]
  * @returns {RunOptions}
  */
-function normalizeOptions(options = {}) {
+function normalizeOptions(options = {}, runtime = RUNTIME_DEFAULTS) {
   return {
     iterations: options.iterations ?? 1,
     continueOnError: options.continueOnError ?? false,
@@ -47,7 +48,12 @@ function normalizeOptions(options = {}) {
     newUserEachIteration: options.newUserEachIteration !== false,
     insecureTLS: options.insecureTLS ?? false,
     thinkTime: options.thinkTime ?? "ignore",
-    timeoutMs: options.timeoutMs ?? 60000,
+    // Timeout dari Runtime Settings (default.cfg [WEB]); `timeoutMs` eksplisit (API/tes) menimpa batas per-step.
+    timeoutMs: options.timeoutMs ?? runtime.pageDownloadTimeout * 1000,
+    connectTimeoutMs: options.connectTimeoutMs ?? runtime.connectTimeout * 1000,
+    receiveTimeoutMs: options.receiveTimeoutMs ?? runtime.receiveTimeout * 1000,
+    keepAliveTimeoutMs: options.keepAliveTimeoutMs ?? runtime.keepAliveTimeout * 1000,
+    httpErrorsAsWarnings: options.httpErrorsAsWarnings ?? runtime.httpErrorsAsWarnings,
     breakpoints: Array.isArray(options.breakpoints) ? options.breakpoints : [],
   };
 }
@@ -79,7 +85,7 @@ export async function startRun({ scriptDir, options = {}, profile = "_" }) {
   const unusedParameters = project.parameters.filter((parameter) => !referenced.has(parameter.name));
 
   const runId = generateRunId();
-  const runOptions = normalizeOptions(options);
+  const runOptions = normalizeOptions(options, await readRuntimeSettings(dir));
   const runResult = createRunResult({ runId, options: runOptions });
 
   const events = new EventEmitter();

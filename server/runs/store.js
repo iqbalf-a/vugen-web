@@ -12,7 +12,11 @@
  * @property {boolean} newUserEachIteration
  * @property {boolean} insecureTLS
  * @property {"ignore"|"run"} thinkTime
- * @property {number} timeoutMs
+ * @property {number} timeoutMs - batas waktu satu step (Step download timeout)
+ * @property {number} connectTimeoutMs
+ * @property {number} receiveTimeoutMs
+ * @property {number} keepAliveTimeoutMs
+ * @property {boolean} httpErrorsAsWarnings
  */
 
 /**

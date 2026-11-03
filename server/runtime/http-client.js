@@ -19,6 +19,8 @@ import { CookieJar } from "tough-cookie";
  * @typedef {Object} HttpClientOptions
  * @property {number} [timeoutMs=60000]
  * @property {number} [connectTimeoutMs=10000]
+ * @property {number} [receiveTimeoutMs] timeout menunggu header/body response (0/kosong = default undici)
+ * @property {number} [keepAliveTimeoutMs] lama koneksi idle dipertahankan (0/kosong = default undici)
  * @property {boolean} [insecureTLS=false]
  * @property {boolean} [followRedirects=false] // manual redirect, default false
  * @property {number} [maxRedirects=10]
@@ -67,6 +69,8 @@ export class HttpClient {
   constructor(options = {}) {
     this.timeoutMs = options.timeoutMs ?? 60000;
     this.connectTimeoutMs = options.connectTimeoutMs ?? 10000;
+    this.receiveTimeoutMs = options.receiveTimeoutMs || 0;
+    this.keepAliveTimeoutMs = options.keepAliveTimeoutMs || 0;
     this.insecureTLS = options.insecureTLS ?? false;
     this.debugCallback = options.debugCallback ?? null;
     this.defaultFollowRedirects = options.followRedirects ?? false;
@@ -76,6 +80,8 @@ export class HttpClient {
     /** @type {Agent} */
     this.agent = new Agent({
       connections: 10,
+      ...(this.receiveTimeoutMs > 0 ? { headersTimeout: this.receiveTimeoutMs, bodyTimeout: this.receiveTimeoutMs } : {}),
+      ...(this.keepAliveTimeoutMs > 0 ? { keepAliveTimeout: this.keepAliveTimeoutMs, keepAliveMaxTimeout: this.keepAliveTimeoutMs } : {}),
       connect: {
         timeout: this.connectTimeoutMs,
         ...(this.insecureTLS ? { rejectUnauthorized: false } : {}),

@@ -1124,7 +1124,9 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   if (resp.status >= 400) {
     const httpProblem = `HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""}`;
     // web_set_rts_key("key=HttpErrorsAsWarnings", "Value=1"): error HTTP hanya warning, step tetap lanjut
-    if (rtsKeys.get("httperrorsaswarnings") === "1") log("warn", `${type} "${stepName}": ${httpProblem} (HttpErrorsAsWarnings=1 -> warning)`);
+    // Nilai awal dari Runtime Settings (default.cfg); web_set_rts_key menimpanya selama run
+    const asWarnings = rtsKeys.has("httperrorsaswarnings") ? rtsKeys.get("httperrorsaswarnings") === "1" : c.runOptions?.httpErrorsAsWarnings === true;
+    if (asWarnings) log("warn", `${type} "${stepName}": ${httpProblem} (HttpErrorsAsWarnings=1 -> warning)`);
     else problems.push(httpProblem);
   }
 

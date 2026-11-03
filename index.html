@@ -78,7 +78,7 @@
           </button>
 
           <div id="runSettingsPanel" role="dialog" aria-label="Run settings" tabindex="-1" hidden
-            class="absolute left-0 top-full z-50 mt-1.5 w-[340px] rounded-[4px] border border-[#2a3644] bg-[#141922] shadow-[0_12px_32px_rgba(0,0,0,0.5)] outline-none">
+            class="absolute left-0 top-full z-50 mt-1.5 max-h-[calc(100vh-90px)] w-[340px] overflow-y-auto rounded-[4px] border border-[#2a3644] bg-[#141922] shadow-[0_12px_32px_rgba(0,0,0,0.5)] outline-none">
             <p id="runSettingsLock" hidden class="border-b border-[#232a33] bg-[#1b212b] px-3 py-1.5 text-[11px] text-[#e3c664]">Locked while a run is in progress.</p>
 
             <div class="section-head border-b-0 pt-1">Iterations</div>
@@ -114,6 +114,31 @@
                 <span class="setting-text"><span class="setting-name">Insecure TLS</span><span class="setting-hint">Accept self-signed or invalid certificates.</span></span>
                 <input type="checkbox" id="insecureTLS" checked class="ui-toggle ui-toggle-warn" />
               </label>
+            </div>
+
+            <div class="section-head border-t border-b-0 pt-1">Timeouts &amp; HTTP <span id="rtsFile" class="ml-1 font-mono text-[10px] font-normal text-[#7d8896]"></span></div>
+            <div class="px-3 pb-2">
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">HTTP request connect timeout</span><span class="setting-hint">Seconds to wait for a connection (ConnectTimeout).</span></span>
+                <input type="number" id="rtsConnectTimeout" value="120" min="1" max="86400" class="ui-field w-20" data-rts="connectTimeout" />
+              </label>
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">HTTP request receive timeout</span><span class="setting-hint">Seconds to wait for the response (ReceiveTimeout).</span></span>
+                <input type="number" id="rtsReceiveTimeout" value="120" min="1" max="86400" class="ui-field w-20" data-rts="receiveTimeout" />
+              </label>
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">HTTP Keep-Alive timeout</span><span class="setting-hint">Seconds an idle connection is kept (KeepAliveTimeout).</span></span>
+                <input type="number" id="rtsKeepAliveTimeout" value="60" min="1" max="86400" class="ui-field w-20" data-rts="keepAliveTimeout" />
+              </label>
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">Step download timeout</span><span class="setting-hint">Max seconds for one step (PageDownloadTimeout).</span></span>
+                <input type="number" id="rtsPageDownloadTimeout" value="120" min="1" max="86400" class="ui-field w-20" data-rts="pageDownloadTimeout" />
+              </label>
+              <label class="setting-row">
+                <span class="setting-text"><span class="setting-name">Mark HTTP errors as warnings</span><span class="setting-hint">HTTP 4xx/5xx is logged as a warning and the step continues (HttpErrorsAsWarnings).</span></span>
+                <input type="checkbox" id="rtsHttpErrorsAsWarnings" class="ui-toggle" data-rts="httpErrorsAsWarnings" />
+              </label>
+              <p id="rtsNote" class="pt-1 text-[11px] text-[#7d8896]">Saved to default.cfg [WEB] when changed.</p>
             </div>
           </div>
         </div>

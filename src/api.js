@@ -83,6 +83,18 @@ export function saveParameterSetting({ path, name, changes }) {
 }
 
 /**
+ * Simpan timeout / HttpErrorsAsWarnings ke default.cfg [WEB].
+ * @param {{ path: string, changes: Record<string, number|boolean> }} payload
+ */
+export function saveRuntimeSettings({ path, changes }) {
+  return requestJson("/api/runtime-settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, changes }),
+  });
+}
+
+/**
  * @param {{ path: string, name: string, type: string, [key: string]: unknown }} payload
  */
 export function addParameter(payload) {

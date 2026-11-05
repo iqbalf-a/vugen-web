@@ -5,6 +5,7 @@
 import {
   getHealth,
   openProject,
+  saveRuntimeSettings,
   readFile,
   saveFile,
   saveParameterSetting,
@@ -67,7 +68,12 @@ const els = {
   runSettingsPanel: document.querySelector("#runSettingsPanel"),
   runSettingsSummary: document.querySelector("#runSettingsSummary"),
   runSettingsLock: document.querySelector("#runSettingsLock"),
+  rtsFile: document.querySelector("#rtsFile"),
+  rtsNote: document.querySelector("#rtsNote"),
 };
+
+/** Input Runtime Settings (default.cfg [WEB]); `data-rts` = nama field di API */
+const rtsInputs = [...document.querySelectorAll("[data-rts]")];
 
 const { paramsSectionBtn } = els;
 if (Object.entries(els).some(([k, v]) => k !== "paramsSectionBtn" && v === null)) {
@@ -102,8 +108,38 @@ const runSettings = createRunSettings({
     continueOnError: els.continueOnErrorCheckbox,
     insecureTLS: els.insecureTLSCheckbox,
     thinkTime: els.thinkTimeSelect,
+    ...Object.fromEntries(rtsInputs.map((input) => [input.dataset.rts, input])),
   },
 });
+
+/** Isi input Runtime Settings dari project (nilai default.cfg atau default VuGen). */
+function applyRuntimeSettings(rts) {
+  for (const input of rtsInputs) {
+    const value = rts?.[input.dataset.rts];
+    if (input.type === "checkbox") input.checked = value === true;
+    else if (value !== undefined) input.value = String(value);
+  }
+  els.rtsFile.textContent = rts?.file ? `· ${rts.file}` : "· default.cfg (not created yet)";
+  els.rtsNote.textContent = "Saved to default.cfg [WEB] when changed.";
+}
+
+for (const input of rtsInputs) {
+  input.addEventListener("change", async () => {
+    const project = store.get().project;
+    if (!project) return;
+    const field = input.dataset.rts;
+    const changes = { [field]: input.type === "checkbox" ? input.checked : Number(input.value) };
+    try {
+      const saved = await saveRuntimeSettings({ path: project.path, changes });
+      project.runtimeSettings = saved;
+      applyRuntimeSettings(saved);
+      els.rtsNote.textContent = `Saved to ${saved.file}.`;
+    } catch (error) {
+      applyRuntimeSettings(project.runtimeSettings); // kembalikan nilai terakhir yang valid
+      els.rtsNote.textContent = `Not saved: ${messageOf(error)}`;
+    }
+  });
+}
 
 /** @type {Map<string, { text: string, saved: string }>} */
 const docs = new Map();
@@ -415,6 +451,7 @@ async function openProjectPath(path) {
     });
 
     editor.setDoc("");
+    applyRuntimeSettings(project.runtimeSettings);
     refreshCompletions();
     if (paramsSectionBtn) paramsSectionBtn.hidden = false;
     renderFileTree(els.fileTree, project, { activePath: null, onOpenFile: openDoc });

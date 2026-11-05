@@ -16,6 +16,7 @@ import { getFile, putFile } from "./file.js";
 import { getLibraryChannels, getLibraryScripts } from "./library.js";
 import { putParameter, postParameter } from "./parameter.js";
 import { getProject } from "./project.js";
+import { putRuntimeSettings } from "./runtimeSettings.js";
 import { handleRunEvents, handleRunGet, handleRunPost, handleRunResume, handleRunStepBody, handleRunStop } from "./run.js";
 import {
   getProfileFromCookie,
@@ -55,6 +56,7 @@ const routes = [
   { methods: ["PUT"], path: "/file", handler: putFile },
   { methods: ["PUT"], path: "/parameter", handler: putParameter },
   { methods: ["POST"], path: "/parameter", handler: postParameter },
+  { methods: ["PUT"], path: "/runtime-settings", handler: putRuntimeSettings },
   { methods: ["POST"], path: "/run", handler: handleRunPost },
   { methods: ["GET"], path: "/run/:id/events", handler: handleRunEvents },
   { methods: ["POST"], path: "/run/:id/stop", handler: handleRunStop },

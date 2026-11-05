@@ -8,6 +8,7 @@
 import { sendJson } from "../http-utils.js";
 import { loadProject } from "../project/loader.js";
 import { resolveScriptDir } from "../project/paths.js";
+import { readRuntimeSettings } from "../project/runtimeSettings.js";
 
 /**
  * @param {IncomingMessage} _req
@@ -23,5 +24,5 @@ export async function getProject(_req, res, url) {
     // Kirim values untuk ditampilkan di modal (dibatasi 500 row)
     values: Array.isArray(values) ? values.slice(0, 500) : [],
   }));
-  sendJson(res, 200, { ...project, parameters });
+  sendJson(res, 200, { ...project, parameters, runtimeSettings: await readRuntimeSettings(scriptDir) });
 }

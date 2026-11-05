@@ -290,6 +290,10 @@ async function run(payload) {
       thinkTime: options.thinkTime || "ignore",
       insecureTLS: options.insecureTLS || false,
       timeoutMs: options.timeoutMs || 60000,
+      connectTimeoutMs: options.connectTimeoutMs || 10000,
+      receiveTimeoutMs: options.receiveTimeoutMs || 0,
+      keepAliveTimeoutMs: options.keepAliveTimeoutMs || 0,
+      httpErrorsAsWarnings: options.httpErrorsAsWarnings === true,
       continueOnError: options.continueOnError || false,
       iterationDelayMs: options.iterationDelayMs || 0,
       newUserEachIteration: options.newUserEachIteration !== false,
@@ -301,6 +305,9 @@ async function run(payload) {
     // Initialize HTTP client
     vu.http = new HttpClient({
       timeoutMs: vu.runOptions.timeoutMs,
+      connectTimeoutMs: vu.runOptions.connectTimeoutMs,
+      receiveTimeoutMs: vu.runOptions.receiveTimeoutMs,
+      keepAliveTimeoutMs: vu.runOptions.keepAliveTimeoutMs,
       insecureTLS: vu.runOptions.insecureTLS,
       followRedirects: true,
       maxRedirects: 10,

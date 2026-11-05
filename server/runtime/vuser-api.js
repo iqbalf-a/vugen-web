@@ -44,6 +44,16 @@ import { formatPrintf } from "./printf.js";
 /** @type {VuContext} */
 let ctx = null;
 
+/**
+ * Runtime settings override dari web_set_rts_key("key=...", "Value=...", LAST).
+ * Berlaku sampai diubah lagi (di LoadRunner juga persisten); direset saat __bind.
+ * @type {Map<string, string>}
+ */
+const rtsKeys = new Map();
+
+/** Info response terakhir untuk web_get_int_property */
+let lastHttpInfo = { status: 0, downloadSize: 0, downloadTimeMs: 0 };
+
 /** Correlation registry: array of { name, lb, rb, ord, regexp, saveParam } */
 const correlationRegistry = [];
 
@@ -56,6 +66,8 @@ const webRegFindRegistry = [];
  */
 export function __bind(c) {
   ctx = c;
+  rtsKeys.clear();
+  lastHttpInfo = { status: 0, downloadSize: 0, downloadTimeMs: 0 };
 }
 
 /** Helper: throw jika context belum siap */
@@ -202,11 +214,16 @@ function explicitTransactionStatus(status) {
   return null;
 }
 
+/** Hasil otomatis (LR_AUTO) transaksi terbuka: status paksa dari lr_set_transaction_status* menang atas deteksi step gagal */
+function autoResult(transaction) {
+  return transaction.forced ?? (transaction.failed ? "Fail" : "Pass");
+}
+
 /** Start transaction (boleh bersarang) */
 export function lr_start_transaction(name) {
   const { transactions, transactionResults, log } = needCtx();
   if (transactions.has(name)) log("warn", `lr_start_transaction: transaksi "${name}" sudah terbuka; dimulai ulang`);
-  transactions.set(name, { startMs: Date.now(), failed: false });
+  transactions.set(name, { startMs: Date.now(), failed: false, forced: null });
   transactionResults.delete(name);
   log("info", `lr_start_transaction: ${name}`);
   return 0;
@@ -225,7 +242,7 @@ export function lr_end_transaction(name, status = 2) {
   }
 
   const durationMs = Date.now() - transaction.startMs;
-  const result = explicitTransactionStatus(status) ?? (transaction.failed ? "Fail" : "Pass");
+  const result = explicitTransactionStatus(status) ?? autoResult(transaction);
   c.transactions.delete(name);
   c.transactionResults.set(name, result);
 
@@ -243,7 +260,7 @@ function closeOpenTransactions(forceFail, reason) {
   const c = needCtx();
   for (const [name, transaction] of c.transactions) {
     const durationMs = Date.now() - transaction.startMs;
-    const result = forceFail || transaction.failed ? "Fail" : "Pass";
+    const result = forceFail ? "Fail" : autoResult(transaction);
     c.transactionResults.set(name, result);
     c.log("warn", `Transaksi "${name}" ditutup sebagai ${result} karena ${reason}`);
     c.sendEvent("transaction", { iteration: c.currentIteration || 1, name, status: result, durationMs });
@@ -261,11 +278,43 @@ export function __endOpenTransactionsOnExit(status) {
   closeOpenTransactions(status === 1, "lr_exit");
 }
 
+/**
+ * lr_set_transaction_status_by_name(status, name) — paksa status transaksi yang SEDANG TERBUKA
+ * (LR_PASS/LR_FAIL). Dipakai lr_end_transaction(..., LR_AUTO) berikutnya. Transaksi yang tidak
+ * terbuka (belum dimulai / sudah ditutup): warning, tanpa efek. Status selain PASS/FAIL diabaikan.
+ */
+export function lr_set_transaction_status_by_name(status, name) {
+  const { transactions, log } = needCtx();
+  const result = explicitTransactionStatus(status);
+  const transaction = transactions.get(String(name));
+  if (!result) {
+    log("warn", `lr_set_transaction_status_by_name: status ${status} tidak valid (harus LR_PASS/LR_FAIL)`);
+    return 1;
+  }
+  if (!transaction) {
+    log("warn", `lr_set_transaction_status_by_name: transaksi "${name}" tidak sedang terbuka`);
+    return 1;
+  }
+  transaction.forced = result;
+  log("info", `lr_set_transaction_status_by_name: ${name} -> ${result}`);
+  return 0;
+}
+
+/** lr_set_transaction_status(status) — seperti _by_name, untuk transaksi terbuka paling dalam */
+export function lr_set_transaction_status(status) {
+  const name = innermostTransaction();
+  if (name === null) {
+    needCtx().log("warn", "lr_set_transaction_status: tidak ada transaksi terbuka");
+    return 1;
+  }
+  return lr_set_transaction_status_by_name(status, name);
+}
+
 /** LR_FAIL (1) bila transaksi itu gagal (terbuka atau sudah selesai), selain itu LR_PASS (0) */
 export function lr_get_transaction_status(name) {
   const { transactions, transactionResults } = needCtx();
   const open = transactions.get(name);
-  if (open) return open.failed ? 1 : 0;
+  if (open) return autoResult(open) === "Fail" ? 1 : 0;
   return transactionResults.get(name) === "Fail" ? 1 : 0;
 }
 
@@ -1071,7 +1120,15 @@ async function handleResponse(stepName, resp, type, snapshotName) {
   const problems = [];
   /** Hard failures: selalu stop, abaikan continueOnError (misal: NotFound=Error di web_reg_save_param_json) */
   const hardProblems = [];
-  if (resp.status >= 400) problems.push(`HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""}`);
+  lastHttpInfo = { status: resp.status, downloadSize: resp.size ?? 0, downloadTimeMs: Math.round(resp.durationMs || 0) };
+  if (resp.status >= 400) {
+    const httpProblem = `HTTP ${resp.status}${resp.statusText ? ` ${resp.statusText}` : ""}`;
+    // web_set_rts_key("key=HttpErrorsAsWarnings", "Value=1"): error HTTP hanya warning, step tetap lanjut
+    // Nilai awal dari Runtime Settings (default.cfg); web_set_rts_key menimpanya selama run
+    const asWarnings = rtsKeys.has("httperrorsaswarnings") ? rtsKeys.get("httperrorsaswarnings") === "1" : c.runOptions?.httpErrorsAsWarnings === true;
+    if (asWarnings) log("warn", `${type} "${stepName}": ${httpProblem} (HttpErrorsAsWarnings=1 -> warning)`);
+    else problems.push(httpProblem);
+  }
 
   // Process correlations: extract values and save to params
   try {
@@ -1245,6 +1302,37 @@ export function lr_end_timer(handle) {
   if (start === undefined) return 0;
   timerStore.delete(handle);
   return (performance.now() - start) / 1000;
+}
+
+/**
+ * web_set_rts_key — override Run-Time Settings lewat script (fungsi LoadRunner yang tidak
+ * terdokumentasi resmi). Argumen: "key=<Nama>", "Value=<nilai>", LAST.
+ * Yang berefek di runtime ini: `HttpErrorsAsWarnings` (Value=1 -> response HTTP >= 400 dicatat
+ * sebagai warning, tidak menggagalkan step/transaksi; Value=0 mengembalikan perilaku normal).
+ * Key lain disimpan & dicatat di log tanpa efek.
+ */
+export function web_set_rts_key(...args) {
+  const { log } = needCtx();
+  const opts = parseWebArgs(args);
+  const entries = Object.entries(opts);
+  const find = (name) => entries.find(([k]) => k.toLowerCase() === name)?.[1];
+  const key = find("key");
+  const value = find("value");
+  if (!key) return concludeFailure("web_set_rts_key", "", 'atribut "key=" wajib');
+  rtsKeys.set(String(key).trim().toLowerCase(), String(value ?? "").trim());
+  const effective = String(key).trim().toLowerCase() === "httperrorsaswarnings";
+  log("info", `web_set_rts_key: ${key} = ${value ?? ""}${effective ? "" : " (tidak berefek di runtime ini)"}`);
+  return 0;
+}
+
+/** web_get_int_property — kode 1=status, 2/6=ukuran, 3=waktu (lihat HTTP_INFO_* di transpile.js) — properti response HTTP terakhir (status code, ukuran, waktu download) */
+export function web_get_int_property(type) {
+  switch (Number(type)) {
+    case 1: return lastHttpInfo.status;
+    case 2: case 6: return lastHttpInfo.downloadSize;
+    case 3: return lastHttpInfo.downloadTimeMs;
+    default: return 0;
+  }
 }
 
 /** web_set_max_html_param_len — set max HTML parameter length */

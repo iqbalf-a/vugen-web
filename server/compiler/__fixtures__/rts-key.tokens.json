@@ -1,0 +1,473 @@
+{
+  "file": "rts-key.c",
+  "tokens": [
+    {
+      "type": "identifier",
+      "value": "void",
+      "line": 1,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "SetRpsResult",
+      "line": 1,
+      "col": 6
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 1,
+      "col": 18
+    },
+    {
+      "type": "identifier",
+      "value": "int",
+      "line": 1,
+      "col": 19
+    },
+    {
+      "type": "identifier",
+      "value": "httpCode",
+      "line": 1,
+      "col": 23
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 1,
+      "col": 31
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 2,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "if",
+      "line": 3,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 3,
+      "col": 5
+    },
+    {
+      "type": "identifier",
+      "value": "httpCode",
+      "line": 3,
+      "col": 6
+    },
+    {
+      "type": "punct",
+      "value": "==",
+      "line": 3,
+      "col": 15
+    },
+    {
+      "type": "number",
+      "value": "200",
+      "line": 3,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": "||",
+      "line": 3,
+      "col": 22
+    },
+    {
+      "type": "identifier",
+      "value": "httpCode",
+      "line": 3,
+      "col": 25
+    },
+    {
+      "type": "punct",
+      "value": "==",
+      "line": 3,
+      "col": 34
+    },
+    {
+      "type": "number",
+      "value": "409",
+      "line": 3,
+      "col": 37
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 3,
+      "col": 40
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 3,
+      "col": 42
+    },
+    {
+      "type": "identifier",
+      "value": "lr_set_transaction_status_by_name",
+      "line": 4,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 4,
+      "col": 36
+    },
+    {
+      "type": "identifier",
+      "value": "LR_PASS",
+      "line": 4,
+      "col": 37
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 4,
+      "col": 44
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 4,
+      "col": 46
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 4,
+      "col": 60
+    },
+    {
+      "type": "string",
+      "value": "{transName}",
+      "line": 4,
+      "col": 61
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 4,
+      "col": 74
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 4,
+      "col": 75
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 4,
+      "col": 76
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 5,
+      "col": 2
+    },
+    {
+      "type": "identifier",
+      "value": "else",
+      "line": 5,
+      "col": 4
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 5,
+      "col": 9
+    },
+    {
+      "type": "identifier",
+      "value": "lr_set_transaction_status_by_name",
+      "line": 6,
+      "col": 3
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 6,
+      "col": 36
+    },
+    {
+      "type": "identifier",
+      "value": "LR_FAIL",
+      "line": 6,
+      "col": 37
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 6,
+      "col": 44
+    },
+    {
+      "type": "identifier",
+      "value": "lr_eval_string",
+      "line": 6,
+      "col": 46
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 6,
+      "col": 60
+    },
+    {
+      "type": "string",
+      "value": "{transName}",
+      "line": 6,
+      "col": 61
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 6,
+      "col": 74
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 6,
+      "col": 75
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 6,
+      "col": 76
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 7,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 8,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "Action",
+      "line": 10,
+      "col": 1
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 10,
+      "col": 7
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 10,
+      "col": 8
+    },
+    {
+      "type": "punct",
+      "value": "{",
+      "line": 11,
+      "col": 1
+    },
+    {
+      "type": "identifier",
+      "value": "web_set_rts_key",
+      "line": 12,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 12,
+      "col": 17
+    },
+    {
+      "type": "string",
+      "value": "key=HttpErrorsAsWarnings",
+      "line": 12,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 12,
+      "col": 44
+    },
+    {
+      "type": "string",
+      "value": "Value=1",
+      "line": 12,
+      "col": 46
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 12,
+      "col": 55
+    },
+    {
+      "type": "identifier",
+      "value": "LAST",
+      "line": 12,
+      "col": 57
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 12,
+      "col": 61
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 12,
+      "col": 62
+    },
+    {
+      "type": "identifier",
+      "value": "SetRpsResult",
+      "line": 13,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 13,
+      "col": 14
+    },
+    {
+      "type": "identifier",
+      "value": "web_get_int_property",
+      "line": 13,
+      "col": 15
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 13,
+      "col": 35
+    },
+    {
+      "type": "identifier",
+      "value": "HTTP_INFO_RETURN_CODE",
+      "line": 13,
+      "col": 36
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 13,
+      "col": 57
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 13,
+      "col": 58
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 13,
+      "col": 59
+    },
+    {
+      "type": "identifier",
+      "value": "web_set_rts_key",
+      "line": 14,
+      "col": 2
+    },
+    {
+      "type": "punct",
+      "value": "(",
+      "line": 14,
+      "col": 17
+    },
+    {
+      "type": "string",
+      "value": "key=HttpErrorsAsWarnings",
+      "line": 14,
+      "col": 18
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 14,
+      "col": 44
+    },
+    {
+      "type": "string",
+      "value": "Value=0",
+      "line": 14,
+      "col": 46
+    },
+    {
+      "type": "punct",
+      "value": ",",
+      "line": 14,
+      "col": 55
+    },
+    {
+      "type": "identifier",
+      "value": "LAST",
+      "line": 14,
+      "col": 57
+    },
+    {
+      "type": "punct",
+      "value": ")",
+      "line": 14,
+      "col": 61
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 14,
+      "col": 62
+    },
+    {
+      "type": "identifier",
+      "value": "return",
+      "line": 15,
+      "col": 2
+    },
+    {
+      "type": "number",
+      "value": "0",
+      "line": 15,
+      "col": 9
+    },
+    {
+      "type": "punct",
+      "value": ";",
+      "line": 15,
+      "col": 10
+    },
+    {
+      "type": "punct",
+      "value": "}",
+      "line": 16,
+      "col": 1
+    },
+    {
+      "type": "eof",
+      "value": "",
+      "line": 17,
+      "col": 1
+    }
+  ]
+}

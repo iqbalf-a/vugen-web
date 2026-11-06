@@ -235,9 +235,9 @@ export async function addFileParameter(scriptDir, paramDef) {
 
   const trimmedName = name.trim();
 
-  // Cek duplikat parameter
+  // Cek duplikat: hanya parameter yang sudah terdaftar di .prm (bukan hanya dari .dat)
   const project = await loadProject(scriptDir);
-  if (project.parameters.some((p) => p.name === trimmedName)) {
+  if (project.parameters.some((p) => p.name === trimmedName && p.prmFile !== null)) {
     throw new HttpError(409, `Parameter "${trimmedName}" already exists.`);
   }
 
@@ -255,22 +255,24 @@ export async function addFileParameter(scriptDir, paramDef) {
     }
   }
 
-  // Tulis file .dat (nama file = nama parameter)
   const datFileName = `${trimmedName}.dat`;
   const datAbsolute = path.join(scriptDir, datFileName);
+  const rows = values.map((v) => String(v)).filter((v) => v !== "");
+
+  // Tulis .dat hanya jika belum ada (recovery: .dat dari write sebelumnya yang gagal di .prm)
+  let datExists = false;
   try {
     await fs.access(datAbsolute);
-    throw new HttpError(409, `File ${datFileName} already exists. Rename the existing file or choose a different parameter name.`);
-  } catch (err) {
-    if (err instanceof HttpError) throw err;
-    // File belum ada — lanjut
+    datExists = true;
+  } catch {
+    // belum ada — lanjut tulis
+  }
+  if (!datExists) {
+    const datContent = [trimmedName, ...rows].join("\r\n") + "\r\n";
+    await fs.writeFile(datAbsolute, datContent, "utf8");
   }
 
-  const rows = values.map((v) => String(v)).filter((v) => v !== "");
-  const datContent = [trimmedName, ...rows].join("\r\n") + "\r\n";
-  await fs.writeFile(datAbsolute, datContent, "utf8");
-
-  // Tambah seksi .prm
+  // Tambah/update seksi .prm
   const scriptName = path.basename(scriptDir);
   const prmFileName = `${scriptName}.prm`;
   const prmAbsolute = path.join(scriptDir, prmFileName);
@@ -291,17 +293,29 @@ export async function addFileParameter(scriptDir, paramDef) {
   const snrToken = selectNextRow === "SameLine"
     ? `Same line as ${sameLineAs}`
     : selectNextRow;
-  const section =
-    `${eol}[parameter:${trimmedName}]${eol}` +
-    `Type="Table"${eol}` +
-    `Table="${datFileName}"${eol}` +
-    `ColumnName="${trimmedName}"${eol}` +
-    `SelectNextRow="${snrToken}"${eol}` +
-    `GenerateNewVal="${updateValueOn}"${eol}` +
-    `OutOfRangePolicy="${orp}"${eol}`;
 
-  await atomicWrite(prmAbsolute, Buffer.from(existing + section, "latin1"));
-  return { name: trimmedName, type: "Table", file: datFileName, rows: rows.length };
+  let next;
+  // Jika section sudah ada di .prm (tapi .dat-nya belum ada), update bukan append
+  if (setParameterKeys(existing, trimmedName, {}) !== null) {
+    next = setParameterKeys(existing, trimmedName, {
+      SelectNextRow: snrToken,
+      GenerateNewVal: updateValueOn,
+      OutOfRangePolicy: orp,
+    });
+  } else {
+    const section =
+      `${eol}[parameter:${trimmedName}]${eol}` +
+      `Type="Table"${eol}` +
+      `Table="${datFileName}"${eol}` +
+      `ColumnName="${trimmedName}"${eol}` +
+      `SelectNextRow="${snrToken}"${eol}` +
+      `GenerateNewVal="${updateValueOn}"${eol}` +
+      `OutOfRangePolicy="${orp}"${eol}`;
+    next = existing + section;
+  }
+
+  await atomicWrite(prmAbsolute, Buffer.from(next, "latin1"));
+  return { name: trimmedName, type: "Table", file: datFileName, rows: datExists ? project.parameters.find((p) => p.name === trimmedName)?.rows ?? rows.length : rows.length };
 }
 
 const VALID_TYPES = new Set(["Time", "GroupName", "Userid", "Machine", "IterationNumber", "Custom", "RndNum", "UniqueNumber"]);

@@ -29,6 +29,7 @@ import { createTransactionsPanel } from "./components/transactionsPanel.js";
 import { createParamBar } from "./components/paramBar.js";
 import { openParamModal } from "./components/paramModal.js";
 import { createToolboxPanel } from "./components/toolboxPanel.js";
+import { createSearchPanel } from "./components/searchPanel.js";
 import { createRunSettings } from "./components/runSettings.js";
 import { toggleLibraryPicker } from "./components/libraryPicker.js";
 import { showOpeningDialog, completeOpeningDialog, failOpeningDialog } from "./components/openingDialog.js";
@@ -55,6 +56,7 @@ const els = {
   logPanel: document.querySelector("#logPanel"),
   transactionsPanel: document.querySelector("#transactionsPanel"),
   toolboxPanel: document.querySelector("#toolboxPanel"),
+  searchPanel: document.querySelector("#searchPanel"),
   panelTabBar: document.querySelector("#panelTabBar"),
   paramsSectionBtn: document.querySelector("#paramsSectionBtn"),
   panelContainer: document.querySelector("#panelContainer"),
@@ -90,6 +92,15 @@ paramsSectionBtn?.addEventListener("click", () => {
       store.set({ project: fresh, health: "ok", status: `Parameter {${paramDef.name}} added.` });
       return fresh.parameters;
     } catch (error) {
+      // Jika parameter sudah ada di disk tapi belum terlihat di modal (store stale),
+      // refresh project dulu agar user bisa melihat parameter yang sudah ada.
+      if (error?.message?.includes("already exists")) {
+        try {
+          const fresh = await openProject(project.path);
+          store.set({ project: fresh });
+          error._freshParams = fresh.parameters;
+        } catch { /* ignore refresh error */ }
+      }
       store.set({ health: "error", status: `Failed to add {${paramDef.name}}: ${messageOf(error)}` });
       throw error;
     }
@@ -300,6 +311,7 @@ const panelTabs = [
   { id: "log", label: "Log", el: els.logPanel },
   { id: "transactions", label: "Transactions", el: els.transactionsPanel },
   { id: "toolbox", label: "Toolbox", el: els.toolboxPanel },
+  { id: "search", label: "Search", el: els.searchPanel },
 ];
 let activePanelId = "snapshot";
 
@@ -337,6 +349,15 @@ createParameterPanel(els.parameterPanel);
 createLogPanel(els.logPanel);
 createTransactionsPanel(els.transactionsPanel);
 createToolboxPanel(els.toolboxPanel);
+const searchPanelApi = createSearchPanel(els.searchPanel);
+
+// Wire search panel ↔ editor
+searchPanelApi.setGoToHandler((from, to) => editor.goToPosition(from, to));
+searchPanelApi.setRunHandler((text, opts) => editor.findAll(text, opts));
+editor.setFindAllHandler((matches, query) => {
+  searchPanelApi.populate(matches, query);
+  switchPanel("search");
+});
 
 // ── Profile dropdown ──────────────────────────────────────────────────────────
 const profileBtn = document.querySelector("#profileBtn");
@@ -615,7 +636,7 @@ function renderTabs() {
 
   const beautifyBtn = document.createElement("button");
   beautifyBtn.type = "button";
-  beautifyBtn.title = "Beautify (reformat indentation)";
+  beautifyBtn.title = "Beautify (Shift+Alt+F)";
   beautifyBtn.className = "flex items-center gap-1 rounded px-2 py-1 text-[11px] font-sans text-[#5b6572] hover:text-[#9aa7b8] transition-colors";
   beautifyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h3M7 4h7M2 8h7M11 8h3M2 12h5M9 12h5"/></svg><span>Beautify</span>`;
   beautifyBtn.addEventListener("click", () => {

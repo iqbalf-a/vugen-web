@@ -76,6 +76,8 @@ function formatHeaders(headers) {
 
 /** State lokal panel: toggle "Load resources" untuk HTML response */
 let loadResources = false;
+/** Tampilkan HTML mentah (teks) alih-alih iframe */
+let showRawHtml = false;
 
 /** Bangun dokumen HTML untuk iframe sandbox (dipasang lewat DOM API, bukan innerHTML) */
 function buildSnapshotDoc(text, withResources) {
@@ -236,6 +238,9 @@ function renderRequestTab(snapReq) {
 
 /** Render tab content for Response */
 function renderResponseTab(resp, contentHtml, category, text) {
+  const effectiveHtml = (category === 'html' && showRawHtml)
+    ? renderContent(text, 'text', { contentType: resp.contentType, size: text.length })
+    : contentHtml;
   const respStatus = resp.status || '-';
   const respSize = resp.size ? `${(resp.size / 1024).toFixed(1)} KB` : '-';
 
@@ -243,14 +248,18 @@ function renderResponseTab(resp, contentHtml, category, text) {
     <div class="flex items-center gap-2 p-2">
       <span class="rounded px-2 py-0.5 text-[11px] text-white ${respStatus >= 400 ? 'bg-red-600' : 'bg-green-600'}">${escapeHtml(statusLabel(resp.status, resp.statusText))}</span>
       <span class="text-[11px] text-[#7d8896]">${escapeHtml(resp.contentType || '-')} • ${escapeHtml(respSize)}</span>
-      ${category === 'html' ? `<label class="ml-auto flex cursor-pointer items-center gap-1 text-[11px] text-gray-400"><input type="checkbox" data-load-resources class="accent-blue-500" ${loadResources ? 'checked' : ''}> Load resources</label>` : ''}
+      ${category === 'html' ? `
+        <div class="ml-auto flex items-center gap-2">
+          <button type="button" data-toggle-raw-html class="h-5 shrink-0 rounded-[3px] border px-2 text-[10px] leading-none ${showRawHtml ? 'border-[#d2a24c] text-[#d2a24c]' : 'border-[#2a3644] text-[#aab4c0] hover:border-[#d2a24c] hover:text-[#d2a24c]'}">${showRawHtml ? 'Rendered' : 'Raw'}</button>
+          ${!showRawHtml ? `<label class="flex cursor-pointer items-center gap-1 text-[11px] text-gray-400"><input type="checkbox" data-load-resources class="accent-blue-500" ${loadResources ? 'checked' : ''}> Load resources</label>` : ''}
+        </div>` : ''}
     </div>`;
 
   return `
     <div class="space-y-4">
       ${section("Response", "", null, statusLine)}
       ${headersSection(resp.headers)}
-      ${bodySection(text, category, contentHtml, respSize)}
+      ${bodySection(text, category === 'html' && showRawHtml ? 'text' : category, effectiveHtml, respSize)}
     </div>
   `;
 }
@@ -393,11 +402,15 @@ async function renderSnapshot() {
     </div>
   `;
 
-  // Pasang iframe sandbox HTML (DOM API) + toggle Load resources
+  // Pasang iframe sandbox HTML (DOM API) + toggle Load resources + toggle Raw HTML
   const frameSlot = root.querySelector('[data-html-frame]');
   if (frameSlot) mountHtmlFrame(frameSlot, text);
   root.querySelector('[data-load-resources]')?.addEventListener('change', (e) => {
     loadResources = e.target.checked;
+    renderSnapshot();
+  });
+  root.querySelector('[data-toggle-raw-html]')?.addEventListener('click', () => {
+    showRawHtml = !showRawHtml;
     renderSnapshot();
   });
 
@@ -457,7 +470,10 @@ function onStateChange() {
     const runChanged = state.currentRun !== currentRun;
     currentStep = state.selectedStep;
     currentRun = state.currentRun;
-    if (stepChanged || runChanged) renderSnapshot();
+    if (stepChanged || runChanged) {
+      if (stepChanged) showRawHtml = false;
+      renderSnapshot();
+    }
   }
 }
 

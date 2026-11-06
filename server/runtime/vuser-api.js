@@ -84,6 +84,23 @@ export function lr_save_string(value, name) {
   return 0;
 }
 
+/**
+ * Simpan Unix timestamp (epoch detik) ke parameter.
+ * lr_save_timestamp("paramName", LAST)
+ * Atribut opsional: "Format=<seconds|mseconds>" (default: seconds), "Offset=<detik>"
+ */
+export function lr_save_timestamp(paramName, ...attrs) {
+  const { params, log } = needCtx();
+  const opts = parseWebArgs(attrs);
+  const format = (opts.Format || "seconds").toLowerCase();
+  const offset = parseInt(opts.Offset || "0", 10) || 0;
+  const nowMs = Date.now() + offset * 1000;
+  const value = format === "mseconds" ? String(nowMs) : String(Math.floor(nowMs / 1000));
+  params.set(paramName, value, "lr_save_timestamp");
+  log("info", `lr_save_timestamp: ${paramName} = "${value}"`);
+  return 0;
+}
+
 /** Set parameter dari nilai integer (lr_save_int) — disimpan sebagai string desimal */
 export function lr_save_int(value, name) {
   const { params, log } = needCtx();
@@ -593,26 +610,34 @@ export async function web_submit_data(name, ...args) {
 
   const contentType = mergeRequestHeaders(opts.headers)["content-type"] || "application/x-www-form-urlencoded";
 
-  // Build body
+  // GET: ITEMDATA menjadi URL query parameters (body pada GET diabaikan server)
+  // POST/PUT/PATCH: ITEMDATA menjadi request body
+  let finalUrl = substituteParams(url);
   let body = "";
-  if (contentType.includes("application/x-www-form-urlencoded")) {
-    body = formData.map(f => `${encodeURIComponent(f.name)}=${encodeURIComponent(substituteParams(f.value))}`).join("&");
-  } else if (contentType.includes("multipart/form-data")) {
-    log("warn", `web_submit_data: multipart/form-data not fully supported, using urlencoded`);
+
+  if (method === "GET" || method === "HEAD" || method === "DELETE") {
+    if (formData.length > 0) {
+      const qs = formData.map(f => `${encodeURIComponent(f.name)}=${encodeURIComponent(substituteParams(f.value))}`).join("&");
+      finalUrl += (finalUrl.includes("?") ? "&" : "?") + qs;
+    }
+  } else {
+    if (contentType.includes("multipart/form-data")) {
+      log("warn", `web_submit_data: multipart/form-data not fully supported, using urlencoded`);
+    }
     body = formData.map(f => `${encodeURIComponent(f.name)}=${encodeURIComponent(substituteParams(f.value))}`).join("&");
   }
 
-  log("info", `web_submit_data: ${name} ${method} -> ${url} (${formData.length} fields)`);
+  log("info", `web_submit_data: ${name} ${method} -> ${finalUrl} (${formData.length} fields)`);
 
   return sendRequest({
     type: "web_submit_data",
     name,
     snapshotName: opts.Snapshot,
     method,
-    url,
+    url: finalUrl,
     explicitHeaders: opts.headers,
-    defaultContentType: contentType,
-    body,
+    defaultContentType: method === "GET" ? undefined : contentType,
+    body: method === "GET" ? undefined : body,
   });
 }
 
@@ -678,7 +703,8 @@ export function web_reg_save_param_ex(...args) {
 
 /**
  * web_reg_save_param_regexp — Regex-based correlation.
- * Argumen: "ParamName=...", "RegExp=...", "Ord=...", LAST
+ * Argumen: "ParamName=...", "RegExp=...", "Group=...", "Ord=...", LAST
+ * Group=N — capture group ke-N (default 1); Ord=N — kemunculan ke-N dari regex (default 1).
  */
 export function web_reg_save_param_regexp(...args) {
   const { log } = needCtx();
@@ -696,12 +722,14 @@ export function web_reg_save_param_regexp(...args) {
     lb: "",
     rb: "",
     ord: parseInt(opts.Ord || opts.ord || "1", 10),
+    group: parseInt(opts.Group || opts.group || "1", 10),
     regexp,
+    scope: (opts.Scope || opts.scope || "BODY").toUpperCase(),
     saveParam: opts.SaveParam || opts.saveparam || paramName,
   };
 
   correlationRegistry.push(rule);
-  log("info", `web_reg_save_param_regexp: registered "${paramName}" RegExp="${regexp}" Ord=${rule.ord}`);
+  log("info", `web_reg_save_param_regexp: registered "${paramName}" RegExp="${regexp}" Group=${rule.group} Ord=${rule.ord} Scope=${rule.scope}`);
   return 0;
 }
 
@@ -1012,13 +1040,22 @@ function extractCorrelation(rule, bodyText) {
   if (rule.regexp) {
     let regex;
     try {
-      regex = new RegExp(rule.regexp);
+      regex = new RegExp(rule.regexp, "g");
     } catch (error) {
       return { error: `RegExp tidak valid (${error.message})` };
     }
-    const matches = bodyText.match(regex);
-    if (matches && matches.length > rule.ord) return { value: matches[rule.ord] };
-    if (matches && matches.length > 0) return { value: matches[0] };
+    const targetOrd = rule.ord || 1;
+    const targetGroup = rule.group || 1;
+    let count = 0;
+    let m;
+    while ((m = regex.exec(bodyText)) !== null) {
+      count++;
+      if (count === targetOrd) {
+        return { value: m.length > targetGroup ? m[targetGroup] : m[0] };
+      }
+      // hindari infinite loop pada zero-length match
+      if (m.index === regex.lastIndex) regex.lastIndex++;
+    }
     return { value: null };
   }
 
@@ -1074,7 +1111,10 @@ function applyJsonRule(rule, resp, bodyText, contentType, problems, hardProblems
     return;
   }
 
-  const matches = queryJsonPath(document, rule.segments);
+  // Prioritaskan nilai non-null; kalau semua null (null adalah nilai valid JSON), gunakan semua
+  const allMatches = queryJsonPath(document, rule.segments);
+  const nonNullMatches = allMatches.filter((v) => v !== null);
+  const matches = nonNullMatches.length > 0 ? nonNullMatches : allMatches;
 
   if (rule.selectAll) {
     if (matches.length === 0) return notFound(`QueryString ${rule.query} tidak ditemukan`);
@@ -1346,6 +1386,24 @@ export function web_set_max_html_param_len(len) {
 export function web_set_sockets_option(option, value) {
   const { log } = needCtx();
   log("info", `web_set_sockets_option: ${option} = ${value}`);
+  return 0;
+}
+
+/** web_set_option — set web options (e.g. MaxRedirectionDepth) */
+export function web_set_option(...args) {
+  const { log, http } = needCtx();
+  const name = args[0];
+  const value = args[1];
+  if (name === "MaxRedirectionDepth") {
+    const depth = parseInt(value, 10);
+    if (!isNaN(depth) && http) {
+      http.maxRedirects = depth;
+      http.defaultFollowRedirects = depth > 0;
+    }
+    log("info", `web_set_option: MaxRedirectionDepth = ${depth}`);
+  } else {
+    log("info", `web_set_option: ${name} = ${value} (no-op)`);
+  }
   return 0;
 }
 

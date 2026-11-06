@@ -850,14 +850,20 @@ function renderAddForm(footer, onAdd, onBack, allParams) {
       try {
         const updatedParams = await onAdd(def);
         if (updatedParams) {
-          parameters.length = 0;
-          parameters.push(...updatedParams);
+          allParams.length = 0;
+          allParams.push(...updatedParams);
         }
         onBack();
       } catch (err) {
         if (errorEl) {
           errorEl.textContent = err?.message || "Failed to add parameter.";
           errorEl.classList.remove("hidden");
+        }
+        // Jika backend me-refresh parameter (misalnya 409 "already exists"),
+        // update list modal agar user bisa melihat parameter yang sudah ada.
+        if (err?._freshParams) {
+          allParams.length = 0;
+          allParams.push(...err._freshParams);
         }
       } finally {
         saveBtn.disabled = false;

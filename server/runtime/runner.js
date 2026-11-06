@@ -147,7 +147,12 @@ function initParameterFiles(parameters) {
         vu.params.set(name, String(state.uniqueCounter++), `UniqueNumber start=${startValue}`);
         break;
       default: // Table
-        if (values.length > 0) vu.params.set(name, values[0], `.dat: ${file}`);
+        if (values.length > 0) {
+          vu.params.set(name, values[0], `.dat: ${file}`);
+        } else {
+          vu.params.set(name, "", `.dat: ${file} (no data rows)`);
+          vu.log("warn", `Parameter "${name}": no data rows in ${file || "unknown"}`);
+        }
         break;
     }
   }
